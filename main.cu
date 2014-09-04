@@ -193,6 +193,40 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pA[0]));
 		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pA[1]));
 		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pA[2]));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->ml[0]));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->ml[1]));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->ml[2]));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->FP[0]));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->FP[1]));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->FP[2]));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->FX[0]));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->FX[1]));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->FX[2]));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->T_En));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->T_Es));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->TH));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->netRHO));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->a_00));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->a_90));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->le));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->vint_size));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->rNRG_size));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->lag));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->id));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->nIFO));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->V));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->V4));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->hist));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pwc));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->nLikelihood));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->wdmMRA));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pNRG));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->count));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->finish));
+	}		
+		
+		
+		
 	}
 }
 		
