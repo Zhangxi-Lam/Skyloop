@@ -1,0 +1,14 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+CWB_Plugin	CWB_Plugin_supercluster.C	/^CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TString ifo, int type)  {$/;"	f
+CWB_Plugin	CWB_Plugin_supercluster_bench.C	/^CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TString ifo, int type)  {$/;"	f
+PrintElapsedTime	CWB_Plugin_supercluster_bench.C	/^PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info) {$/;"	f
+USE_LOCAL_SUBNETCUT	CWB_Plugin_supercluster_bench.C	26;"	d	file:
+XIFO	CWB_Plugin_supercluster.C	1;"	d	file:
+XIFO	CWB_Plugin_supercluster_bench.C	1;"	d	file:
+_sse_MRA_ps	CWB_Plugin_supercluster_bench.C	/^inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {$/;"	f
+subNetCut	CWB_Plugin_supercluster_bench.C	/^long subNetCut(network* net, int lag, float snc, TH2F* hist)$/;"	f
