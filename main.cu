@@ -79,14 +79,14 @@ void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_
 	for( int i = 0; i<StreamNum; i++)
 	{	
 		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->rE, eTDDim * sizeof(float) ) );
-	    CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->pE, eTDDim * sizeof(float) ) );
-        CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->Eo, mlDim * sizeof(float) ) );
-	    CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->En, mlDim * sizeof(float) ) );
-        CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->Es, mlDim * sizeof(float) ) );
-	    CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->Mm, mlDim * sizeof(int) ) );
-        CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->eTD[0], eTDDim * sizeof(float) ) );
-	    CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->eTD[1], eTDDim * sizeof(float) ) );
-        CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->eTD[2], eTDDim * sizeof(float) ) );
+	    	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->pE, eTDDim * sizeof(float) ) );
+        	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->Eo, mlDim * sizeof(float) ) );
+	    	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->En, mlDim * sizeof(float) ) );
+        	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->Es, mlDim * sizeof(float) ) );
+	    	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->Mm, mlDim * sizeof(int) ) );
+        	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->eTD[0], eTDDim * sizeof(float) ) );
+	    	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->eTD[1], eTDDim * sizeof(float) ) );
+        	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->eTD[2], eTDDim * sizeof(float) ) );
 		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->pa[0], eTDDim * sizeof(float) ) );
 		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->pa[1], eTDDim * sizeof(float) ) );
 		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->pa[2], eTDDim * sizeof(float) ) );
@@ -237,7 +237,7 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 	}
 }
 		
-void cleanup_cpu_mem(struct skyloop_output *skyloop_output)
+//void cleanup_cpu_mem(struct skyloop_output *skyloop_output)
 
 __host__ void push_work_into_gpu(struct pre_data *input_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, struct post_data *post_gpu_data, int work_size, int eTDDim, int mlDim, int Lsky, cudaStream_t *stream)
 {
