@@ -34,12 +34,12 @@ void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_
 {
 	for(int i = 0; i<BufferNum; i++)
 	{
-		CUDA_CHECK(cudaMallocHost(&(pre_gpu_data[i].other_data->T_En), eTDDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMallocHost(&(pre_gpu_data[i].other_data.T_En), eTDDim * sizeof(float) ) );
 		cout<<"alloc eTD"<<endl;
 	}
 	for( int i = 0; i<StreamNum; i++)
 	{	
-		CUDA_CHECK(cudaMallocHost(&(post_gpu_data[i].output->rE), eTDDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMallocHost(&(post_gpu_data[i].output.rE), eTDDim * sizeof(float) ) );
 		cout<<"alloc rE"<<endl;
 	}
 		return;
@@ -59,19 +59,19 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 {
  	for(int i=0; i<BufferNum; i++)
 	{
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->T_En));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.T_En));
 		cout<<"cleanup eTD"<<endl;
 	}		
 	for( int i = 0; i<StreamNum; i++)
 	{		
-		CUDA_CHECK(cudaFreeHost(&post_gpu_data[i].output->rE));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.rE));
 		cout<<"cleanup rE"<<endl;
 	}
 }
 		
 //void cleanup_cpu_mem(struct skyloop_output *skyloop_output)
 
-__host__ void push_work_into_gpu(struct pre_data *input_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, struct post_data *post_gpu_data, int work_size, int eTDDim, int mlDim, int Lsky, cudaStream_t *stream)
+/*__host__ void push_work_into_gpu(struct pre_data *input_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, struct post_data *post_gpu_data, int work_size, int eTDDim, int mlDim, int Lsky, cudaStream_t *stream)
 {
         for(int i = 0; i<work_size ; i++)
         {
@@ -575,4 +575,4 @@ void _skyloop(float **pe, size_t V4, float T_En, float T_Es, float *rE, float *p
          Ls = vvv[0]+vvv[1]+vvv[2]+vvv[3];             // subnetwork energy
          _mm_storeu_ps(vvv,_M_m);
 	     m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold
-}
+}*/

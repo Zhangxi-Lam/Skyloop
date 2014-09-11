@@ -44,10 +44,10 @@ struct other                                    //the variable that not use in G
 };
 struct pre_data
 {
-        struct other *other_data;
+        struct other other_data;
 };
 struct post_data
 {
-        struct skyloop_output *output;
-        struct other *other_data;
+        struct skyloop_output output;
+        struct other other_data;
 };
