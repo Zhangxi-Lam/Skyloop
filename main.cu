@@ -34,7 +34,7 @@ void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_
 {
 	for(int i = 0; i<BufferNum; i++)
 	{
-		CUDA_CHECK(cudaMallocHost(&(pre_gpu_data[i].other_data->eTD[0]), eTDDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMallocHost(&(pre_gpu_data[i].other_data->T_En), eTDDim * sizeof(float) ) );
 		cout<<"alloc eTD"<<endl;
 	}
 	for( int i = 0; i<StreamNum; i++)
@@ -59,7 +59,7 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 {
  	for(int i=0; i<BufferNum; i++)
 	{
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->eTD[0]));
+		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->T_En));
 		cout<<"cleanup eTD"<<endl;
 	}		
 	for( int i = 0; i<StreamNum; i++)
