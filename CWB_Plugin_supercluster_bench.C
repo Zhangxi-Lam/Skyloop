@@ -27,7 +27,8 @@
 long subNetCut(network* net, int lag, float snc, TH2F* hist);
 inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K);
 void PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info);
-
+void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky);// allocate locked memory on CPU 
+void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data);
 #define USE_LOCAL_SUBNETCUT	// comment to use the builtin implementation of subNetCut
 
 void 
@@ -40,6 +41,17 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
   cout << "ifo " << ifo.Data() << endl;
   cout << "type " << type << endl;
   cout << endl;
+//
+	struct pre_data pre_gpu_data[BufferNum];
+	struct post_data post_gpu_data[StreamNum];
+	int eTDDim = 1000;
+	int mlDim = 1000;
+	int Lsky = 1000;
+	
+	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);
+	cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
+//
+//
 
   if(type==CWB_PLUGIN_CONFIG) {  
     cfg->scPlugin=true;  	// disable built-in supercluster function
@@ -309,14 +321,11 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 	eTDDim = XIFO * Vmax;
 	
 	// load cuda code generated shared library
-	gROOT->LoadMacro("/home/hpc/cWB/TEST/S6A_BKG_LF_L1H1V1_2G_SUPERCLUSTER_run1a_bench2/macro/main.so");
 
 	// load cuda header file 
-	gROOT->LoadMacro("/home/hpc/cWB/TEST/S6A_BKG_LF_L1H1V1_2G_SUPERCLUSTER_run1a_bench2/macro/main.cuh++");
 
 	// call function defined in cuda code
 	//void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky);
-	cout<<"cpu mem allocation finish!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
 //+++++++++++++++++++++++++++++++++++++++
 // end of allocating memory on GPU and CPU 
 //+++++++++++++++++++++++++++++++++++++++

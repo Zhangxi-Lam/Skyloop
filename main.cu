@@ -1,4 +1,4 @@
-#include "struct.h"
+#include "/home/hpc/cWB/TEST/S6A_BKG_LF_L1H1V1_2G_SUPERCLUSTER_run1a_bench2/macro/gpu_struct.h"
 #include "main.cuh"
 #include <xmmintrin.h>
 #include "wavearray.hh"
@@ -34,97 +34,13 @@ void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_
 {
 	for(int i = 0; i<BufferNum; i++)
 	{
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->eTD[0], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->eTD[1], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->eTD[2], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->pa[0], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->pa[1], eTDDim * sizeof(float) ) );    
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->pa[2], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->pA[0], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->pA[1], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->pA[2], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->ml[0], mlDim * sizeof(short) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->ml[1], mlDim * sizeof(short) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->ml[2], mlDim * sizeof(short) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->ml[2], mlDim * sizeof(short) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->FP[0], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->FP[1], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->FP[2], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->FX[0], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->FX[1], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->FX[2], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->T_En, sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->T_Es, sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->TH, sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->netRHO, sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->a_00, sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->a_90, sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->le, sizeof(int) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->vint_size, sizeof(int) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->rNRG_size, sizeof(int) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->lag, sizeof(int) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->id, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->nIFO, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->V, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->V4, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->hist, sizeof(class TH2F*) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->pwc, sizeof(class netcluster*) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->nLikelihood, sizeof(class skymap*) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->wdmMRA, sizeof(class monster*) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->pNRG, sizeof(wavearray<float> *) ) );
-//		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->stream_count, sizeof(int) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->count, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&pre_gpu_data[i].other_data->finish, sizeof(bool) ) );
+		CUDA_CHECK(cudaMallocHost(&(pre_gpu_data[i].other_data->eTD[0]), eTDDim * sizeof(float) ) );
+		cout<<"alloc eTD"<<endl;
 	}
 	for( int i = 0; i<StreamNum; i++)
 	{	
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->rE, eTDDim * sizeof(float) ) );
-	    	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->pE, eTDDim * sizeof(float) ) );
-        	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->Eo, mlDim * sizeof(float) ) );
-	    	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->En, mlDim * sizeof(float) ) );
-        	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->Es, mlDim * sizeof(float) ) );
-	    	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].output->Mm, mlDim * sizeof(int) ) );
-        	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->eTD[0], eTDDim * sizeof(float) ) );
-	    	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->eTD[1], eTDDim * sizeof(float) ) );
-        	CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->eTD[2], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->pa[0], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->pa[1], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->pa[2], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->pA[0], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->pA[1], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->pA[2], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->ml[0], mlDim * sizeof(short) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->ml[1], mlDim * sizeof(short) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->ml[2], mlDim * sizeof(short) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->mm, Lsky * sizeof(short) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->FP[0], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->FP[1], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->FP[2], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->FX[0], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->FX[1], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->FX[2], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->T_En, sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->T_Es, sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->TH, sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->netRHO, sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->a_00, sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->a_90, sizeof(float) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->le, sizeof(int) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->vint_size, sizeof(int) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->rNRG_size, sizeof(int) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->lag, sizeof(int) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->id, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->nIFO, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->V, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->V4, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->hist, sizeof(class TH2F*) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->pwc, sizeof(class netcluster*) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->nLikelihood, sizeof(class skymap*) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->wdmMRA, sizeof(class monster*) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->pNRG, sizeof(wavearray<float>*) ) );
-//		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->stream_count, sizeof(int) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->count, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMallocHost((void**)&post_gpu_data[i].other_data->finish, sizeof(bool) ) );
+		CUDA_CHECK(cudaMallocHost(&(post_gpu_data[i].output->rE), eTDDim * sizeof(float) ) );
+		cout<<"alloc rE"<<endl;
 	}
 		return;
 }
@@ -134,47 +50,6 @@ void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skylo
 	for (int i = 0; i<StreamNum; i++)
 	{
 		CUDA_CHECK(cudaMalloc( (void**)&skyloop_output[i].rE, eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_output[i].pE, eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_output[i].Eo, mlDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_output[i].En, mlDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_output[i].Es, mlDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_output[i].Mm, mlDim * sizeof(int) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].pa[0], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].pa[1], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].pa[2], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].pA[0], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].pA[1], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].pA[2], eTDDim * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].ml[0], mlDim * sizeof(short) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].ml[1], mlDim * sizeof(short) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].ml[2], mlDim * sizeof(short) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].FP[0], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].FP[1], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].FP[2], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].FX[0], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].FX[1], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].FX[2], mlDim * sizeof(double) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].T_En, sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].T_Es, sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].TH, sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].netRHO, sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].a_00, sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].a_90, sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].le, sizeof(int) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].vint_size, sizeof(int) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].rNRG_size, sizeof(int) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].lag, sizeof(int) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].id, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].nIFO, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].V, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].V4, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].hist, sizeof(class TH2F*) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].pwc, sizeof(class netcluster*) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].nLikelihood, sizeof(class skymap*) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].wdmMRA, sizeof(class monster*) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].pNRG, sizeof(wavearray<float> *) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].count, sizeof(size_t) ) );
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_other[i].finish, sizeof(bool) ) );
 	}
 	
 	return;
@@ -185,55 +60,12 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
  	for(int i=0; i<BufferNum; i++)
 	{
 		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->eTD[0]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->eTD[1]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->eTD[2]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pa[0]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pa[1]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pa[2]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pA[0]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pA[1]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pA[2]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->ml[0]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->ml[1]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->ml[2]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->FP[0]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->FP[1]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->FP[2]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->FX[0]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->FX[1]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->FX[2]));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->T_En));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->T_Es));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->TH));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->netRHO));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->a_00));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->a_90));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->le));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->vint_size));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->rNRG_size));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->lag));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->id));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->nIFO));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->V));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->V4));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->hist));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pwc));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->nLikelihood));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->wdmMRA));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->pNRG));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->count));
-		CUDA_CHECK(cudaFreeHost(&pre_gpu_data[i].other_data->finish));
+		cout<<"cleanup eTD"<<endl;
 	}		
 	for( int i = 0; i<StreamNum; i++)
 	{		
 		CUDA_CHECK(cudaFreeHost(&post_gpu_data[i].output->rE));
-		CUDA_CHECK(cudaFreeHost(&post_gpu_data[i].output->pE));
-		CUDA_CHECK(cudaFreeHost(&post_gpu_data[i].output->Eo));
-		CUDA_CHECK(cudaFreeHost(&post_gpu_data[i].output->En));
-		CUDA_CHECK(cudaFreeHost(&post_gpu_data[i].output->Es));
-		CUDA_CHECK(cudaFreeHost(&post_gpu_data[i].output->Mm));
-		
-		
+		cout<<"cleanup rE"<<endl;
 	}
 }
 		
