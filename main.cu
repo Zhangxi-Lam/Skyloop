@@ -226,7 +226,25 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 	return;
 }
 
-		
+void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int mlDim, int Lsky)// allocate the memory on GPU
+{
+	for(int i = 0; i<StreamNum; i++)
+	{
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].rE), eTDDim * sizeof(float) ) );	
+		cout<<"alloc gpu"<<endl;
+	}
+}
+
+void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other)// cleanup the memory on GPU
+{
+	for(int i = 0; i<StreamNum; i++)
+	{
+		CUDA_CHECK(cudaFree(skyloop_output[i].rE) );
+		cout<<"cleanup gpu"<<endl;
+	}
+}
+
+
 //void cleanup_cpu_mem(struct skyloop_output *skyloop_output)
 
 /*__host__ void push_work_into_gpu(struct pre_data *input_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, struct post_data *post_gpu_data, int work_size, int eTDDim, int mlDim, int Lsky, cudaStream_t *stream)

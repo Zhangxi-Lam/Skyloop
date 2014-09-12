@@ -29,6 +29,8 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K);
 void PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info);
 void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky);// allocate locked memory on CPU 
 void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data);
+void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int mlDim, int Lsky);// allocate the memory on GPU
+void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other);// cleanup the memory on GPU
 #define USE_LOCAL_SUBNETCUT	// comment to use the builtin implementation of subNetCut
 
 void 
@@ -43,7 +45,9 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
   cout << endl;
 //
 	struct pre_data pre_gpu_data[BufferNum];
-	struct post_data post_gpu_data[BufferNum];
+	struct post_data post_gpu_data[StreamNum];
+	struct skyloop_output skyloop_output[StreamNum];
+	struct other skyloop_other[StreamNum]; 
 	int eTDDim = 1000;
 	int mlDim = 1000;
 	int Lsky = 1000;
@@ -51,12 +55,14 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
 	post_gpu_data[0].other_data.TH = NULL;
 	
 	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);
+	allocate_gpu_mem(skyloop_output, skyloop_other, eTDDim, mlDim, Lsky);
 	if(post_gpu_data[0].other_data.TH == NULL)
 		cout<<"Mem alloc Fail"<<endl;
 	else
 		cout<<"Mem alloc Success"<<endl;
 //	allocate_cpu_mem1(post_gpu_data, eTDDim);
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
+	cleanup_gpu_mem(skyloop_output, skyloop_other);
 //	cleanup_cpu_mem1(post_gpu_data);
 //
 //
