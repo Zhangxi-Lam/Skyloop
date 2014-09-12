@@ -20,8 +20,8 @@
 
 #define eTDTotal 3
 #define TSize 1000
-#define StreamNum 16
-#define BufferNum 16  
+#define StreamNum 4
+#define BufferNum 4  
 
 #define CUDA_CHECK(value) {                                             \
     cudaError_t _m_cudaStat = value;                                    \
@@ -34,39 +34,46 @@ void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_
 {
 	for(int i = 0; i<BufferNum; i++)
 	{
-		CUDA_CHECK(cudaMallocHost(&(pre_gpu_data[i].other_data.T_En), eTDDim * sizeof(float) ) );
-		cout<<"alloc eTD"<<endl;
-	}
-	for( int i = 0; i<StreamNum; i++)
-	{	
-		CUDA_CHECK(cudaMallocHost(&(post_gpu_data[i].output.rE), eTDDim * sizeof(float) ) );
-		cout<<"alloc rE"<<endl;
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.T_En), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.T_Es), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+		//CUDA_CHECK(cudaMallocHost(&(pre_gpu_data[i].other_data.TH), eTDDim * sizeof(float) ) );
+        CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.TH), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+		cout<<"alloc class"<<endl;
 	}
 		return;
 }
 
-void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int mlDim, int Lsky)// allocate memory on GPU
+void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data)
 {
-	for (int i = 0; i<StreamNum; i++)
+ 	for(int i = 0; i<BufferNum; i++)
 	{
-		CUDA_CHECK(cudaMalloc( (void**)&skyloop_output[i].rE, eTDDim * sizeof(float) ) );
-	}
-	
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.T_En));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.T_Es));
+		//CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.TH));
+        CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.TH));
+		cout<<"cleanup eTD"<<endl;
+	}		
 	return;
 }
 
-void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data)
+void allocate_cpu_mem1(struct post_data *post_gpu_data, int eTDDim)// allocate locked memory on CPU 
 {
- 	for(int i=0; i<BufferNum; i++)
-	{
-		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.T_En));
-		cout<<"cleanup eTD"<<endl;
-	}		
-	for( int i = 0; i<StreamNum; i++)
-	{		
-		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.rE));
-		cout<<"cleanup rE"<<endl;
-	}
+        for(int i = 0; i<BufferNum; i++)
+        {
+                CUDA_CHECK(cudaMallocHost(&(post_gpu_data[i].other_data.TH), eTDDim * sizeof(float) ) );
+                cout<<"alloc post"<<endl;
+        }
+                return;
+}
+
+void cleanup_cpu_mem1(struct post_data *post_gpu_data)
+{       
+        for(int i = 0; i<BufferNum; i++)
+        {
+                CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.TH));
+                cout<<"cleanup post"<<endl;
+        }
+        return;
 }
 		
 //void cleanup_cpu_mem(struct skyloop_output *skyloop_output)

@@ -1,6 +1,6 @@
 #define XIFO 4
-#define StreamNum 16
-#define BufferNum 16
+#define StreamNum 4 
+#define BufferNum 4
 
 #pragma GCC system_header
 
@@ -15,7 +15,7 @@
 #include "TRandom.h"
 #include "TComplex.h"
 
-#include "gpu_struct.h"
+#include "/home/hpc/cWB/TEST/S6A_BKG_LF_L1H1V1_2G_SUPERCLUSTER_run1a_bench2/macro/gpu_struct.h"
 
 #include <sys/time.h>
 #include <stdio.h>
@@ -29,6 +29,8 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K);
 void PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info);
 void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky);// allocate locked memory on CPU 
 void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data);
+void allocate_cpu_mem1(struct post_data *post_gpu_data, int eTDDim);// allocate locked memory on CPU 
+void cleanup_cpu_mem1(struct post_data *post_gpu_data);
 #define USE_LOCAL_SUBNETCUT	// comment to use the builtin implementation of subNetCut
 
 void 
@@ -43,13 +45,21 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
   cout << endl;
 //
 	struct pre_data pre_gpu_data[BufferNum];
-	struct post_data post_gpu_data[StreamNum];
+	struct post_data post_gpu_data[BufferNum];
 	int eTDDim = 1000;
 	int mlDim = 1000;
 	int Lsky = 1000;
+
+	post_gpu_data[0].other_data.TH = NULL;
 	
 	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);
+	if(post_gpu_data[0].other_data.TH == NULL)
+		cout<<"Mem alloc Fail"<<endl;
+	else
+		cout<<"Mem alloc Success"<<endl;
+//	allocate_cpu_mem1(post_gpu_data, eTDDim);
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
+//	cleanup_cpu_mem1(post_gpu_data);
 //
 //
 
