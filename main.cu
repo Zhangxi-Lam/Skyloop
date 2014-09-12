@@ -73,10 +73,57 @@ void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.pNRG), sizeof(class wavearray<float> *), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.count), sizeof(size_t), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.finish), sizeof(size_t), cudaHostAllocMapped ) );
-       	CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.TH), eTDDim * sizeof(float), cudaHostAllocMapped ) );
-		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.hist), sizeof(class TH2F *), cudaHostAllocMapped ) );
-		
 		cout<<"alloc more"<<endl;
+	}
+	for(int i = 0; i<StreamNum; i++)
+	{
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.rE), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.pE), mlDim* sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.Eo), mlDim * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.En), mlDim * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.Es), mlDim * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.Mm), mlDim * sizeof(int), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.eTD[0]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.eTD[1]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.eTD[2]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.pa[0]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.pa[1]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.pa[2]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.pA[0]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.pA[1]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.pA[2]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.ml[0]), mlDim * sizeof(short), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.ml[1]), mlDim * sizeof(short), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.ml[2]), mlDim * sizeof(short), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.mm), Lsky * sizeof(short), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.FP[0]), mlDim * sizeof(double), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.FP[1]), mlDim * sizeof(double), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.FP[2]), mlDim * sizeof(double), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.FX[0]), mlDim * sizeof(double), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.FX[1]), mlDim * sizeof(double), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.FX[2]), mlDim * sizeof(double), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.T_En), sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.T_Es), sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.TH), sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.netRHO), sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.a_00), sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.a_90), sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.le), sizeof(int), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.vint_size), sizeof(int), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.rNRG_size), sizeof(int), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.lag), sizeof(int), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.id), sizeof(size_t), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.nIFO), sizeof(size_t), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.V), sizeof(size_t), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.V4), sizeof(size_t), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.hist), sizeof(class TH2F *), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.pwc), sizeof(class netcluster *), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.nLikelihood), sizeof(class skymap *), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.wdmMRA), sizeof(class monster *), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.pNRG), sizeof(class wavearray<float> *), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.count), sizeof(size_t), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.finish), sizeof(size_t), cudaHostAllocMapped ) );
+		cout<<"alloc add all"<<endl;
 	}
 		return;
 }
@@ -124,10 +171,58 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.pNRG));
 	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.count));
 	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.finish));
-	        CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.TH));
-		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.hist));
 		cout<<"cleanup many many more"<<endl;
 	}		
+	for(int i=0; i<StreamNum; i++)
+	{
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.rE));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.pE));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.Eo));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.En));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.Es));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.Mm));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.eTD[0]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.eTD[1]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.eTD[2]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.pa[0]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.pa[1]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.pa[2]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.pA[0]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.pA[1]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.pA[2]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.ml[0]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.ml[1]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.ml[2]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.mm));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.FP[0]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.FP[1]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.FP[2]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.FX[0]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.FX[1]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.FX[2]));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.T_En));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.T_Es));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.TH));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.netRHO));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.a_00));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.a_90));
+	        CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.le));
+        	CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.vint_size));
+	        CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.rNRG_size));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.lag));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.id));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.nIFO));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.V));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.V4));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.hist));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.pwc));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.nLikelihood));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.wdmMRA));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.pNRG));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.count));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.finish));
+		cout<<"cleanup add new"<<endl;
+	}
 	return;
 }
 
