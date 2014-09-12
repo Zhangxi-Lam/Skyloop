@@ -29,8 +29,6 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K);
 void PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info);
 void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky);// allocate locked memory on CPU 
 void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data);
-void allocate_cpu_mem1(struct post_data *post_gpu_data, int eTDDim);// allocate locked memory on CPU 
-void cleanup_cpu_mem1(struct post_data *post_gpu_data);
 #define USE_LOCAL_SUBNETCUT	// comment to use the builtin implementation of subNetCut
 
 void 

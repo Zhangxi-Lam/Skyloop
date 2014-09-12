@@ -36,8 +36,9 @@ void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_
 	{
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.T_En), eTDDim * sizeof(float), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.T_Es), eTDDim * sizeof(float), cudaHostAllocMapped ) );
-		//CUDA_CHECK(cudaMallocHost(&(pre_gpu_data[i].other_data.TH), eTDDim * sizeof(float) ) );
-        CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.TH), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaMallocHost(&(pre_gpu_data[i].other_data.hist), sizeof(class TH2F *) ) );
+		CUDA_CHECK(cudaMallocHost(&(pre_gpu_data[i].other_data.pwc), sizeof(class netcluster *) ) );
+        	CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.TH), eTDDim * sizeof(float), cudaHostAllocMapped ) );
 		cout<<"alloc class"<<endl;
 	}
 		return;
@@ -49,32 +50,15 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 	{
 		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.T_En));
 		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.T_Es));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.hist));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.pwc));
 		//CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.TH));
-        CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.TH));
-		cout<<"cleanup eTD"<<endl;
+	        CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.TH));
+		cout<<"cleanup 2class"<<endl;
 	}		
 	return;
 }
 
-void allocate_cpu_mem1(struct post_data *post_gpu_data, int eTDDim)// allocate locked memory on CPU 
-{
-        for(int i = 0; i<BufferNum; i++)
-        {
-                CUDA_CHECK(cudaMallocHost(&(post_gpu_data[i].other_data.TH), eTDDim * sizeof(float) ) );
-                cout<<"alloc post"<<endl;
-        }
-                return;
-}
-
-void cleanup_cpu_mem1(struct post_data *post_gpu_data)
-{       
-        for(int i = 0; i<BufferNum; i++)
-        {
-                CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.TH));
-                cout<<"cleanup post"<<endl;
-        }
-        return;
-}
 		
 //void cleanup_cpu_mem(struct skyloop_output *skyloop_output)
 

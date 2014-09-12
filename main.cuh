@@ -3,8 +3,6 @@
  
 void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky);
 void allocate_gpu_mem(struct skyloop_output *skyloop_output, int eTDDim, int mlDim, int Lsky);
-void allocate_cpu_mem1(struct post_data *post_gpu_data, int eTDDim);
-void cleanup_cpu_mem1(struct post_data *post_gpu_data);
 void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data);
 //void cleanup_gpu_mem(struct skyloop_output *skyloop_output);
 
