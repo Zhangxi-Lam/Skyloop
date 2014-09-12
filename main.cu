@@ -70,7 +70,10 @@ void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.pwc), sizeof(class netcluster *), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.nLikelihood), sizeof(class skymap *), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.wdmMRA), sizeof(class monster *), cudaHostAllocMapped ) );
-        	CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.TH), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.pNRG), sizeof(class wavearray<float> *), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.count), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.finish), sizeof(size_t), cudaHostAllocMapped ) );
+       	CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.TH), eTDDim * sizeof(float), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.hist), sizeof(class TH2F *), cudaHostAllocMapped ) );
 		
 		cout<<"alloc more"<<endl;
@@ -118,9 +121,12 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.pwc));
 		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.nLikelihood));
 	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.wdmMRA));
+	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.pNRG));
+	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.count));
+	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.finish));
 	        CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.TH));
 		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.hist));
-		cout<<"cleanup many more"<<endl;
+		cout<<"cleanup many many more"<<endl;
 	}		
 	return;
 }
