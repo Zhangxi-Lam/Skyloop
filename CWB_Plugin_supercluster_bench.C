@@ -43,29 +43,6 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
   cout << "ifo " << ifo.Data() << endl;
   cout << "type " << type << endl;
   cout << endl;
-//
-	struct pre_data pre_gpu_data[BufferNum];
-	struct post_data post_gpu_data[StreamNum];
-	struct skyloop_output skyloop_output[StreamNum];
-	struct other skyloop_other[StreamNum]; 
-	int eTDDim = 1000;
-	int mlDim = 1000;
-	int Lsky = 1000;
-
-	post_gpu_data[0].other_data.TH = NULL;
-	
-	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);
-	allocate_gpu_mem(skyloop_output, skyloop_other, eTDDim, mlDim, Lsky);
-	if(post_gpu_data[0].other_data.TH == NULL)
-		cout<<"Mem alloc Fail"<<endl;
-	else
-		cout<<"Mem alloc Success"<<endl;
-//	allocate_cpu_mem1(post_gpu_data, eTDDim);
-	cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
-	cleanup_gpu_mem(skyloop_output, skyloop_other);
-//	cleanup_cpu_mem1(post_gpu_data);
-//
-//
 
   if(type==CWB_PLUGIN_CONFIG) {  
     cfg->scPlugin=true;  	// disable built-in supercluster function
@@ -314,12 +291,12 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 //+++++++++++++++++++++++++++++++++++++++
  
 	// CPU memory
-	struct pre_data *pre_gpu_data[BufferNum];
-	struct pre_data *input_data[BufferNum];
-	struct post_data *post_gpu_data[StreamNum];
+	struct pre_data pre_gpu_data[BufferNum];	// data before gpu caculation
+	//struct pre_data input_data[BufferNum];
+	struct post_data post_gpu_data[StreamNum];	// data after gpu caculation
 	// GPU memmory
-	struct skyloop_output *skyloop_output[StreamNum];
-	struct other *skyloop_other[StreamNum];
+	struct skyloop_output skyloop_output[StreamNum];
+	struct other skyloop_other[StreamNum];
 	
 	int results_to_process = K;			// the rest cluster
 	int results_wait_process = 0;			// cluster wait for gpu caculation 
@@ -330,16 +307,23 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
           
         int eTDDim; 					// the size of each eTD
         int mlDim;         				// the size of ml
+	int Tsize;					// the number of V in each row
 	// initialize
+	Tsize = tsize;
 	mlDim = Lsky;
-	eTDDim = XIFO * Vmax;
-	
-	// load cuda code generated shared library
-
-	// load cuda header file 
+	eTDDim = tsize * Vmax;
 
 	// call function defined in cuda code
-	//void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky);
+        allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);	// allocate host memory on CPU
+        allocate_gpu_mem(skyloop_output, skyloop_other, eTDDim, mlDim, Lsky);	// allocate memory on GPU
+//        cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
+//       cleanup_gpu_mem(skyloop_output, skyloop_other);
+
+	// initialize the struct row 
+//	for(int i=0; i<BufferNum; i++)
+//	{
+		
+
 //+++++++++++++++++++++++++++++++++++++++
 // end of allocating memory on GPU and CPU 
 //+++++++++++++++++++++++++++++++++++++++
