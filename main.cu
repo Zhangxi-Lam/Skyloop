@@ -231,6 +231,47 @@ void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skylo
 	for(int i = 0; i<StreamNum; i++)
 	{
 		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].rE), eTDDim * sizeof(float) ) );	
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].pE), eTDDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].Eo), mlDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].En), mlDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].Es), mlDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].Mm), mlDim * sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].pa[0]), eTDDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].pa[1]), eTDDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].pa[2]), eTDDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].pA[0]), eTDDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].pA[1]), eTDDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].pA[2]), eTDDim * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].ml[0]), mlDim * sizeof(short) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].ml[1]), mlDim * sizeof(short) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].ml[2]), mlDim * sizeof(short) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].FP[0]), mlDim * sizeof(double) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].FP[1]), mlDim * sizeof(double) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].FP[2]), mlDim * sizeof(double) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].FX[0]), mlDim * sizeof(double) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].FX[1]), mlDim * sizeof(double) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].FX[2]), mlDim * sizeof(double) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].T_En), sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].T_Es), sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].TH), sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].netRHO), sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].a_00), sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].a_90), sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].le), sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].vint_size), sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].rNRG_size), sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].lag), sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].id), sizeof(size_t) ) );
+        	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].nIFO), sizeof(size_t) ) );
+	        CUDA_CHECK(cudaMalloc(&(skyloop_other[i].V), sizeof(size_t) ) );
+        	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].V4), sizeof(size_t) ) );
+	        CUDA_CHECK(cudaMalloc(&(skyloop_other[i].hist), sizeof(class TH2F*) ) );
+        	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].pwc), sizeof(class netcluster*) ) );
+	        CUDA_CHECK(cudaMalloc(&(skyloop_other[i].nLikelihood), sizeof(class skymap*) ) );
+        	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].wdmMRA), sizeof(class monster*) ) );
+	        CUDA_CHECK(cudaMalloc(&(skyloop_other[i].pNRG), sizeof(wavearray<float> *) ) );
+        	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].count), sizeof(size_t) ) );
+	        CUDA_CHECK(cudaMalloc(&(skyloop_other[i].finish), sizeof(bool) ) );
 		cout<<"alloc gpu"<<endl;
 	}
 }
@@ -240,7 +281,47 @@ void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloo
 	for(int i = 0; i<StreamNum; i++)
 	{
 		CUDA_CHECK(cudaFree(skyloop_output[i].rE) );
-		cout<<"cleanup gpu"<<endl;
+		CUDA_CHECK(cudaFree(skyloop_output[i].pE) );
+		CUDA_CHECK(cudaFree(skyloop_output[i].Eo) );
+		CUDA_CHECK(cudaFree(skyloop_output[i].Es) );
+		CUDA_CHECK(cudaFree(skyloop_output[i].Mm) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].pa[0]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].pa[1]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].pa[2]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].pA[0]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].pA[1]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].pA[2]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].ml[0]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].ml[1]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].ml[2]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].FP[0]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].FP[1]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].FP[2]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].FX[0]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].FX[1]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].FX[2]) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].T_En) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].T_Es) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].TH) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].netRHO) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].a_00) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].a_90) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].le) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].vint_size) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].rNRG_size) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].lag) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].id) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].nIFO) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].V) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].V4) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].hist) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].pwc) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].nLikelihood) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].wdmMRA) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].pNRG) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].count) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].finish) );
+		cout<<"cleanup all gpu"<<endl;
 	}
 }
 
