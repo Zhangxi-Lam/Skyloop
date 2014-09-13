@@ -1,6 +1,4 @@
 #define XIFO 4
-#define StreamNum 4 
-#define BufferNum 4
 
 #pragma GCC system_header
 
@@ -15,20 +13,16 @@
 #include "TRandom.h"
 #include "TComplex.h"
 
-#include "/home/hpc/cWB/TEST/S6A_BKG_LF_L1H1V1_2G_SUPERCLUSTER_run1a_bench2/macro/gpu_struct.h"
-
 #include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-
 //!SUPERCLUSTER
 
-long subNetCut(network* net, int lag, float snc, TH2F* hist, struct pre_data *pre_gpu_data);
+long subNetCut(network* net, int lag, float snc, TH2F* hist);
 inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K);
 void PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info);
-void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky);// allocate locked memory on CPU 
-void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data);
+
 #define USE_LOCAL_SUBNETCUT	// comment to use the builtin implementation of subNetCut
 
 void 
@@ -41,28 +35,6 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
   cout << "ifo " << ifo.Data() << endl;
   cout << "type " << type << endl;
   cout << endl;
-//
-	struct pre_data pre_gpu_data[BufferNum];
-	struct post_data post_gpu_data[BufferNum];
-	int eTDDim = 1000;
-	int mlDim = 1000;
-	int Lsky = 1000;
-
-	post_gpu_data[0].other_data.TH = NULL;
-	
-	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);
-	if(pre_gpu_data[0].other_data.T_En == NULL)
-		cout<<"Mem alloc Fail"<<endl;
-	else
-		cout<<"Mem alloc Success"<<endl;
-	for(int i=0; i<BufferNum; i++)
-	{
-		*(pre_gpu_data[i].other_data.T_En) = i;
-		cout<<" i = "<<i<<" T_En = "<<*(pre_gpu_data[i].other_data.T_En)<<endl;
-	}
-//	cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
-//
-//
 
   if(type==CWB_PLUGIN_CONFIG) {  
     cfg->scPlugin=true;  	// disable built-in supercluster function
@@ -134,12 +106,10 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
       while(1) {
         count = pwc->loadTDampSSE(*net, 'a', cfg->BATCH, cfg->LOUD);
         bench.Continue();
-//
-	cout <<"Before subNetCut, T_En =  "<<*(pre_gpu_data[0].other_data.T_En)<<endl;
 #ifdef USE_LOCAL_SUBNETCUT
-        psel += subNetCut(net,(int)j,cfg->subnet,NULL, pre_gpu_data);
+        psel += subNetCut(net,(int)j,cfg->subnet,NULL);
 #else
-        psel += net->subNetCut((int)j,cfg->subnet,NULL, pre_gpu_data);
+        psel += net->subNetCut((int)j,cfg->subnet,NULL);
 #endif
         bench.Stop();
         PrintElapsedTime(bench.RealTime(),bench.CpuTime(),"subNetCut : Processing Time - ");
@@ -167,9 +137,7 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
       cout<<endl;
     }
   }
-//
-	cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
-//
+
   return;
 }
 
@@ -193,7 +161,7 @@ PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info) {
   return;
 }
 
-long subNetCut(network* net, int lag, float snc, TH2F* hist, struct pre_data *pre_gpu_data)
+long subNetCut(network* net, int lag, float snc, TH2F* hist)
 {                                                      
 // sub-network cut with dsp regulator                  
 //  lag: lag index                                     
@@ -265,110 +233,14 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist, struct pre_data *pr
    size_t count = 0;                                                  
    size_t tsize = 0;                                                  
 
-   cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
-                                                                           
-   K = cid.size();          
-
-//+++++++++++++++++++++++++++++++++++++++
-// start of finding out the maximum of V 
-//+++++++++++++++++++++++++++++++++++++++
-	int Vmax = 0;
-	for(k=0; k<K; k++)				// loop over clusters
-	{
-		id = size_t(cid.data[k] + 0.1);
-		
-		if (pwc->sCuts[id-1] != -2) continue;	// skip rejected/processed cluster
-		
-		vint = &(pwc->cList[id-1]);		// pixel list
-		V = vint->size();			// pixel list size
-		
-		if (!V) continue;
-	
-		
-		pI = net->wdmMRA.getXTalk(pwc, id);
-		V = pI.size();				// number of loaded pixels
-		
-		if(!V) continue;
- 		
-		pix = pwc->getPixel(id,pI[0]);
-		tsize = pix->tdAmp[0].size();
-		if(!tsize || tsize&1)
-		{
-			cout<<"network::subNetCut() error: wrong pixel TD data\n";
-			exit(1);
-		}
-		tsize /= 2;
-		if (V < Vmax) continue;
-		
-		Vmax = V;
-	}
-	cout<<"Vmax = "<<Vmax<<"\n";
-
-//+++++++++++++++++++++++++++++++++++++++
-// end of finding out the maximum of V 
-//+++++++++++++++++++++++++++++++++++++++
-
-
-//+++++++++++++++++++++++++++++++++++++++
-// start of allocating memory on GPU and CPU 
-//+++++++++++++++++++++++++++++++++++++++
- 
-	// CPU memory
-/*	struct pre_data *pre_gpu_data[BufferNum];
-	struct pre_data *input_data[BufferNum];
-	struct post_data *post_gpu_data[StreamNum];
-	// GPU memmory
-	struct skyloop_output *skyloop_output[StreamNum];
-	struct other *skyloop_other[StreamNum];
-	
-	int results_to_process = K;			// the rest cluster
-	int results_wait_process = 0;			// cluster wait for gpu caculation 
-	int buffer_num = 0;				// indicate the buffer
-	size_t stream_count[StreamNum];                        // the result of skyloop from each stream
-        bool stream_finish[StreamNum];                         // indicate whether the stream is finished
-        bool gpu_finish;                                // indicate whether the gpu is finished
-          
-        int eTDDim; 					// the size of each eTD
-        int mlDim;         				// the size of ml
-	// initialize
-	mlDim = Lsky;
-	eTDDim = XIFO * Vmax;
-	
-
-	// call function defined in cuda code
-	//void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky);*/
-	for(int i=0; i<BufferNum; i++)
-	{
-		cout<<" i = "<<i<<" T_En = "<<*(pre_gpu_data[i].other_data.T_En)<<endl;
-	}
-/*	 	struct pre_data pre_gpu_data[BufferNum];
-        struct post_data post_gpu_data[BufferNum];
-        int eTDDim = 1000;
-        int mlDim = 1000;
-        //int Lsky = 1000;
-
-        post_gpu_data[0].other_data.TH = NULL;
-        
-        allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);
-        if(post_gpu_data[0].other_data.TH == NULL)
-                cout<<"Mem alloc Fail"<<endl;
-        else
-                cout<<"Mem alloc Success"<<endl;
-//      allocate_cpu_mem1(post_gpu_data, eTDDim);
-              cleanup_cpu_mem(pre_gpu_data, post_gpu_data);*/
-//+++++++++++++++++++++++++++++++++++++++
-// end of allocating memory on GPU and CPU 
-//+++++++++++++++++++++++++++++++++++++++
- 
-
 //+++++++++++++++++++++++++++++++++++++++
 // loop over clusters                    
 //+++++++++++++++++++++++++++++++++++++++
-	cout<<"Before Skyloop"<<endl;	
-	int mycount = 0;
+
+   cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
+                                                                           
+   K = cid.size();                                                         
    for(k=0; k<K; k++) {                                   // loop over clusters 
-	mycount++;
-	cout<<"Loop time"<<mycount;	
       id = size_t(cid.data[k]+0.1);                                             
       if(pwc->sCuts[id-1] != -2) continue;                // skip rejected/processed clusters 
       vint = &(pwc->cList[id-1]);                         // pixel list                       
@@ -648,7 +520,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist, struct pre_data *pr
          if(pix->tdAmp.size()) pix->clean();
       }
    }                                                 // end of loop over clusters
-	cout<<"After Skyloop"<<endl;
    return count;
 }
 
