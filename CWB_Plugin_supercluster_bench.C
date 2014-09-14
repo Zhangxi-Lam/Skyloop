@@ -19,6 +19,7 @@
 
 // my insertion
 #define BufferNum 4
+#define StreamNum 4
 #include "/home/hpc/cWB/TEST/S6A_BKG_LF_L1H1V1_2G_SUPERCLUSTER_run1a_bench2/macro/gpu_struct.h"
 // end of insettion
 
@@ -280,7 +281,10 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
 			tsizeMax = tsize;
 	}
 	struct pre_data pre_gpu_data[BufferNum];
-	struct post_data post_gpu_data[BufferNum];
+	struct post_data post_gpu_data[StreamNum];
+	
+	struct skyloop_output skyloop_output[StreamNum];
+	struct other skyloop_other[StreamNum];
 	int eTDDim;
 	int mlDim;
 	
@@ -289,7 +293,8 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
 	
 //	post_gpu_data[0].other_data.TH = NULL;
 	
-	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);		// allocate the cpu_mem
+	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);		// allocate the cpu memory
+	allocate_gpu_mem(skyloop_output, skyloop_other, eTDDim, mlDim, Lsky);		// allocate the gpu memory
 /*	if(pre_gpu_data[0].other_data.T_En == NULL)
 		cout<<"Mem alloc Fail"<<endl;
 	else
@@ -300,6 +305,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
 		cout<<" i = "<<i<<" T_En = "<<*(pre_gpu_data[i].other_data.T_En)<<endl;
 	}
 	cout<<"Vmax= "<<Vmax<<" tsizeMax = "<<tsizeMax<<endl;
+
 // end of insertion
 
 //+++++++++++++++++++++++++++++++++++++++
@@ -591,6 +597,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
    }                                                 // end of loop over clusters
 // my insertion
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
+	cleanup_gpu_mem(skyloop_output, skyloop_other);
 // end of insertion
    return count;
 }
