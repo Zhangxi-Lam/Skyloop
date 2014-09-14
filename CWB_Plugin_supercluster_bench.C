@@ -299,11 +299,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
 		cout<<"Mem alloc Fail"<<endl;
 	else
 		cout<<"Mem alloc Success"<<endl;*/
-	for(int i=0; i<BufferNum; i++)
-	{
-		*(pre_gpu_data[i].other_data.T_En) = i;
-		cout<<" i = "<<i<<" T_En = "<<*(pre_gpu_data[i].other_data.T_En)<<endl;
-	}
+	// initialzie the pre_gpu_data and the post_gpu_data
 	cout<<"Vmax= "<<Vmax<<" tsizeMax = "<<tsizeMax<<endl;
 
 // end of insertion
@@ -415,7 +411,23 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
             }                                                             
          }                                                                
       }
+// my insertion
+// initialize the pre_gpu_data and post_gpu_data
+	for(int i=0; i<BufferNum; i++)
+	{
+		*(pre_gpu_data[i].other_data.T_En) = En;					// two threshold
+		*(pre_gpu_data[i].other_data.T_Es) = Es;
+		*(pre_gpu_data[i].other_data.TH) = TH;
+		*(pre_gpu_data[i].other_data.netRHO) = net->netRHO;
+		*(pre_gpu_data[i].other_data.le) = Lsky - 1;
+		*(pre_gpu_data[i].other_data.vint_size) = vint->size();
+		*(pre_gpu_data[i].other_data.rNRG_size) = (int)(net->rNRG.size());
+		
+		cout<<"rNRG_size = "<<*(pre_gpu_data[i].other_data.rNRG_size)<<endl;
+		
+	}
 
+// end of my insertion
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // first sky loop                                                          
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
