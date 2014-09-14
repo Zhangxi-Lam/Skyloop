@@ -289,14 +289,15 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
 	int mlDim;
 	size_t streamCount[StreamNum];
 	bool finish[StreamNum];
-
+	
 	mlDim = Lsky;			// the size of each ml
 	eTDDim = tsizeMax * Vmax;	// the size of each eTD
 	for(int i=0; i<StreamNum; i++)
 	{
 		streamCount[i] = 0;
-		finish[i] = true;
-	}	
+		finish[StreamNum] = true;
+	}
+	
 //	post_gpu_data[0].other_data.TH = NULL;
 	
 	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);		// allocate the cpu memory
@@ -417,59 +418,40 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
             }                                                             
          }                                                                
       }
-//
 // my insertion
 // initialize the pre_gpu_data and post_gpu_data
 	for(int i=0; i<BufferNum; i++)
 	{
-/*		for(int J=0; j<eTDDim; j++)							// copy the row
-		{
-			pre_gpu_data[i],other_data.eTD[]*/
 		*(pre_gpu_data[i].other_data.T_En) = En;					// two threshold
 		*(pre_gpu_data[i].other_data.T_Es) = Es;
 		*(pre_gpu_data[i].other_data.TH) = TH;
 		*(pre_gpu_data[i].other_data.netRHO) = net->netRHO;
-		pre_gpu_data[i].other_data.a_00 = net->a_00.data;
-		pre_gpu_data[i].other_data.a_90 = net->a_90.data;
 		*(pre_gpu_data[i].other_data.le) = Lsky - 1;
 		*(pre_gpu_data[i].other_data.vint_size) = vint->size();
 		*(pre_gpu_data[i].other_data.rNRG_size) = (int)(net->rNRG.size());
 		*(pre_gpu_data[i].other_data.lag) = lag;
-		*(pre_gpu_data[i].other_data.id) = id;
-		*(pre_gpu_data[i].other_data.nIFO) = nIFO;
-		*(pre_gpu_data[i].other_data.V) = V;
-		*(pre_gpu_data[i].other_data.V4) = V4;
-		pre_gpu_data[i].other_data.hist = hist;
-		pre_gpu_data[i].other_data.pwc = pwc;
+                *(pre_gpu_data[i].other_data.id) = id;
+                *(pre_gpu_data[i].other_data.nIFO) = nIFO;
+                *(pre_gpu_data[i].other_data.V) = V;
+                *(pre_gpu_data[i].other_data.V4) = V4;
 		*(pre_gpu_data[i].other_data.count) = streamCount[i];
-		*(pre_gpu_data[i].other_data.finish) = finish[i];
-		if( i<StreamNum )			
-		{
-			*(post_gpu_data[i].other_data.T_En) = En;					// two threshold
-			*(post_gpu_data[i].other_data.T_Es) = Es;
-			*(post_gpu_data[i].other_data.TH) = TH;
-			*(post_gpu_data[i].other_data.netRHO) = net->netRHO;
-			post_gpu_data[i].other_data.a_00 = net->a_00.data;
-			post_gpu_data[i].other_data.a_90 = net->a_90.data;
-			*(post_gpu_data[i].other_data.le) = Lsky - 1;
-			*(post_gpu_data[i].other_data.vint_size) = vint->size();
-			*(post_gpu_data[i].other_data.rNRG_size) = (int)(net->rNRG.size());
-			*(post_gpu_data[i].other_data.lag) = lag;
-			*(post_gpu_data[i].other_data.id) = id;
-			*(post_gpu_data[i].other_data.nIFO) = nIFO;
-			*(post_gpu_data[i].other_data.V) = V;
-			*(post_gpu_data[i].other_data.V4) = V4;
-			post_gpu_data[i].other_data.hist = hist;
-			post_gpu_data[i].other_data.pwc = pwc;
-			*(post_gpu_data[i].other_data.count) = streamCount[i];
-			*(post_gpu_data[i].other_data.finish) = finish[i];
+                *(pre_gpu_data[i].other_data.finish) = finish[i];
+		cout<<"new 1 rNRG_size = "<<*(pre_gpu_data[i].other_data.rNRG_size)<<endl;
+		
+		if( i<StreamNum )
+                {
+                        *(post_gpu_data[i].other_data.T_En) = En;                                       // two threshold
+                        *(post_gpu_data[i].other_data.T_Es) = Es;
+                        *(post_gpu_data[i].other_data.TH) = TH;
+                        *(post_gpu_data[i].other_data.netRHO) = net->netRHO;
+                        *(post_gpu_data[i].other_data.le) = Lsky - 1;
+                        *(post_gpu_data[i].other_data.vint_size) = vint->size();
+                        *(post_gpu_data[i].other_data.rNRG_size) = (int)(net->rNRG.size());
+                        *(post_gpu_data[i].other_data.lag) = lag;
+                        *(post_gpu_data[i].other_data.id) = id;
 		}
+		
 	}
-	
-	
-		
-	cout<<"rNRG_size = "<<*(pre_gpu_data[i].other_data.rNRG_size)<<endl;
-		
 
 // end of my insertion
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

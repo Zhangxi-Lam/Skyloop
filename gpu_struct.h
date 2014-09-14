@@ -36,9 +36,9 @@ struct other                                    //the variable that not use in G
 	size_t *id, *nIFO, *V, *V4;
 	class TH2F *hist;
 	class netcluster *pwc;
-	//class skymap *nLikelihood;
-	//class monster *wdmMRA;
-	//wavearray<float> *pNRG;
+	class skymap *nLikelihood;
+	class monster *wdmMRA;
+	wavearray<float> *pNRG;
 	size_t *count;			// result of each stream
 	bool *finish;			// indicate whether the caculation is finished
 };
