@@ -56,26 +56,6 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 	return;
 }
 
-void allocate_cpu_mem1(struct post_data *post_gpu_data, int eTDDim)// allocate locked memory on CPU 
-{
-        for(int i = 0; i<BufferNum; i++)
-        {
-                CUDA_CHECK(cudaMallocHost(&(post_gpu_data[i].other_data.TH), eTDDim * sizeof(float) ) );
-                cout<<"alloc post"<<endl;
-        }
-                return;
-}
-
-void cleanup_cpu_mem1(struct post_data *post_gpu_data)
-{       
-        for(int i = 0; i<BufferNum; i++)
-        {
-                CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.TH));
-                cout<<"cleanup post"<<endl;
-        }
-        return;
-}
-		
 //void cleanup_cpu_mem(struct skyloop_output *skyloop_output)
 
 /*__host__ void push_work_into_gpu(struct pre_data *input_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, struct post_data *post_gpu_data, int work_size, int eTDDim, int mlDim, int Lsky, cudaStream_t *stream)

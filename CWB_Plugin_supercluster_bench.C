@@ -170,9 +170,9 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
       cout<<endl;
     }
   }
-// my insert
+// my insertion
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
-// end of my insert
+// end of my insertion
 
   return;
 }
@@ -197,7 +197,7 @@ PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info) {
   return;
 }
 
-long subNetCut(network* net, int lag, float snc, TH2F* hist, struct pre_data *pre_gpu_data)
+long subNetCut(network* net, int lag, float snc, TH2F* hist, struct pre_data *pre_gpu_data)// my change
 {                                                      
 // sub-network cut with dsp regulator                  
 //  lag: lag index                                     
