@@ -8,6 +8,7 @@
 {
         float *eTD[NIFO];
         short *ml[NIFO];
+		short *mm;								// Lsky
         size_t *V, *V4;
         float *T_En, *T_Es;
 		int *le;		

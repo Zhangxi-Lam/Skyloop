@@ -133,15 +133,20 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 	cout<<"V4max = "<<V4max<<" Tmax = "<<Tmax<<endl;
 	
 //new
-	struct pre_data pre_gpu_data[BufferNum];
-	struct post_data post_gpu_data[StreamNum];
+	struct pre_data pre_gpu_data[BufferNum];	// store the data before gpu cal
+	struct post_data post_gpu_data[StreamNum];	
+	struct skyloop_output skyloop_output[StreamNum];
+	struct other skyloop_other[StreamNum];
+	
 	int eTDDim = 0;
 	int mlDim = 0;	
 	
 	eTDDim = Tmax * V4max;
 	mlDim = Lsky - 1;
 	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);
+	allocate_gpu_mem(skyloop_output, skyloop_other, eTDDim, mlDim, Lsky);
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
+	cleanup_gpu_mem(skyloop_output, skyloop_other);
 //new
 	return count;
 }
@@ -341,7 +346,7 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 	}
 	return;
 }
-/*
+
 void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int mlDim, int Lsky)// allocate the memory on GPU
 {
 	for(int i = 0; i<StreamNum; i++)
@@ -439,7 +444,7 @@ void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloo
 		CUDA_CHECK(cudaFree(skyloop_other[i].finish) );
 		cout<<"cleanup all gpu"<<endl;
 	}
-}*/
+}
 
 
 //void cleanup_cpu_mem(struct skyloop_output *skyloop_output)
