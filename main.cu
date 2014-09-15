@@ -13,6 +13,24 @@
 #include "TObjString.h"
 #include "TRandom.h"
 #include "TComplex.h"*/
+#pragma GCC system_header
+
+#include "cwb.hh"
+#include "cwb2G.hh"
+#include "config.hh"
+#include "network.hh"
+#include "wavearray.hh"
+#include "TString.h"
+#include "TObjArray.h"
+#include "TObjString.h"
+#include "TRandom.h"
+#include "TComplex.h"
+
+#include <sys/time.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+
 
 #define num_blocks 16											// 16 blocks
 #define num_threads 256											// 256 threads per block
@@ -1299,3 +1317,53 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
    return count;
 }
 
+inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
+// fast multi-resolution analysis inside sky loop
+// select max E pixel and either scale or skip it based on the value of residual
+// pointer to 00 phase amplitude of monster pixels
+// pointer to 90 phase amplitude of monster pixels
+// Eo - energy threshold
+//  K - number of principle components to extract
+// returns number of MRA pixels
+   int j,n,mm;
+   int k = 0;
+   int m = 0;
+   int f = NIFO/4;
+   int V = (int)net->rNRG.size();
+   float*  ee = net->rNRG.data;                            // residual energy
+   float*  pp = net->pNRG.data;                            // residual energy
+   float   EE = 0.;                                         // extracted energy
+   float   E;
+   float mam[NIFO];
+   float mAM[NIFO];
+   net->pNRG=-1;
+   for(j=0; j<V; ++j) if(ee[j]>Eo) pp[j]=0;
+
+   __m128* _m00 = (__m128*) mam;
+   __m128* _m90 = (__m128*) mAM;
+   __m128* _amp = (__m128*) amp;
+   __m128* _AMP = (__m128*) AMP;
+   __m128* _a00 = (__m128*) net->a_00.data;
+   __m128* _a90 = (__m128*) net->a_90.data;
+
+   while(k<K){
+
+      for(j=0; j<V; ++j) if(ee[j]>ee[m]) m=j;               // find max pixel
+      if(ee[m]<=Eo) break;  mm = m*f;
+
+      //cout<<" V= "<<V<<" m="<<m<<" ee[m]="<<ee[m];
+
+             E = _sse_abs_ps(_a00+mm,_a90+mm); EE += E;     // get PC energy
+      int    J = net->wdmMRA.getXTalk(m)->size()/7;
+      float* c = net->wdmMRA.getXTalk(m)->data;             // c1*c2+c3*c4=c1*c3+c2*c4=0
+
+      if(E/EE < 0.01) break;                                // ignore small PC
+
+      _sse_cpf_ps(mam,_a00+mm);                             // store a00 for max pixel
+      _sse_cpf_ps(mAM,_a90+mm);                             // store a90 for max pixel
+      _sse_add_ps(_amp+mm,_m00);                            // update 00 PC
+      _sse_add_ps(_AMP+mm,_m90);                            // update 90 PC
+
+      for(j=0; j<J; j++) {
+         n = int(c[0]+0.1);
+         if(ee[n]>Eo) {

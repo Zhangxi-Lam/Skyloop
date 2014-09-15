@@ -17,23 +17,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// my insertion
-#define BufferNum 4
-#define StreamNum 4
-#include "/home/hpc/cWB/TEST/S6A_BKG_LF_L1H1V1_2G_SUPERCLUSTER_run1a_bench2/macro/gpu_struct.h"
-// end of insettion
-
 //!SUPERCLUSTER
 
-long subNetCut(network* net, int lag, float snc, TH2F* hist);				// my change
+long subNetCut(network* net, int lag, float snc, TH2F* hist);
 inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K);
 void PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info);
-// my insertion
-void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky);// allocate locked memory on CPU 
-void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data);// free the memory
-void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int mlDim, int Lsky);// allocate the memory on GPU
-void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other);// cleanup the memory on GPU
-//end of insertion
 
 #define USE_LOCAL_SUBNETCUT	// comment to use the builtin implementation of subNetCut
 
@@ -118,13 +106,11 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
       while(1) {
         count = pwc->loadTDampSSE(*net, 'a', cfg->BATCH, cfg->LOUD);
         bench.Continue();
-// my change
 #ifdef USE_LOCAL_SUBNETCUT
         psel += subNetCut(net,(int)j,cfg->subnet,NULL);
 #else
         psel += net->subNetCut((int)j,cfg->subnet,NULL);
 #endif
-// end of my change
         bench.Stop();
         PrintElapsedTime(bench.RealTime(),bench.CpuTime(),"subNetCut : Processing Time - ");
         int ptot = pwc->psize(1)+pwc->psize(-1);
@@ -175,8 +161,11 @@ PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info) {
   return;
 }
 
-long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
-{                                                      
+long subNetCut(network* net, int lag, float snc, TH2F* hist)
+{ 
+	return 1;
+}               
+/*                                     
 // sub-network cut with dsp regulator                  
 //  lag: lag index                                     
 //  snc: sub network threshold, if snc<0 use weak constraint
@@ -247,77 +236,13 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
    size_t count = 0;                                                  
    size_t tsize = 0;                                                  
 
-// my insertion
-	size_t Vmax = 0;			// store the maximum of V
-	size_t tsizeMax = 0;			// store the maximum of tsize
-   	cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
-                                                                           
-	K = cid.size();                                                         
-	for(k=0; k<K; k++) 
-	{                                   // loop over clusters 
-		id = size_t(cid.data[k]+0.1);                                             
-		if(pwc->sCuts[id-1] != -2) continue;                // skip rejected/processed clusters 
-		vint = &(pwc->cList[id-1]);                         // pixel list                       
-		V = vint->size();                                   // pixel list size                  
-		if(!V) continue;                                                                        
-		
-		pI = net->wdmMRA.getXTalk(pwc, id);
-		
-		V = pI.size();                                      // number of loaded pixels
-		if(!V) continue;                                                              
-		
-		pix = pwc->getPixel(id,pI[0]);
-		tsize = pix->tdAmp[0].size(); 
-		if(!tsize || tsize&1) 
-		{                          // tsize%1 = 1/0 = power/amplitude
-			cout<<"network::subNetCut() error: wrong pixel TD data\n";                      
-			exit(1);                                                                        
-		}
-                                                                               
-		tsize /= 2;                                                                        
-		if (V > Vmax)
-			Vmax = V;
-		if(tsize > tsizeMax)
-			tsizeMax = tsize;
-	}
-	struct pre_data pre_gpu_data[BufferNum];
-	struct post_data post_gpu_data[StreamNum];
-	
-	struct skyloop_output skyloop_output[StreamNum];
-	struct other skyloop_other[StreamNum];
-	int eTDDim;
-	int mlDim;
-	size_t streamCount[StreamNum];
-	bool finish[StreamNum];
-	
-	mlDim = Lsky;			// the size of each ml
-	eTDDim = tsizeMax * Vmax;	// the size of each eTD
-	for(int i=0; i<StreamNum; i++)
-	{
-		streamCount[i] = 0;
-		finish[StreamNum] = true;
-	}
-	
-//	post_gpu_data[0].other_data.TH = NULL;
-	
-	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);		// allocate the cpu memory
-	allocate_gpu_mem(skyloop_output, skyloop_other, eTDDim, mlDim, Lsky);		// allocate the gpu memory
-/*	if(pre_gpu_data[0].other_data.T_En == NULL)
-		cout<<"Mem alloc Fail"<<endl;
-	else
-		cout<<"Mem alloc Success"<<endl;*/
-	// initialzie the pre_gpu_data and the post_gpu_data
-	cout<<"Vmax= "<<Vmax<<" tsizeMax = "<<tsizeMax<<endl;
-
-// end of insertion
-
 //+++++++++++++++++++++++++++++++++++++++
 // loop over clusters                    
 //+++++++++++++++++++++++++++++++++++++++
 
-// my change   cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
+   cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
                                                                            
-// my change  K = cid.size();                                                         
+   K = cid.size();                                                         
    for(k=0; k<K; k++) {                                   // loop over clusters 
       id = size_t(cid.data[k]+0.1);                                             
       if(pwc->sCuts[id-1] != -2) continue;                // skip rejected/processed clusters 
@@ -417,43 +342,8 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
                eTD[i].data[l*V4+j] = aa*aa+AA*AA;      // copy power      
             }                                                             
          }                                                                
-      }
-// my insertion
-// initialize the pre_gpu_data and post_gpu_data
-	for(int i=0; i<BufferNum; i++)
-	{
-		*(pre_gpu_data[i].other_data.T_En) = En;					// two threshold
-		*(pre_gpu_data[i].other_data.T_Es) = Es;
-		*(pre_gpu_data[i].other_data.TH) = TH;
-		*(pre_gpu_data[i].other_data.netRHO) = net->netRHO;
-		*(pre_gpu_data[i].other_data.le) = Lsky - 1;
-		*(pre_gpu_data[i].other_data.vint_size) = vint->size();
-		*(pre_gpu_data[i].other_data.rNRG_size) = (int)(net->rNRG.size());
-		*(pre_gpu_data[i].other_data.lag) = lag;
-                *(pre_gpu_data[i].other_data.id) = id;
-                *(pre_gpu_data[i].other_data.nIFO) = nIFO;
-                *(pre_gpu_data[i].other_data.V) = V;
-                *(pre_gpu_data[i].other_data.V4) = V4;
-		*(pre_gpu_data[i].other_data.count) = streamCount[i];
-                *(pre_gpu_data[i].other_data.finish) = finish[i];
-		cout<<"new 1 rNRG_size = "<<*(pre_gpu_data[i].other_data.rNRG_size)<<endl;
-		
-		if( i<StreamNum )
-                {
-                        *(post_gpu_data[i].other_data.T_En) = En;                                       // two threshold
-                        *(post_gpu_data[i].other_data.T_Es) = Es;
-                        *(post_gpu_data[i].other_data.TH) = TH;
-                        *(post_gpu_data[i].other_data.netRHO) = net->netRHO;
-                        *(post_gpu_data[i].other_data.le) = Lsky - 1;
-                        *(post_gpu_data[i].other_data.vint_size) = vint->size();
-                        *(post_gpu_data[i].other_data.rNRG_size) = (int)(net->rNRG.size());
-                        *(post_gpu_data[i].other_data.lag) = lag;
-                        *(post_gpu_data[i].other_data.id) = id;
-		}
-		
-	}
+      }                                                                   
 
-// end of my insertion
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // first sky loop                                                          
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -633,10 +523,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)// my change
          if(pix->tdAmp.size()) pix->clean();
       }
    }                                                 // end of loop over clusters
-// my insertion
-	cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
-	cleanup_gpu_mem(skyloop_output, skyloop_other);
-// end of insertion
    return count;
 }
 
@@ -698,7 +584,7 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
       //cout<<" "<<ee[m]<<" "<<k<<" "<<E<<" "<<EE<<" "<<endl;
       pp[m] = _sse_abs_ps(_amp+mm,_AMP+mm);    // store PC energy
       k++;
-   }
+   }*/
 /*
    cout<<"EE="<<EE<<endl;
    EE = 0;
@@ -708,6 +594,6 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
    }
    cout<<"EE="<<EE<<endl;
 */
-   return k;
-}
+//   return k;
+//}
 
