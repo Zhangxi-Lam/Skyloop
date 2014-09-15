@@ -101,44 +101,52 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
    	cid = pwc->get((char*)"ID",  0,'S',0);                  // get cluster ID
 
 	K = cid.size();
-	for(k=0; k<K; k++)										// loop over clusters
+	for(k=0; k<K; k++)				// loop over clusters
 	{
 		id = size_t(cid.data[k]+0.1);
-		if(pwc->sCuts[id-1] != -2) continue;			// skip rejected/processed culster
-		vint = &(pwc->cList[id-1]);							// pixel list
-		V = vint->size();									// pixel list size
+		if(pwc->sCuts[id-1] != -2) continue;	// skip rejected/processed culster
+		vint = &(pwc->cList[id-1]);		// pixel list
+		V = vint->size();			// pixel list size
 		if(!V) continue;
 		
 		pI = net->wdmMRA.getXTalk(pwc, id);
 	
-		V = pI.size();										// number of loaded pixels
+		V = pI.size();				// number of loaded pixels
 		if(!V) continue;
 		
 		pix = pwc->getPixel(id, pI[0]);
 		tsize = pix->tdAmp[0].size();
-		if(!tsize || tsize&1)
-		{													// tsize%1 = 1/0 = power/amplitude 
+		if(!tsize || tsize&1)			// tsize%1 = 1/0 = power/amplitude 
+		{					 
 			cout<<"network::subNetCut() error: wrong pixel TD data\n";
 			exit(1);
 		}
 	
 		tsize /= 2;
-	    V4 = V + (V%4 ? 4 - V%4 : 0);                                                      
+	    	V4 = V + (V%4 ? 4 - V%4 : 0);     
 		if( tsize > Tmax )
 			Tmax = tsize;
 		if( V4 > V4max )
 			V4max = V4;
 	}
-//new
-
-//new
 	cout<<"new main.cu inside gpu_subNetCut"<<endl;
 	cout<<"V4max = "<<V4max<<" Tmax = "<<Tmax<<endl;
 	
+//new
+	struct pre_data pre_gpu_data[BufferNum];
+	struct post_data post_gpu_data[StreamNum];
+	int eTDDim = 0;
+	int mlDim = 0;	
+	
+	eTDDim = Tmax * V4max;
+	mlDim = Lsky - 1;
+	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, mlDim, Lsky);
+	cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
+//new
 	return count;
 }
 
-/*void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky)// allocate locked memory on CPU 
+void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky)// allocate locked memory on CPU 
 {
 	for(int i = 0; i<BufferNum; i++)
 	{
@@ -333,7 +341,7 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 	}
 	return;
 }
-
+/*
 void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int mlDim, int Lsky)// allocate the memory on GPU
 {
 	for(int i = 0; i<StreamNum; i++)
