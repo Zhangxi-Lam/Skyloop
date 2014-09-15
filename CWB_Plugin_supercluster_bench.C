@@ -22,6 +22,7 @@
 long subNetCut(network* net, int lag, float snc, TH2F* hist);
 inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K);
 void PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info);
+long gpu_subNetCut(network* net, int lag, float snc, TH2F* hist);
 
 #define USE_LOCAL_SUBNETCUT	// comment to use the builtin implementation of subNetCut
 
@@ -162,8 +163,25 @@ PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info) {
 }
 
 long subNetCut(network* net, int lag, float snc, TH2F* hist)
-{ 
-	return 1;
+{
+                                     
+// sub-network cut with dsp regulator                  
+//  lag: lag index                                     
+//  snc: sub network threshold, if snc<0 use weak constraint
+// hist: diagnostic histogram                               
+// return number of processed pixels                        
+   if(!net->wc_List[lag].size()) return 0;
+
+   size_t nIFO = net->ifoList.size();
+  
+   if(nIFO>NIFO) {
+      cout<<"network::subNetCut(): invalid network.\n";
+      exit(0);                                         
+   }
+		
+	size_t count = 0;
+	count = gpu_subNetCut(net, lag, snc, hist);
+	return count;
 }               
 /*                                     
 // sub-network cut with dsp regulator                  
