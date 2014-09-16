@@ -31,8 +31,6 @@ struct other                                    //the variable that not use in G
 	float *a_00, *a_90;			// pointer of a_00.data and a_90.data
 	int *le, *vint_size, *lag;
 	size_t *id, *nIFO, *V, *V4;
-	class network *net;
-	class TH2F *hist;
 	size_t *count;			// result of each stream
 	bool *finish;			// indicate whether the caculation is finished
 };
