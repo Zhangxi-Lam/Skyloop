@@ -27,9 +27,9 @@ struct other                                    //the variable that not use in G
 	float *eTD[NIFO];
 	short *ml[NIFO];
 	short *mm;				// skyMask.data
-	float *T_En, *T_Es, *TH;
-	int *le, *vint_size, *lag;
-	size_t *id, *nIFO, *V, *V4;
+	float *T_En, *T_Es, *TH;	// same
+	int *le, *vint_size, *lag;	// le, lag same
+	size_t *id, *nIFO, *V, *V4; // nIFO same
 	size_t *count;			// result of each stream
 	bool *finish;			// indicate whether the caculation is finished
 };
