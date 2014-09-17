@@ -1,13 +1,13 @@
 #ifndef _MAIN_
 #define _MAIN_
  
-void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int mlDim, int Lsky);
-void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int mlDim, int Lsky);
+void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int V4max, int Lsky);
+void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int V4max , int Lsky);
 void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data);
 void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other);
 void test_function(void);
 
-__host__ void push_work_into_gpu(struct pre_data *input_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, struct post_data *post_gpu_data, int work_size, int eTDDim, int mlDim, int Lsky, cudaStream_t *stream);
+__host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *post_gpu_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int V4max, int Lsky, cudaStream_t *stream);
 
 __global__ void kernel_skyloop (struct other* skyloop_other, struct skyloop_output *skyloop_output, int eTDDim, int mlDim);
 __inline__ __device__ void kernel_skyloop_calculate(struct other *skyloop_other, struct skyloop_output *skyloop_output, int l, float **PE);

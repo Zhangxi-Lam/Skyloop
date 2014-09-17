@@ -24,6 +24,7 @@
 
 network *gpu_net;
 TH2F *gpu_hist;
+size_t gpu_nIFO;
 #define CUDA_CHECK(value) {                                             \
     cudaError_t _m_cudaStat = value;                                    \
     if (_m_cudaStat != cudaSuccess) {                                   \
@@ -42,7 +43,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 	
 	int l;
 	float aa, AA;	
-	size_t i, j, k, m, V, V4, id, K, M;
+	size_t i, j, k, V, V4, id, K;
 	int Lsky = int(net->index.size());
 	short *mm = net->skyMask.data;
 	
@@ -128,11 +129,12 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 		finish[i] = true;		
 	}
 	// allocate the memory on cpu and gpu
-	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, Lsky);
-	allocate_gpu_mem(skyloop_output, skyloop_other, eTDDim, Lsky);
+	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, V4max, Lsky);
+	allocate_gpu_mem(skyloop_output, skyloop_other, eTDDim, V4max, Lsky);
 	
 	gpu_net = net;
 	gpu_hist = hist;
+	gpu_nIFO = nIFO;
 	cout<<"XIFO = "<<XIFO<<endl;
 	cudaStream_t stream[StreamNum];			// define the stream
 	for(int i=0; i<StreamNum; i++)			
@@ -225,16 +227,16 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 		for( j=0; j<V; j++)
 		{   
 			pix = pwc->getPixel(id,pI[j]);          // get pixel pointer   
-         	net->pList.push_back(pix);      // store pixel pointers for MRA
+         		net->pList.push_back(pix);      // store pixel pointers for MRA
 			for(i=0; i<nIFO; i++) {
-            	for( l=0; l<tsize; l++) {                                
-              		aa = pix->tdAmp[i].data[l];             // copy TD 00 data 
-		            AA = pix->tdAmp[i].data[l+tsize];       // copy TD 90 data 
-		            eTD[i].data[l*V4+j] = aa*aa+AA*AA;      // copy power      
+            			for( l=0; l<tsize; l++) {                                
+              			   aa = pix->tdAmp[i].data[l];             // copy TD 00 data 
+		                   AA = pix->tdAmp[i].data[l+tsize];       // copy TD 90 data 
+		                   eTD[i].data[l*V4+j] = aa*aa+AA*AA;      // copy power      
 					// assign the data 
-					pre_gpu_data[i].other_data.eTD[i][l*V4+j] = aa*aa+AA*AA;
-					diff += (eTD[i].data[l*V4+j]- pre_gpu_data[i].other_data.eTD[i][l*V4+j]);
-            	}
+			           pre_gpu_data[i].other_data.eTD[i][l*V4+j] = aa*aa+AA*AA;
+				   diff += (eTD[i].data[l*V4+j]- pre_gpu_data[i].other_data.eTD[i][l*V4+j]);
+            			}
 			}
 		}
 		
@@ -270,12 +272,15 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 				cout<<" streamCount = " <<*(pre_gpu_data[i].other_data.count)<<endl;
 				cout<<" finish = " <<*(pre_gpu_data[i].other_data.finish)<<endl;*/
 			if(alloced_gpu == StreamNum)		// if all streams' data have been assigned
-				push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_other, eTDDim, V4max, Lsky, stream);
+				push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, eTDDim, V4max, Lsky, stream);
 		}
 			
 	}							// end of loop
+	// Free the memory and destory the stream
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data);
 	cleanup_gpu_mem(skyloop_output, skyloop_other);
+	for(int i=0; i<StreamNum; i++)	
+		cudaStreamDestroy(stream[i]);
 	return count;
 }
 void test_function(void)
@@ -283,7 +288,7 @@ void test_function(void)
 	cout<<"test function's nIFO = "<<gpu_net->ifoListSize()<<endl;
 	return;
 }
-void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int Lsky)// allocate locked memory on CPU 
+void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int V4max, int Lsky)// allocate locked memory on CPU 
 {
 	for(int i = 0; i<BufferNum; i++)
 	{
@@ -309,14 +314,14 @@ void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_
 	}
 	for(int i = 0; i<StreamNum; i++)
 	{
-		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.rE), V4max * sizeof(float), cudaHostAllocMapped ) );
-		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.pE), V4max * sizeof(float), cudaHostAllocMapped ) );
-		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.Eo), sizeof(float), cudaHostAllocMapped ) );
-		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.En), sizeof(float), cudaHostAllocMapped ) );
-		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.Es), sizeof(float), cudaHostAllocMapped ) );
-		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.Mm), sizeof(int), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.rE), Lsky * V4max * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.pE), Lsky * V4max * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.Eo), Lsky * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.En), Lsky * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.Es), Lsky * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.Mm), Lsky * sizeof(int), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.eTD[0]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
-        CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.eTD[1]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+	        CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.eTD[1]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.eTD[2]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.ml[0]), Lsky * sizeof(short), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.ml[1]), Lsky * sizeof(short), cudaHostAllocMapped ) );
@@ -396,16 +401,16 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 	return;
 }
 
-void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int mlDim, int Lsky)// allocate the memory on GPU
+void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int V4max, int Lsky)// allocate the memory on GPU
 {
 	for(int i = 0; i<StreamNum; i++)
 	{
-		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].rE), V4max * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].pE), V4max * sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].Eo), sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].En), sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].Es), sizeof(float) ) );
-		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].Mm), sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].rE), Lsky * V4max * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].pE), Lsky * V4max * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].Eo), Lsky * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].En), Lsky * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].Es), Lsky * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].Mm), Lsky * sizeof(int) ) );
 		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].eTD[0]), eTDDim * sizeof(short) ) );
 		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].eTD[1]), eTDDim * sizeof(short) ) );
 		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].eTD[2]), eTDDim * sizeof(short) ) );
@@ -468,6 +473,16 @@ void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloo
 
 __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *post_gpu_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int V4max, int Lsky, cudaStream_t *stream)
 {
+	for(int i=0; i<StreamNum; i++)
+	{
+		for(int j = 0; j<gpu_nIFO ; j++)
+		{
+			cudaMemcpyAsync(skyloop_other[i].eTD[j], input_data[i].other_data.eTD[j], eTDDim * sizeof(float), cudaMemcpyHostToDevice, stream[i] );
+			cudaMemcpyAsync(skyloop_other[i].ml[j], input_data[i].other_data.ml[j], Lsky * sizeof(short), cudaMemcpyHostToDevice, stream[i] );
+			cudaMemcpyAsync(skyloop_other[i].mm, input_data[i].other_data.mm, Lsky * sizeof(short), cudaMemcpyHostToDevice, stream[i] );
+			cout<<"Memory copy success!"<<endl;
+		}	
+	}
 }
 /*        for(int i = 0; i<work_size ; i++)
         {
