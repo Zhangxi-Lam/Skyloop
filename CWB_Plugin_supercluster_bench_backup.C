@@ -355,10 +355,10 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 
 
   skyloop:
-
-	FILE *fpt = fopen("skyloop", "a");
+	
+	/*FILE *fpt = fopen("skyloop", "a");
 	fprintf(fpt, "Now in skyloop V4 = %u le=%d V=%u\n", V4, le, V);
-	fclose(fpt);
+	fclose(fpt);*/
 
       for(l=lb; l<=le; l++) {                         // loop over sky locations
          if(!mm[l] || l<0) continue;                  // skip delay configurations
@@ -393,7 +393,12 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          Ls = vvv[0]+vvv[1]+vvv[2]+vvv[3];             // subnetwork energy                    
          _mm_storeu_ps(vvv,_M_m);                                                              
          m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold               
-
+		
+///*new
+		FILE *fpt = fopen("skyloop_backup", "a");
+		fprintf(fpt, "k = %d l = %d En = %f Eo = %f Es = %f Mm = %d\n", k, l, Ln, Eo, Ls, m);
+		fclose(fpt);
+//new*/
          aa = Ls*Ln/(Eo-Ls);
          if((aa-m)/(aa+m)<0.33) continue;
                                          
