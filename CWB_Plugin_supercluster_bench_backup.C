@@ -364,7 +364,16 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          if(!mm[l] || l<0) continue;                  // skip delay configurations
                                                                                   
          _sse_point_ps(_pe, pe, ml, int(l), (int)V4); // point _pe to energy vectors
-                                                                                    
+///*new
+	 float debug[3][NIFO];
+	 _mm_storeu_ps(debug[0],*_pe[0]);
+	 _mm_storeu_ps(debug[1],*_pe[1]);
+	 _mm_storeu_ps(debug[2],*_pe[2]);
+	 FILE *fpt = fopen("skyloop_pe", "a");
+	 for(int i=0; i<V4; i++)
+		 fprintf(fpt, "k = %d l = %d pe[0] = %f pe[1] = %f pe[2] = %f \n", k, l, pe[0][i], debug[1][i], debug[2][i]);
+ 	 fclose(fpt);
+//new*/                                                                             
          __m128 _msk;                                                               
          __m128 _E_o = _mm_setzero_ps();              // total network energy       
          __m128 _E_n = _mm_setzero_ps();              // network energy above the threshold
@@ -394,7 +403,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          _mm_storeu_ps(vvv,_M_m);                                                              
          m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold               
 		
-///*new
+/*new
 		FILE *fpt = fopen("skyloop_backup", "a");
 		fprintf(fpt, "k = %d l = %d En = %f Eo = %f Es = %f Mm = %d\n", k, l, Ln, Eo, Ls, m);
 		fclose(fpt);

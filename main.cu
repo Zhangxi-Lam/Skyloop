@@ -233,14 +233,12 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 		}
 		if(alloced_gpu<StreamNum)
 		{
-			FILE *fpt = fopen("skyloop_eTD", "a");	
+			FILE *fpt = fopen("skyloop_before", "a");	
 			for(int i=0; i<eTDDim; i++)
 				fprintf(fpt, "k = %d, l = %d, eTD[0] = %f eTD[1] = %f eTD[2] = %f\n", k, i, pre_gpu_data[alloced_gpu].other_data.eTD[0][i], pre_gpu_data[alloced_gpu].other_data.eTD[1][i],pre_gpu_data[alloced_gpu].other_data.eTD[2][i]);
+			for(int i=0; i<Lsky; i++)
+				fprintf(fpt, "k = %d, l = %d, ml[0] = %hd ml[1] = %hd ml[2] = %hd\n", k, i, ml[0][i],  ml[1][i], ml[2][i]);
 			fclose(fpt);
-//			FILE *fpt1 = fopen("skyloop_ml", "a");
-//			for(int i=0; i<Lsky; i++)
-//				fprintf(fpt1, "k = %d, l = %d, ml[0] = %hd ml[1] = %hd ml[2] = %hd\n", k, i, ml[0][i],  ml[1][i], ml[2][i]);
-//			fclose(fpt1);
 				
 		}
 //++++++++++++++++++++++++++++++++
@@ -267,13 +265,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 				*(post_gpu_data[i].other_data.finish) = finish[i];
 			}
 			alloced_gpu++;
-				/*cout<<" stream "<<i<<endl;
-				cout<<" vint_size = " <<*(pre_gpu_data[i].other_data.vint_size)<<endl;
-				cout<<" id = " <<*(pre_gpu_data[i].other_data.id)<<endl;
-				cout<<" V = " <<*(pre_gpu_data[i].other_data.V)<<endl;
-				cout<<" V4 = " <<*(pre_gpu_data[i].other_data.V4)<<endl;
-				cout<<" streamCount = " <<*(pre_gpu_data[i].other_data.count)<<endl;
-				cout<<" finish = " <<*(pre_gpu_data[i].other_data.finish)<<endl;*/
 			if(alloced_gpu == StreamNum)		// if all streams' data have been assigned
 				push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, eTDDim, V4max, Lsky, StreamNum, stream);
 			
@@ -284,18 +275,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 	cout<<"here"<<endl;
 	for(int i=0; i<StreamNum; i++)				// wait for all commands in the stream to complete
 		CUDA_CHECK(cudaStreamSynchronize(stream[i]));
-	// Free the memory and destory the stream
-	/*while(cleanup ==false)
-	{
-		for(i=0; i<StreamNum; i++)
-		{
-			if(finish[i] == false)
-				break;
-		}
-		if(i == StreamNum)
-			cleanup = true;
-	}
-	if(cleanup*/
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data, stream);
 	cleanup_gpu_mem(skyloop_output, skyloop_other, stream);
 	for(int i=0; i<StreamNum; i++)	
@@ -580,18 +559,25 @@ __global__ void kernel_skyloop(float *eTD_0, float *eTD_1, float *eTD_2, short *
 	{
 		if(!mm[l]) continue;							// skip delay configurations
 		// _sse_point_ps 
-		pe[0] = pe[0] + tsize * V4 / 2 + ml[0][l] * V4;
-		pe[1] = pe[1] + tsize * V4 / 2 + ml[1][l] * V4;
-		pe[2] = pe[2] + tsize * V4 / 2 + ml[2][l] * V4;
-		
+		pe[0] = pe[0] + (tsize/2)*V4;
+		pe[1] = pe[1] + (tsize/2)*V4;
+		pe[2] = pe[2] + (tsize/2)*V4;
+
+		pe[0] = pe[0] + ml[0][l] * (int)V4;
+		pe[1] = pe[1] + ml[1][l] * (int)V4;
+		pe[2] = pe[2] + ml[2][l] * (int)V4;
 		// inner skyloop
-		kernel_skyloop_calculate(pe[0], pe[1], pe[2], V, V4, T_En, T_Es, gpu_rE, gpu_pE, gpu_Eo, gpu_En, gpu_Es, gpu_Mm, l);
-		/*debug	
+		//kernel_skyloop_calculate(pe[0], pe[1], pe[2], V, V4, T_En, T_Es, gpu_rE, gpu_pE, gpu_Eo, gpu_En, gpu_Es, gpu_Mm, l);
+		///*debug	
 //		if(l<(tsize*V4))
-		gpu_En[l] = eTD_0[0]; 
-		gpu_Eo[l] = eTD_1[0]; 
-		gpu_Es[l] = eTD_0[l]; 
-		gpu_Mm[l] = mm[0]; 
+		
+/*		for(int i=0; i<V4; i++)
+		{
+		gpu_En[l] = pe[0][0]; 
+		gpu_Eo[l] = pe[1][0]; 
+		gpu_Es[l] = pe[2][0]; 
+		gpu_Mm[l] = (tsize/2) * V4 + ml[1][l] * (int)V4; 	
+		}
 		//debug*/
 		l += grid_size;
 	}
