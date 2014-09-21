@@ -364,7 +364,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          if(!mm[l] || l<0) continue;                  // skip delay configurations
                                                                                   
          _sse_point_ps(_pe, pe, ml, int(l), (int)V4); // point _pe to energy vectors
-///*new
+/*new
 	 float debug[3][NIFO];
 	 _mm_storeu_ps(debug[0],*_pe[0]);
 	 _mm_storeu_ps(debug[1],*_pe[1]);

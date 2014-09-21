@@ -231,7 +231,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
             			}
 			}
 		}
-		if(alloced_gpu<StreamNum)
+		/*if(alloced_gpu<StreamNum)
 		{
 			FILE *fpt = fopen("skyloop_before", "a");	
 			for(int i=0; i<eTDDim; i++)
@@ -240,7 +240,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 				fprintf(fpt, "k = %d, l = %d, ml[0] = %hd ml[1] = %hd ml[2] = %hd\n", k, i, ml[0][i],  ml[1][i], ml[2][i]);
 			fclose(fpt);
 				
-		}
+		}*/
 //++++++++++++++++++++++++++++++++
 // assign the data 
 //++++++++++++++++++++++++++++++++
@@ -567,7 +567,7 @@ __global__ void kernel_skyloop(float *eTD_0, float *eTD_1, float *eTD_2, short *
 		pe[1] = pe[1] + ml[1][l] * (int)V4;
 		pe[2] = pe[2] + ml[2][l] * (int)V4;
 		// inner skyloop
-		//kernel_skyloop_calculate(pe[0], pe[1], pe[2], V, V4, T_En, T_Es, gpu_rE, gpu_pE, gpu_Eo, gpu_En, gpu_Es, gpu_Mm, l);
+		kernel_skyloop_calculate(pe[0], pe[1], pe[2], V, V4, T_En, T_Es, gpu_rE, gpu_pE, gpu_Eo, gpu_En, gpu_Es, gpu_Mm, l);
 		///*debug	
 //		if(l<(tsize*V4))
 		
