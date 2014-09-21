@@ -412,6 +412,16 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          if((aa-m)/(aa+m)<0.33) continue;
                                          
          net->pnt_(v00, pa, ml, (int)l, (int)V4);      // pointers to first pixel 00 data 
+///*new
+/*		float debug[3][NIFO];
+		_mm_storeu_ps(debug[0],*v00[0]);
+		_mm_storeu_ps(debug[1],*v00[1]);
+		_mm_storeu_ps(debug[2],*v00[2]);*/
+		FILE *fpt = fopen("skyloop_v00", "a");
+//		for(int i=0; i<V4; i++)
+		 	fprintf(fpt, "k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f \n", k, l, v00[0][0], v00[1][0], v00[2][0]);
+		fclose(fpt);
+//new*/
          net->pnt_(v90, pA, ml, (int)l, (int)V4);      // pointers to first pixel 90 data 
          float* pfp = fp.data;                         // set pointer to fp               
          float* pfx = fx.data;                         // set pointer tp fx               

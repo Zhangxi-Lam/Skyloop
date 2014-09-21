@@ -252,7 +252,8 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 			*(pre_gpu_data[i].other_data.V) = V;
 			*(pre_gpu_data[i].other_data.V4) = V4;
 			*(pre_gpu_data[i].other_data.tsize) = tsize;
-			*(pre_gpu_data[i].other_data.count) = streamCount[i];
+//			*(pre_gpu_data[i].other_data.count) = streamCount[i];
+			*(pre_gpu_data[i].other_data.count) = k; 
 			*(pre_gpu_data[i].other_data.finish) = finish[i];
 			
 			if(i<StreamNum)
@@ -261,20 +262,25 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 				*(post_gpu_data[i].other_data.V) = V;
 				*(post_gpu_data[i].other_data.V4) = V4;
 				*(post_gpu_data[i].other_data.tsize) = tsize;
-				*(post_gpu_data[i].other_data.count) = streamCount[i];
+//				*(post_gpu_data[i].other_data.count) = streamCount[i];
+				*(post_gpu_data[i].other_data.count) = k; 
 				*(post_gpu_data[i].other_data.finish) = finish[i];
 			}
 			alloced_gpu++;
 			if(alloced_gpu == StreamNum)		// if all streams' data have been assigned
+			{
 				push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, eTDDim, V4max, Lsky, StreamNum, stream);
-			
+				for(int i=0; i<StreamNum; i++)
+					CUDA_CHECK(cudaStreamSynchronize(stream[i]));
+				alloced_gpu = 0;
+			}
 			
 		}
 			
 	}							// end of loop
 	cout<<"here"<<endl;
-	for(int i=0; i<StreamNum; i++)				// wait for all commands in the stream to complete
-		CUDA_CHECK(cudaStreamSynchronize(stream[i]));
+//	for(int i=0; i<StreamNum; i++)				// wait for all commands in the stream to complete
+//		CUDA_CHECK(cudaStreamSynchronize(stream[i]));
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data, stream);
 	cleanup_gpu_mem(skyloop_output, skyloop_other, stream);
 	for(int i=0; i<StreamNum; i++)	
@@ -527,7 +533,7 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 //                cudaMemcpyAsync(post_gpu_data[i].other_data.finish, skyloop_other[i].finish, sizeof(size_t), cudaMemcpyDeviceToHost, stream[i] );
 				cudaStreamAddCallback(stream[i], MyCallback, (void*)&post_gpu_data[i], 0);
 	}
-	cout<<"push work into gpu fully success"<<endl;
+	cout<<"push work success."<<endl;
 }
 
 __global__ void kernel_skyloop(float *eTD_0, float *eTD_1, float *eTD_2, short *ml_0, short *ml_1, short *ml_2, short *gpu_mm, size_t *gpu_V, size_t *gpu_V4, size_t *gpu_tsize, float *gpu_T_En, float *gpu_T_Es, float *gpu_rE, float *gpu_pE, float *gpu_Eo, float *gpu_En, float *gpu_Es, int *gpu_Mm, int Lsky) 
@@ -658,35 +664,70 @@ __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe, float msk)
 } 
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data)
 {
+	short *ml[NIFO];
 	float Ln = 0;
 	float Eo = 0;
 	float Ls = 0;
+	float aa, TH;
+	float* v00[NIFO];
+	float* v90[NIFO];
+	float* pa[NIFO];
+	float* pA[NIFO];
 	int m = 0;
-	size_t i = 0;
 	int l = 0;
-	int le;
-	short *ml[NIFO]; 
-	float *eTD[NIFO];
+	int le, lag;
+	size_t i = 0;
+	size_t id, nIFO, V, V4, tsize;
+	
+	std::vector<wavearray<float> > vtd;						// vectors of TD amplitudes
+	std::vector<wavearray<float> > vTD;						// vectors of TD amplitudes
+
+	wavearray<float> tmp(tsize*V4); tmp=0;			// aligned array for TD amplitudes
 	FILE *fpt = fopen("skyloop_my", "a");
 	
-	le = *((post_data*)post_gpu_data)->other_data.le;
-	i = *((post_data*)post_gpu_data)->other_data.count;
+	// get the data
 	ml[0] = ((post_data*)post_gpu_data)->other_data.ml[0];
 	ml[1] = ((post_data*)post_gpu_data)->other_data.ml[1];
 	ml[2] = ((post_data*)post_gpu_data)->other_data.ml[2];
-	eTD[0] = ((post_data*)post_gpu_data)->other_data.eTD[0];
-	eTD[1] = ((post_data*)post_gpu_data)->other_data.eTD[1];
-	eTD[2] = ((post_data*)post_gpu_data)->other_data.eTD[2];
+	TH = *((post_data*)post_gpu_data)->other_data.TH;
+	le = *((post_data*)post_gpu_data)->other_data.le;
+	lag = *((post_data*)post_gpu_data)->other_data.lag;
+	id = *((post_data*)post_gpu_data)->other_data.id;
+	nIFO = *((post_data*)post_gpu_data)->other_data.nIFO;
+	V = *((post_data*)post_gpu_data)->other_data.V;
+	V4 = *((post_data*)post_gpu_data)->other_data.V4;
+	tsize = *((post_data*)post_gpu_data)->other_data.tsize;
+	i = *((post_data*)post_gpu_data)->other_data.count;
+	
+	// initailize the data
+	for(int i=0; i<NIFO; i++)
+	{
+		vtd.push_back(tmp);
+		vTD.push_back(tmp);
+	}	
+	for(int i=0; i<NIFO; i++)
+	{
+		pa[i] = vtd[i].data + (tsize/2)*V4;
+		pA[i] = vTD[i].data + (tsize/2)*V4;
+	}
 	
 	while(l <= le)
 	{
-		fprintf(fpt, "k = %d l = %d eTD[0] = %f eTD[1] = %f eTD[2] = %f\n", i, l, eTD[0][l], eTD[1][l], eTD[2][l]);
-		fprintf(fpt, "k = %d l = %d ml[0] = %hd ml[1] = %hd ml[2] = %hd\n", i, l, ml[0][l], ml[1][l], ml[2][l]);
+		//fprintf(fpt, "k = %d l = %d eTD[0] = %f eTD[1] = %f eTD[2] = %f\n", i, l, eTD[0][l], eTD[1][l], eTD[2][l]);
+		//fprintf(fpt, "k = %d l = %d ml[0] = %hd ml[1] = %hd ml[2] = %hd\n", i, l, ml[0][l], ml[1][l], ml[2][l]);
 		Ln = ((post_data*)post_gpu_data)->output.En[l];
 		Eo = ((post_data*)post_gpu_data)->output.Eo[l];
 		Ls = ((post_data*)post_gpu_data)->output.Es[l];
 		m = ((post_data*)post_gpu_data)->output.Mm[l];
 		fprintf(fpt, "k = %d l = %d En = %f Eo = %f Es = %f Mm = %d\n", i, l, Ln, Eo, Ls, m);
+	
+		//aa = Ls*Ln/(Eo-Ls);
+		//if((aa-m)/(aa+m)<0.33) continue;
+		//gpu_net->pnt_(v00, pa, ml, (int)l, (int)V4);	// pointers to first pixel 00 data
+
+		//fprintf(fpt, "k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f \n", i, l, v00[0][0], v00[1][0], v00[2][0]);
+
+		//gpu_net->pnt_(v90, pA, ml, (int)l, (int)V4);	// pointers to first pixel 90 data
 		l++;
 	}
 	fclose(fpt);
