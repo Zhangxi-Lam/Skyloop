@@ -417,9 +417,9 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 		_mm_storeu_ps(debug[0],*v00[0]);
 		_mm_storeu_ps(debug[1],*v00[1]);
 		_mm_storeu_ps(debug[2],*v00[2]);*/
-		FILE *fpt = fopen("skyloop_v00", "a");
+		FILE *fpt = fopen("skyloop_pa", "a");
 //		for(int i=0; i<V4; i++)
-		 	fprintf(fpt, "k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f \n", k, l, v00[0][0], v00[1][0], v00[2][0]);
+		 	fprintf(fpt, "k = %d l = %d pa[0] = %f pa[1] = %f pa[2] = %f \n", k, l, pa[0][0], pa[1][0], pa[2][0]);
 		fclose(fpt);
 //new*/
          net->pnt_(v90, pA, ml, (int)l, (int)V4);      // pointers to first pixel 90 data 

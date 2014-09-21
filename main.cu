@@ -24,6 +24,7 @@
 
 network *gpu_net;
 TH2F *gpu_hist;
+netcluster *pwc;
 bool finish[StreamNum];
 size_t gpu_nIFO;
 #define CUDA_CHECK(value) {                                             \
@@ -63,10 +64,9 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 	// allocate buffers
 	std::vector<int> pI;			// buffer for pixel IDs	
 	wavearray<double> cid;			// buffers for cluster ID
-	netpixel *pix;
+	netpixel *pix;	
 	std::vector<int> *vint;
-	netcluster *pwc = &net->wc_List[lag];
-	
+	pwc = &net->wc_List[lag];
 	size_t count = 0;
 	size_t tsize = 0;
 	size_t V4max = 0;				// store the maximum of V4
@@ -531,7 +531,6 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 //                cudaMemcpyAsync(post_gpu_data[i].other_data.finish, skyloop_other[i].finish, sizeof(size_t), cudaMemcpyDeviceToHost, stream[i] );
 				cudaStreamAddCallback(stream[i], MyCallback, (void*)&post_gpu_data[i], 0);
 	}
-	cout<<"push work into gpu fully success"<<endl;
 }
 
 __global__ void kernel_skyloop(float *eTD_0, float *eTD_1, float *eTD_2, short *ml_0, short *ml_1, short *ml_2, short *gpu_mm, size_t *gpu_V, size_t *gpu_V4, size_t *gpu_tsize, float *gpu_T_En, float *gpu_T_Es, float *gpu_rE, float *gpu_pE, float *gpu_Eo, float *gpu_En, float *gpu_Es, int *gpu_Mm, int Lsky) 
@@ -559,9 +558,9 @@ __global__ void kernel_skyloop(float *eTD_0, float *eTD_1, float *eTD_2, short *
 	T_En = *gpu_T_En;
 	T_Es = *gpu_T_Es;
 
-	while(l <= le)										// loop over sky locations
+	for(; l<=le; l+=grid_size)		// loop over sky locations
 	{
-		if(!mm[l]) continue;							// skip delay configurations
+		if(!mm[l]) continue;		// skip delay configurations
 		// _sse_point_ps 
 		pe[0] = pe[0] + (tsize/2)*V4;
 		pe[1] = pe[1] + (tsize/2)*V4;
@@ -583,7 +582,6 @@ __global__ void kernel_skyloop(float *eTD_0, float *eTD_1, float *eTD_2, short *
 		gpu_Mm[l] = (tsize/2) * V4 + ml[1][l] * (int)V4; 	
 		}
 		//debug*/
-		l += grid_size;
 	}
 		
 }
@@ -662,19 +660,28 @@ __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe, float msk)
 } 
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data)
 {
+	float *v00[NIFO];
+	float *pa[NIFO];
 	float Ln = 0;
 	float Eo = 0;
 	float Ls = 0;
 	float aa;
 	int m = 0;
+	size_t id, nIFO, V, V4, tsize;
 	size_t i = 0;
 	int l = 0;
-	int le;
+	int le, lag;
 	short *ml[NIFO]; 
 	float *eTD[NIFO];
 	FILE *fpt = fopen("skyloop_my", "a");
 	
 	le = *((post_data*)post_gpu_data)->other_data.le;
+	lag = *((post_data*)post_gpu_data)->other_data.lag;
+	id = *((post_data*)post_gpu_data)->other_data.id;
+	nIFO = *((post_data*)post_gpu_data)->other_data.nIFO;
+	V = *((post_data*)post_gpu_data)->other_data.V;
+	V4 = *((post_data*)post_gpu_data)->other_data.V4;
+	tsize = *((post_data*)post_gpu_data)->other_data.tsize;
 	i = *((post_data*)post_gpu_data)->other_data.count;
 	ml[0] = ((post_data*)post_gpu_data)->other_data.ml[0];
 	ml[1] = ((post_data*)post_gpu_data)->other_data.ml[1];
@@ -683,7 +690,40 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 	eTD[1] = ((post_data*)post_gpu_data)->other_data.eTD[1];
 	eTD[2] = ((post_data*)post_gpu_data)->other_data.eTD[2];
 	
-	while(l <= le)
+	std::vector<wavearray<float> > vtd;		// vectors of TD amplitudes
+	std::vector<int> pI;				// buffer for pixel TDs
+	wavearray<float> tmp(tsize*V4); tmp=0;
+	
+	netpixel* pix;	
+
+	// initialize data
+	pI = gpu_net->wdmMRA.getXTalk(pwc, id);
+	for(int i=0; i<NIFO; i++)
+	{
+		vtd.push_back(tmp);
+	}
+	for(int i=0; i<NIFO; i++)
+	{
+		pa[i] = vtd[i].data + (tsize/2)*V4;
+	}
+		
+	for(int j=0; j<V; j++)			// loop over selected pixels
+	{
+		pix = pwc->getPixel(id, pI[j]);	// get pixel pointer
+		gpu_net->pList.push_back(pix);	// store pixel pointers for MRA
+		
+		for(int i=0; i<nIFO; i++)
+			for(int l=0; l<tsize; l++)
+			{
+				aa = pix->tdAmp[i].data[l];		// copy TD 00 data
+				//AA = pix->tdAmp[i].data[l+tsize];	// copy Td 90 data
+				vtd[i].data[l*V4+j] = aa;		// copy 00 data
+			}
+		
+	}
+	
+	// after skyloop
+	for(; l<=le; l++)
 	{
 //		fprintf(fpt, "k = %d l = %d eTD[0] = %f eTD[1] = %f eTD[2] = %f\n", i, l, eTD[0][l], eTD[1][l], eTD[2][l]);
 //		fprintf(fpt, "k = %d l = %d ml[0] = %hd ml[1] = %hd ml[2] = %hd\n", i, l, ml[0][l], ml[1][l], ml[2][l]);
@@ -691,13 +731,34 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 		Eo = ((post_data*)post_gpu_data)->output.Eo[l];
 		Ls = ((post_data*)post_gpu_data)->output.Es[l];
 		m = ((post_data*)post_gpu_data)->output.Mm[l];
-			
-//		aa = Ls*Ln/(Eo-Ls);
-//		if((aa-m)/(aa+m)<0.33)	continue;	
-
-		
 		fprintf(fpt, "k = %d l = %d En = %f Eo = %f Es = %f Mm = %d\n", i, l, Ln, Eo, Ls, m);
-		l++;
+			
+		aa = Ls*Ln/(Eo-Ls);
+		if((aa-m)/(aa+m)<0.33)	continue;	
+	
+		//gpu_net->pnt_(v00, pa, ml, (int)l, (int)V4);	// pointers to first pixel 00 data
+		v00[0] = pa[0] + ml[0][l]*(int)V4;
+		v00[1] = pa[1] + ml[1][l]*(int)V4;
+		v00[2] = pa[2] + ml[2][l]*(int)V4;
+		/*new
+		gpu_net->pnt_(v90, pA, ml, (int)l, (int)V4);	// pointers to first pixel 90 data
+		float *pfp = fp.data;		// set pointer to fp
+		float *pfx = fx.data;		// set pointer to fx
+		float *p00 = gpu_net->a_00.data;	// set pointer for 00 array
+		float *p90 = gpu_net->a_90.data;	// set pointer for 90 array
+	
+		m = 0;
+		for(int j=0; j<V; j++)
+		{
+			int jf = j*f_;		// source sse pointer increment
+			
+			gpu_net->cpp_(p00,v00); gpu_net->cpp_(p90, v90)	// copy amplitudes with target increment
+			gpu_net->cpf_(pfp, FP, 1); gpu_net->cpf_(pfx, FX, 1);	// copy antenna with target increment
+			_sse_zero_ps(_xi+jf);		// zero MRA amplitudes
+		}
+		//ner*/
+		fprintf(fpt,"k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f\n", i, l, v00[0][0], v00[1][0], v00[2][0]);
+		
 	}
 	fclose(fpt);
 		
