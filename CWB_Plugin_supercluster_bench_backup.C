@@ -22,7 +22,6 @@
 long subNetCut(network* net, int lag, float snc, TH2F* hist);
 inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K);
 void PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info);
-long gpu_subNetCut(network* net, int lag, float snc, TH2F* hist);
 
 #define USE_LOCAL_SUBNETCUT	// comment to use the builtin implementation of subNetCut
 
@@ -163,27 +162,7 @@ PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info) {
 }
 
 long subNetCut(network* net, int lag, float snc, TH2F* hist)
-{
-                                     
-// sub-network cut with dsp regulator                  
-//  lag: lag index                                     
-//  snc: sub network threshold, if snc<0 use weak constraint
-// hist: diagnostic histogram                               
-// return number of processed pixels                        
-   if(!net->wc_List[lag].size()) return 0;
-
-   size_t nIFO = net->ifoList.size();
-  
-   if(nIFO>NIFO) {
-      cout<<"network::subNetCut(): invalid network.\n";
-      exit(0);                                         
-   }
-		
-	size_t count = 0;
-	count = gpu_subNetCut(net, lag, snc, hist);
-	return count;
-}               
-/*                                     
+{                                                      
 // sub-network cut with dsp regulator                  
 //  lag: lag index                                     
 //  snc: sub network threshold, if snc<0 use weak constraint
@@ -377,9 +356,9 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 
   skyloop:
 
-	FILE *fpt = fopen("skyloop", "a");
-	fprintf(fpt, "Now in skyloop V4 = %u le=%d V=%u\n", V4, le, V);
-	fclose(fpt);
+	//FILE *fpt = fopen("skyloop", "a");
+	//fprintf(fpt, "Now in skyloop V4 = %u le=%d V=%u\n", V4, le, V);
+	//fclose(fpt);
 
       for(l=lb; l<=le; l++) {                         // loop over sky locations
          if(!mm[l] || l<0) continue;                  // skip delay configurations
@@ -430,6 +409,9 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
             int jf = j*f_;                             // source sse pointer increment 
             net->cpp_(p00,v00);  net->cpp_(p90,v90);   // copy amplitudes with target increment
             net->cpf_(pfp,FP,l); net->cpf_(pfx,FX,l);  // copy antenna with target increment   
+			FILE *fpt = fopen("skyloop_pfp", "a");
+			fprintf(fpt,"k = %d l = %d pfp[0] = %f pfp[1] = %f pfp[2] = %f\n", k, l, pfp[0], pfp[1], pfp[2]);
+			fclose(fpt);
             _sse_zero_ps(_xi+jf);                      // zero MRA amplitudes                  
             _sse_zero_ps(_XI+jf);                      // zero MRA amplitudes                  
             _sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00                         
@@ -542,7 +524,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
       }
    }                                                 // end of loop over clusters
    return count;
-}*/
+}
 
 inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
 // fast multi-resolution analysis inside sky loop
