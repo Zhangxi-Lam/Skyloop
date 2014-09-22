@@ -1,17 +1,17 @@
-#define XIFO 3
-#if XIFO == 3
-#define NETX(P1,P2,P3,P4,P5,P6,P7,P8) \
+#define GPU_XIFO 3
+#if GPU_XIFO == 3
+#define GPU_NETX(P1,P2,P3,P4,P5,P6,P7,P8) \
 P1                                       \
 P2                                       \
 P3                              
 #endif
 
-#if XIFO < 5
-#define _NET(P1,P2) \
+#if GPU_XIFO < 5
+#define GPU_NET(P1,P2) \
 P1                              
 #endif   
 
-inline void pnt_(float** q, float** p, short** m, int l, int n) 
+inline void gpu_pnt_(float** q, float** p, short** m, int l, int n) 
 {
 // point 0-7 float pointers to first network pixel
 	NETX(q[0] = (p[0] + m[0][l]*n);,
@@ -25,7 +25,7 @@ inline void pnt_(float** q, float** p, short** m, int l, int n)
 	return;
 }   
 
-inline void cpp_(float*& a, float** p) 
+/*inline void cpp_(float*& a, float** p) 
 {
 // copy to a data defined by array of pointers p and increment pointer
 	NETX(*(a++) = *p[0]++;,
@@ -215,7 +215,7 @@ inline int network::_sse_MRA_ps(float* amp, float* AMP, float Eo, int K, class m
 		//cout<<" "<<ee[m]<<" "<<k<<" "<<E<<" "<<EE<<" "<<endl;                               
 		pp[m] = _sse_abs_ps(_amp+mm,_AMP+mm);    // store PC energy                           
 		k++;
-	}
+	}*/
 
 	/* 
 	cout<<"EE="<<EE<<endl;
@@ -226,10 +226,10 @@ inline int network::_sse_MRA_ps(float* amp, float* AMP, float Eo, int K, class m
 	}                                                                                     
 	cout<<"EE="<<EE<<endl;                                                                
 	*/
-	return k;
+/*	return k;
 #else
 	return 0;
 #endif
-} 
+}*/ 
 
                                                                                                                                     

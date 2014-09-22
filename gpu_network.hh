@@ -1067,9 +1067,10 @@ inline float network::rots(float* u, float c, float* v, float s, float* e) {
 
 inline void network::pnt_(float** q, float** p, short** m, int l, int n) {
 // point 0-7 float pointers to first network pixel
+   cout<<"inside gpu_network pnt!"<<endl;
    NETX(q[0] = (p[0] + m[0][l]*n);,
         q[1] = (p[1] + m[1][l]*n);,
-        q[2] = (p[2] + m[2][l]*n);,
+        q[2] = (p[2] + m[2][l]*n); cout<<"pnt 3"<<endl;,
         q[3] = (p[3] + m[3][l]*n);,
         q[4] = (p[4] + m[4][l]*n);,
         q[5] = (p[5] + m[5][l]*n);,

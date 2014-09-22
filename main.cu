@@ -3,6 +3,8 @@
 #include <xmmintrin.h>
 #include "wavearray.hh"
 #include "gpu_network.hh"
+//#include "/home/hpc/cWB/TEST/S6A_BKG_LF_L1H1V1_2G_SUPERCLUSTER_run1a_bench2/macro/gpu_function.h"
+//#include "/home/hpc/cWB/trunk/wat/network.hh"
 //#include "function.h"
 /*#include "cwb.hh"
 #include "cwb2G.hh"
@@ -25,6 +27,8 @@
 network *gpu_net;
 TH2F *gpu_hist;
 netcluster *pwc;
+double *FP[NIFO];
+double *FX[NIFO];
 bool finish[StreamNum];
 size_t gpu_nIFO;
 #define CUDA_CHECK(value) {                                             \
@@ -34,6 +38,9 @@ size_t gpu_nIFO;
                 cudaGetErrorString(_m_cudaStat), __LINE__, __FILE__);   \
         exit(1); }}
 
+inline void gpu_pnt_(float** q, float** p, short** m, int l, int n); 
+inline void gpu_cpp_(float*& a, float** p);
+inline void gpu_cpf_(float*& a, double** p, size_t i); //GV
 long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 {
 	//define variables
@@ -56,9 +63,17 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 	for( i=0; i<NIFO; i++)
 	{
 		if(i<nIFO)
+		{
 			ml[i] = net->getifo(i)->index.data;
+			FP[i] = net->getifo(i)->fp.data;
+			FX[i] = net->getifo(i)->fx.data;
+		}
 		else
+		{
 			ml[i] = net->getifo(0)->index.data;
+			FP[i] = net->getifo(0)->fp.data;
+			FX[i] = net->getifo(0)->fx.data;
+		}
 	}
 	
 	// allocate buffers
@@ -162,8 +177,8 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 				pre_gpu_data[i].other_data.mm[l] = mm[l];
 //				post_gpu_data[i].other_data.mm[l] = mm[l];
 			}
-//			*(post_gpu_data[i].other_data.T_En) = En;
-//			*(post_gpu_data[i].other_data.T_Es) = Es;
+			*(post_gpu_data[i].other_data.T_En) = En;
+			*(post_gpu_data[i].other_data.T_Es) = Es;
 			*(post_gpu_data[i].other_data.TH) = TH;
 			*(post_gpu_data[i].other_data.le) = Lsky - 1;
 			*(post_gpu_data[i].other_data.lag) = lag;
@@ -531,6 +546,7 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 //                cudaMemcpyAsync(post_gpu_data[i].other_data.finish, skyloop_other[i].finish, sizeof(size_t), cudaMemcpyDeviceToHost, stream[i] );
 				cudaStreamAddCallback(stream[i], MyCallback, (void*)&post_gpu_data[i], 0);
 	}
+//	cout<<"Push work into gpu success."<<endl;
 }
 
 __global__ void kernel_skyloop(float *eTD_0, float *eTD_1, float *eTD_2, short *ml_0, short *ml_1, short *ml_2, short *gpu_mm, size_t *gpu_V, size_t *gpu_V4, size_t *gpu_tsize, float *gpu_T_En, float *gpu_T_Es, float *gpu_rE, float *gpu_pE, float *gpu_Eo, float *gpu_En, float *gpu_Es, int *gpu_Mm, int Lsky) 
@@ -660,21 +676,28 @@ __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe, float msk)
 } 
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data)
 {
+	bool mra = false;
 	float *v00[NIFO];
+	float *v90[NIFO];
 	float *pa[NIFO];
+	float *pA[NIFO];
+	float *rE, *pE;				//pointers of rNRG.data and pNRG.data
 	float Ln = 0;
 	float Eo = 0;
 	float Ls = 0;
-	float aa;
+	float aa, AA, En, Es;
 	int m = 0;
 	size_t id, nIFO, V, V4, tsize;
 	size_t i = 0;
+	int f_ =NIFO/4;
 	int l = 0;
 	int le, lag;
 	short *ml[NIFO]; 
 	float *eTD[NIFO];
 	FILE *fpt = fopen("skyloop_my", "a");
-	
+
+	En = *((post_data*)post_gpu_data)->other_data.T_En;
+	Es = *((post_data*)post_gpu_data)->other_data.T_Es;
 	le = *((post_data*)post_gpu_data)->other_data.le;
 	lag = *((post_data*)post_gpu_data)->other_data.lag;
 	id = *((post_data*)post_gpu_data)->other_data.id;
@@ -689,10 +712,29 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 	eTD[0] = ((post_data*)post_gpu_data)->other_data.eTD[0];
 	eTD[1] = ((post_data*)post_gpu_data)->other_data.eTD[1];
 	eTD[2] = ((post_data*)post_gpu_data)->other_data.eTD[2];
+	rE = ((post_data*)post_gpu_data)->output.rE;
+	pE = ((post_data*)post_gpu_data)->output.pE;
+	
 	
 	std::vector<wavearray<float> > vtd;		// vectors of TD amplitudes
+    std::vector<wavearray<float> > vTD;     // vectors of TD amplitudes
 	std::vector<int> pI;				// buffer for pixel TDs
 	wavearray<float> tmp(tsize*V4); tmp=0;
+    wavearray<float>  fp(NIFO*V4);  fp=0;     // aligned array for + antenna pattern 
+    wavearray<float>  fx(NIFO*V4);  fx=0;     // aligned array for x antenna pattern 
+    wavearray<float>  xi(NIFO*V4);  xi=0;     // 00 array for reconctructed responses 
+    wavearray<float>  bb(NIFO*V4);  bb=0;     // temporary array for MRA amplitudes  
+    wavearray<float>  BB(NIFO*V4);  BB=0;     // temporary array for MRA amplitudes  
+    wavearray<float>  XI(NIFO*V4);  XI=0;     // 90 array for reconstructed responses 
+    wavearray<float>  am(NIFO*V4);  am=0;     // aligned array for TD amplitudes     
+    wavearray<float>  AM(NIFO*V4);  AM=0;     // aligned array for TD amplitudes     
+
+    __m128* _am = (__m128*) am.data;
+    __m128* _AM = (__m128*) AM.data;
+	__m128* _xi = (__m128*) xi.data;
+	__m128* _XI = (__m128*) XI.data;
+    __m128* _bb = (__m128*) bb.data; 
+    __m128* _BB = (__m128*) BB.data; 
 	
 	netpixel* pix;	
 
@@ -700,13 +742,22 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 	pI = gpu_net->wdmMRA.getXTalk(pwc, id);
 	for(int i=0; i<NIFO; i++)
 	{
+		
 		vtd.push_back(tmp);
+		vTD.push_back(tmp);
 	}
 	for(int i=0; i<NIFO; i++)
 	{
 		pa[i] = vtd[i].data + (tsize/2)*V4;
+		pA[i] = vTD[i].data + (tsize/2)*V4;
 	}
-		
+	
+///*new	
+	gpu_net->a_00.resize(NIFO*V4);	gpu_net->a_00=0.;
+	gpu_net->a_90.resize(NIFO*V4);	gpu_net->a_90=0.;
+    __m128* _aa = (__m128*) gpu_net->a_00.data;         // set pointer to 00 array
+    __m128* _AA = (__m128*) gpu_net->a_90.data;         // set pointer to 90 array
+
 	for(int j=0; j<V; j++)			// loop over selected pixels
 	{
 		pix = pwc->getPixel(id, pI[j]);	// get pixel pointer
@@ -716,8 +767,9 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 			for(int l=0; l<tsize; l++)
 			{
 				aa = pix->tdAmp[i].data[l];		// copy TD 00 data
-				//AA = pix->tdAmp[i].data[l+tsize];	// copy Td 90 data
+				AA = pix->tdAmp[i].data[l+tsize];	// copy Td 90 data
 				vtd[i].data[l*V4+j] = aa;		// copy 00 data
+				vTD[i].data[l*V4+j] = AA;		// copy 90 data
 			}
 		
 	}
@@ -731,35 +783,86 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 		Eo = ((post_data*)post_gpu_data)->output.Eo[l];
 		Ls = ((post_data*)post_gpu_data)->output.Es[l];
 		m = ((post_data*)post_gpu_data)->output.Mm[l];
-		fprintf(fpt, "k = %d l = %d En = %f Eo = %f Es = %f Mm = %d\n", i, l, Ln, Eo, Ls, m);
+//		fprintf(fpt, "k = %d l = %d En = %f Eo = %f Es = %f Mm = %d\n", i, l, Ln, Eo, Ls, m);
 			
 		aa = Ls*Ln/(Eo-Ls);
 		if((aa-m)/(aa+m)<0.33)	continue;	
 	
-		//gpu_net->pnt_(v00, pa, ml, (int)l, (int)V4);	// pointers to first pixel 00 data
-		v00[0] = pa[0] + ml[0][l]*(int)V4;
-		v00[1] = pa[1] + ml[1][l]*(int)V4;
-		v00[2] = pa[2] + ml[2][l]*(int)V4;
-		/*new
-		gpu_net->pnt_(v90, pA, ml, (int)l, (int)V4);	// pointers to first pixel 90 data
-		float *pfp = fp.data;		// set pointer to fp
-		float *pfx = fx.data;		// set pointer to fx
-		float *p00 = gpu_net->a_00.data;	// set pointer for 00 array
-		float *p90 = gpu_net->a_90.data;	// set pointer for 90 array
+		gpu_pnt_(v00, pa, ml, (int)l, (int)V4);	// pointers to first pixel 00 data
+//		fprintf(fpt,"k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f\n", i, l, v00[0][0], v00[1][0], v00[2][0]);
+		//v00[0] = pa[0] + ml[0][l]*(int)V4;
+		//v00[1] = pa[1] + ml[1][l]*(int)V4;
+		//v00[2] = pa[2] + ml[2][l]*(int)V4;
+		
+	//	gpu_pnt_(v90, pA, ml, (int)l, (int)V4);	// pointers to first pixel 90 data
+	//	float *pfp = fp.data;		// set pointer to fp
+	//	float *pfx = fx.data;		// set pointer to fx
+	//	float *p00 = gpu_net->a_00.data;	// set pointer for 00 array
+	//	float *p90 = gpu_net->a_90.data;	// set pointer for 90 array
 	
-		m = 0;
+	//	m = 0;
+	//	for(int j=0; j<V; j++)
+	//	{
+	//		int jf = j*f_;		// source sse pointer increment
+			
+	//		gpu_cpp_(p00,v00); gpu_cpp_(p90, v90);	// copy amplitudes with target increment
+//			fprintf(fpt,"k = %d l = %d p00[0] = %f p00[1] = %f p00[2] = %f\n", i, l, p00[0], p00[1], p00[2]);
+//			gpu_cpf_(pfp, FP, (size_t)l); gpu_cpf_(pfx, FX, (size_t)l);	// copy antenna with target increment
+//			fprintf(fpt,"k = %d l = %d pfp[0] = %f pfp[1] = %f pfp[2] = %f\n", i, l, pfp[0], pfp[1], pfp[2]);
+//new/*
+		//	_sse_zero_ps(_xi+jf);		// zero MRA amplitudes
+		//	_sse_zero_ps(_XI+jf);		// zero MRA amplitudes
+		//	_sse_cpf_ps(_am+jf, _aa+jf);// duplicate 00
+		//	_sse_cpf_ps(_AM+jf, _AA+jf);// duplicate 90
+		//	if(rE[l*V4+j]>En) m++;		//count superthreshold pixels
+	//	}
+	
+	//	__m128* _pp = (__m128*) am.data;              	// point to multi-res amplitudes
+	//  __m128* _PP = (__m128*) AM.data;              	// point to multi-res amplitudes
+		
+	/*	if(mra) 										// do MRA
+		{
+			_sse_MRA_ps(net, xi.data, XI.data, En, m);	// get principal components
+			_pp = (__m128*) xi.data;					// point to PC amplitudes
+			_PP = (__m128*) XI.data;					// point to PC amplitudes
+		}
+		
+		m = 0; Ls = Ln = Eo = 0;
 		for(int j=0; j<V; j++)
 		{
-			int jf = j*f_;		// source sse pointer increment
-			
-			gpu_net->cpp_(p00,v00); gpu_net->cpp_(p90, v90)	// copy amplitudes with target increment
-			gpu_net->cpf_(pfp, FP, 1); gpu_net->cpf_(pfx, FX, 1);	// copy antenna with target increment
-			_sse_zero_ps(_xi+jf);		// zero MRA amplitudes
-		}
-		//ner*/
-		fprintf(fpt,"k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f\n", i, l, v00[0][0], v00[1][0], v00[2][0]);
+			int jf = j*f_;                             // source sse pointer increment 
+            int mf = m*f_;                             // target sse pointer increment 
+            _sse_zero_ps(_bb+jf);                      // reset array for MRA amplitudes
+            _sse_zero_ps(_BB+jf);                      // reset array for MRA amplitudes
+            ee = _sse_abs_ps(_pp+jf,_PP+jf);           // total pixel energy            
+            if(ee<En) continue;                                                         
+            _sse_cpf_ps(_bb+mf,_pp+jf);                // copy 00 amplitude/PC          
+            _sse_cpf_ps(_BB+mf,_PP+jf);                // copy 90 amplitude/PC          
+            _sse_cpf_ps(_Fp+mf,_fp+jf);                // copy F+                       
+            _sse_cpf_ps(_Fx+mf,_fx+jf);                // copy Fx                       
+            _sse_mul_ps(_Fp+mf,_nr+jf);                // normalize f+ by rms           
+            _sse_mul_ps(_Fx+mf,_nr+jf);                // normalize fx by rms           
+            m++;                                                                        
+            em = _sse_maxE_ps(_pp+jf,_PP+jf);          // dominant pixel energy         
+            Ls += ee-em; Eo += ee;                     // subnetwork energy, network energy
+            if(ee-em>Es) Ln += ee;                     // network energy above subnet threshold
+        }*/ 
 		
+        /*size_t m4 = m + (m%4 ? 4 - m%4 : 0);
+        _E_n = _mm_setzero_ps();                     // + likelihood
+
+        for(j=0; j<m4; j+=4) 
+		{                                   
+        	int jf = j*f_;                                        
+            _sse_dpf4_ps(_Fp+jf,_Fx+jf,_fp+jf,_fx+jf);                // go to DPF
+            _E_s = _sse_like4_ps(_fp+jf,_fx+jf,_bb+jf,_BB+jf);        // std likelihood
+            _E_n = _mm_add_ps(_E_n,_E_s);                             // total likelihood
+        } */                                                                              
+ 
+//new*/
 	}
+
+         
 	fclose(fpt);
 		
 
@@ -767,6 +870,44 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 	//cout<<"Callback En = "<<En<<endl;
 	//cout<<"Second version"<<endl;
 	//finish[i] = true;
+}
+inline void gpu_pnt_(float** q, float** p, short** m, int l, int n) {
+	// point 0-7 float pointers to first network pixel
+   NETX(q[0] = (p[0] + m[0][l]*n);,
+        q[1] = (p[1] + m[1][l]*n);,
+        q[2] = (p[2] + m[2][l]*n);,
+        q[3] = (p[3] + m[3][l]*n);,
+        q[4] = (p[4] + m[4][l]*n);,
+        q[5] = (p[5] + m[5][l]*n);,
+        q[6] = (p[6] + m[6][l]*n);,
+        q[7] = (p[7] + m[7][l]*n);)
+      return;
+}
+inline void gpu_cpp_(float*& a, float** p) 
+{
+// copy to a data defined by array of pointers p and increment pointer
+	NETX(*(a++) = *p[0]++;,
+	     *(a++) = *p[1]++;,
+	     *(a++) = *p[2]++;,
+	     *(a++) = *p[3]++;,
+	     *(a++) = *p[4]++;,
+	     *(a++) = *p[5]++;,
+	     *(a++) = *p[6]++;,
+	     *(a++) = *p[7]++;)
+	return;
+}
+inline void gpu_cpf_(float*& a, double** p, size_t i) //GV
+{ 
+// copy to a data defined by array of pointers p and increment target pointer
+	NETX(*(a++) = p[0][i];,
+	     *(a++) = p[1][i];,
+	     *(a++) = p[2][i];,                             
+	     *(a++) = p[3][i];,  
+	     *(a++) = p[4][i];,
+	     *(a++) = p[5][i];,
+	     *(a++) = p[6][i];,
+	     *(a++) = p[7][i];)
+	return;
 }
 /*
 __global__ void kernel_skyloop (struct other *skyloop_other, struct skyloop_output *skyloop_output,  int eTDDim, int mlDim)
