@@ -41,7 +41,7 @@ size_t gpu_nIFO;
 inline void gpu_pnt_(float** q, float** p, short** m, int l, int n); 
 inline void gpu_cpp_(float*& a, float** p);
 inline void gpu_cpf_(float*& a, double** p, size_t i); //GV
-extern long Callback(void *post_gpu_data, network *gpu_net, netcluster *pwc);
+extern long Callback(void *post_gpu_data, network *gpu_net, netcluster *pwc, double **FP, double **FX);
 long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 {
 	//define variables
@@ -677,48 +677,8 @@ __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe, float msk)
 } 
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data)
 {
-	cout<<"use extern"<<endl;
 	size_t count = 0;
-	count =	Callback(post_gpu_data, gpu_net, pwc);
-	cout<<"after extern "<<count<<endl;
-}
-inline void gpu_pnt_(float** q, float** p, short** m, int l, int n) {
-	// point 0-7 float pointers to first network pixel
-   NETX(q[0] = (p[0] + m[0][l]*n);,
-        q[1] = (p[1] + m[1][l]*n);,
-        q[2] = (p[2] + m[2][l]*n);,
-        q[3] = (p[3] + m[3][l]*n);,
-        q[4] = (p[4] + m[4][l]*n);,
-        q[5] = (p[5] + m[5][l]*n);,
-        q[6] = (p[6] + m[6][l]*n);,
-        q[7] = (p[7] + m[7][l]*n);)
-      return;
-}
-inline void gpu_cpp_(float*& a, float** p) 
-{
-// copy to a data defined by array of pointers p and increment pointer
-	NETX(*(a++) = *p[0]++;,
-	     *(a++) = *p[1]++;,
-	     *(a++) = *p[2]++;,
-	     *(a++) = *p[3]++;,
-	     *(a++) = *p[4]++;,
-	     *(a++) = *p[5]++;,
-	     *(a++) = *p[6]++;,
-	     *(a++) = *p[7]++;)
-	return;
-}
-inline void gpu_cpf_(float*& a, double** p, size_t i) //GV
-{ 
-// copy to a data defined by array of pointers p and increment target pointer
-	NETX(*(a++) = p[0][i];,
-	     *(a++) = p[1][i];,
-	     *(a++) = p[2][i];,                             
-	     *(a++) = p[3][i];,  
-	     *(a++) = p[4][i];,
-	     *(a++) = p[5][i];,
-	     *(a++) = p[6][i];,
-	     *(a++) = p[7][i];)
-	return;
+	count =	Callback(post_gpu_data, gpu_net, pwc, FP, FX);
 }
 /*
 __global__ void kernel_skyloop (struct other *skyloop_other, struct skyloop_output *skyloop_output,  int eTDDim, int mlDim)
