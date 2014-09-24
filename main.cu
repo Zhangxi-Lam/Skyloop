@@ -41,7 +41,7 @@ size_t gpu_nIFO;
 inline void gpu_pnt_(float** q, float** p, short** m, int l, int n); 
 inline void gpu_cpp_(float*& a, float** p);
 inline void gpu_cpf_(float*& a, double** p, size_t i); //GV
-extern long Callback(void *post_gpu_data, network *gpu_net, netcluster *pwc, double **FP, double **FX);
+extern long Callback(void *post_gpu_data, network *gpu_net,  TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX);
 long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 {
 	//define variables
@@ -636,7 +636,7 @@ __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data)
 {
 	size_t count = 0;
-	count =	Callback(post_gpu_data, gpu_net, pwc, FP, FX);
+	count =	Callback(post_gpu_data, gpu_net, gpu_hist, pwc, FP, FX);
 }
 /*
 __global__ void kernel_skyloop (struct other *skyloop_other, struct skyloop_output *skyloop_output,  int eTDDim, int mlDim)
