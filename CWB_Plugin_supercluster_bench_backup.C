@@ -423,16 +423,17 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
             _sse_zero_ps(_XI+jf);                      // zero MRA amplitudes                  
             _sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00                         
             _sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90                         
-			FILE *fpt = fopen("skyloop_pNRG", "a");
+
+			/*FILE *fpt = fopen("skyloop_pNRG", "a");
 			fprintf(fpt,"k = %d l = %d pE = %f V4 = %d\n", k, l, net->pNRG.data[j], V4); 
-			fclose(fpt);
+			fclose(fpt);*/
 	
             if(net->rNRG.data[j]>En) m++;              // count superthreshold pixels          
          }
 		
-		FILE *fpt = fopen("skyloop_m", "a");
+		/*FILE *fpt = fopen("skyloop_m", "a");
 		fprintf(fpt,"k = %d l = %d m = %d \n", k, l, m); 
-		fclose(fpt);
+		fclose(fpt);*/
         
 		
 
@@ -443,7 +444,12 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
             _sse_MRA_ps(net,xi.data,XI.data,En,m);     // get principal components
             _pp = (__m128*) xi.data;                   // point to PC amplitudes  
             _PP = (__m128*) XI.data;                   // point to PC amplitudes  
-         }                                                                        
+         }                    
+	
+	FILE *fpt = fopen("skyloop_pp", "a");
+		fprintf(fpt,"k = %d l = %d _pp[0] = %f _pp[1] = %f _pp[2] = %f _pp[3] = %f\n", k, l, _pp[0], _pp[1], _pp[2], _pp[3]);
+		fprintf(fpt,"k = %d l = %d _PP[0] = %f _PP[1] = %f _PP[2] = %f _PP[3] = %f\n", k, l, _PP[0], _PP[1], _PP[2], _PP[3]);
+	fclose(fpt);
 
          m = 0; Ls=Ln=Eo=0;
          for(j=0; j<V; j++) { 

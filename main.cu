@@ -592,7 +592,7 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 		///*new
 		pE = rE * msk;											// zero sub-threshold pixels
 		Eo += pE;												// network energy
-		pE = kernel_minSNE_ps(pE, pe, msk);						// subnetwork energy
+		pE = kernel_minSNE_ps(pE, pe);						// subnetwork energy
 		Es += pE;												// subnetwork energy
 		msk = ( pE>=T_Es );										// subnet energy > Es 0/1 mask
 		rE *= msk;												
@@ -611,7 +611,7 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 	gpu_Mm[l] = Mm;
 	
 }
-__inline__ __device__ float kernel_minSNE_ps(float pE, float *pe, float msk)
+__inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
 {
 	float a, b, c, d, ab, ac, ad, bc, bd, cd;
 	float temp;

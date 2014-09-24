@@ -204,6 +204,7 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
 	int lb=0;
 	int le, lag;
 	short *ml[NIFO]; 
+	short *mm;
 	float *eTD[NIFO];
 	FILE *fpt = fopen("skyloop_my", "a");
 
@@ -217,6 +218,7 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
 	V4 = *((post_data*)post_gpu_data)->other_data.V4;
 	tsize = *((post_data*)post_gpu_data)->other_data.tsize;
 	i = *((post_data*)post_gpu_data)->other_data.count;
+	mm = ((post_data*)post_gpu_data)->other_data.mm;
 	rE = ((post_data*)post_gpu_data)->output.rE;
 	pE = ((post_data*)post_gpu_data)->output.pE;
 	for(int i=0; i<NIFO; i++)
@@ -293,7 +295,8 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
 	for(l=lb; l<=le; l++)
 	{
 //		fprintf(fpt, "k = %d l = %d eTD[0] = %f eTD[1] = %f eTD[2] = %f\n", i, l, eTD[0][l], eTD[1][l], eTD[2][l]);
-//		fprintf(fpt, "k = %d l = %d ml[0] = %hd ml[1] = %hd ml[2] = %hd\n", i, l, ml[0][l], ml[1][l], ml[2][l]);
+//		fprintf(fpt, "k = %d l = %d ml[0] = %hd ml[1] = %hd ml[2] = %hd\n", i, l, ml[0][l], ml[1][l], ml[2][l]);		
+		if(!mm[l] || l<0) continue; 
 		Ln = ((post_data*)post_gpu_data)->output.En[l];
 		Eo = ((post_data*)post_gpu_data)->output.Eo[l];
 		Ls = ((post_data*)post_gpu_data)->output.Es[l];
@@ -321,18 +324,18 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
 			//fprintf(fpt,"k = %d l = %d FP[0] = %f FP[1] = %f FP[2] = %f FP[3] = %f\n", i, l, FP[0][l], FP[1][l], FP[2][l], FP[3][l]);
 			//fprintf(fpt,"k = %d l = %d pfp[0] = %f pfp[1] = %f pfp[2] = %f pfp[3] = %f\n", i, l, (pfp-4), (pfp-3), (pfp-2), (pfp-1));
 			_sse_zero_ps(_xi+jf);                      // zero MRA amplitudes
-	        _sse_zero_ps(_XI+jf);                      // zero MRA amplitudes
-           	_sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00
-           	_sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90 
+	        	_sse_zero_ps(_XI+jf);                      // zero MRA amplitudes
+	           	_sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00
+        	   	_sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90 
 			
-			fprintf(fpt, "k = %d l = %d rE = %f V4 = %d\n", i, l, rE[l*V4+j], V4);
-			fprintf(fpt, "k = %d l = %d pE = %f V4 = %d\n", i, l, pE[l*V4+j], V4);
-           	if(rE[l*V4+j]>En) m++;              // count superthreshold pixels
+			//fprintf(fpt, "k = %d l = %d rE = %f V4 = %d\n", i, l, rE[l*V4+j], V4);
+			//fprintf(fpt, "k = %d l = %d pE = %f V4 = %d\n", i, l, pE[l*V4+j], V4);
+           		if(rE[l*V4+j]>En) m++;              // count superthreshold pixels
 		}
-		fprintf(fpt,"k = %d l = %d m = %d \n", i, l, m); 
-	/*	
-        __m128* _pp = (__m128*) am.data;              // point to multi-res amplitudes
-        __m128* _PP = (__m128*) AM.data;              // point to multi-res amplitudes
+		//fprintf(fpt,"k = %d l = %d m = %d \n", i, l, m); 
+		
+	        __m128* _pp = (__m128*) am.data;              // point to multi-res amplitudes
+        	__m128* _PP = (__m128*) AM.data;              // point to multi-res amplitudes
 		
 		if(mra)										// do MRA
 		{
@@ -340,61 +343,57 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
 			_pp = (__m128*) xi.data;						// point to PC amplitudes
 			_PP = (__m128*) XI.data;						// point to Pc amplitudes
 		}		
-		
+		fprintf(fpt,"k = %d l = %d _pp[0] = %f _pp[1] = %f _pp[2] = %f _pp[3] = %f\n", i, l, _pp[0], _pp[1], _pp[2], _pp[3]);
+		fprintf(fpt,"k = %d l = %d _PP[0] = %f _PP[1] = %f _PP[2] = %f _PP[3] = %f\n", i, l, _PP[0], _PP[1], _PP[2], _PP[3]);
+		/*
 		m = 0; Ls=Ln=Eo=0;
 		for(j=0; j<V; j++)
 		{
-			int jf = j*f_;                             // source sse pointer increment 
-            int mf = m*f_;                             // target sse pointer increment 
-            _sse_zero_ps(_bb+jf);                      // reset array for MRA amplitudes
-            _sse_zero_ps(_BB+jf);                      // reset array for MRA amplitudes
-            ee = _sse_abs_ps(_pp+jf,_PP+jf);           // total pixel energy            
-            if(ee<En) continue;                                                         
-            _sse_cpf_ps(_bb+mf,_pp+jf);                // copy 00 amplitude/PC          
-            _sse_cpf_ps(_BB+mf,_PP+jf);                // copy 90 amplitude/PC          
-            _sse_cpf_ps(_Fp+mf,_fp+jf);                // copy F+                       
-            _sse_cpf_ps(_Fx+mf,_fx+jf);                // copy Fx                       
-            _sse_mul_ps(_Fp+mf,_nr+jf);                // normalize f+ by rms           
-            _sse_mul_ps(_Fx+mf,_nr+jf);                // normalize fx by rms           
-            m++;                                                                        
-            em = _sse_maxE_ps(_pp+jf,_PP+jf);          // dominant pixel energy         
-            Ls += ee-em; Eo += ee;                     // subnetwork energy, network energy
-            if(ee-em>Es) Ln += ee;                     // network energy above subnet threshold
+			int jf = j*f_;	// source sse pointer increment 
+	            	int mf = m*f_;  // target sse pointer increment 
+        	    	_sse_zero_ps(_bb+jf);	// reset array for MRA amplitudes
+	            	_sse_zero_ps(_BB+jf);       // reset array for MRA amplitudes
+        	    	ee = _sse_abs_ps(_pp+jf,_PP+jf);	// total pixel energy
+	            	if(ee<En) continue;                                             
+        	    	_sse_cpf_ps(_bb+mf,_pp+jf);         // copy 00 amplitude/PC
+	            	_sse_cpf_ps(_BB+mf,_PP+jf);         // copy 90 amplitude/PC
+        	    	_sse_cpf_ps(_Fp+mf,_fp+jf);         // copy F+
+	            	_sse_cpf_ps(_Fx+mf,_fx+jf);         // copy Fx
+        	    	_sse_mul_ps(_Fp+mf,_nr+jf);         // normalize f+ by rms
+	            	_sse_mul_ps(_Fx+mf,_nr+jf);         // normalize fx by rms
+        	    	m++;
+	            	em = _sse_maxE_ps(_pp+jf,_PP+jf);   // dominant pixel energy
+        	    	Ls += ee-em; Eo += ee;       // subnetwork energy, network energy
+	            	if(ee-em>Es) Ln += ee;       // network energy above subnet threshold
 		}
 		
 		size_t m4 = m + (m%4 ? 4 - m%4 : 0);
-        _E_n = _mm_setzero_ps();                     // + likelihood
+	        _E_n = _mm_setzero_ps();                     // + likelihood
 
-        for(j=0; j<m4; j+=4) 
+        	for(j=0; j<m4; j+=4) 
 		{                                   
-        	int jf = j*f_;                                        
-            _sse_dpf4_ps(_Fp+jf,_Fx+jf,_fp+jf,_fx+jf);                // go to DPF
-            _E_s = _sse_like4_ps(_fp+jf,_fx+jf,_bb+jf,_BB+jf);        // std likelihood
-            _E_n = _mm_add_ps(_E_n,_E_s);                             // total likelihood
-        }
-        _mm_storeu_ps(vvv,_E_n);                                                        
+	       	    int jf = j*f_;                                        
+	            _sse_dpf4_ps(_Fp+jf,_Fx+jf,_fp+jf,_fx+jf);	// go to DPF
+        	    _E_s = _sse_like4_ps(_fp+jf,_fx+jf,_bb+jf,_BB+jf);	// std likelihood
+	            _E_n = _mm_add_ps(_E_n,_E_s);            	      	// total likelihood
+        	}
+	        _mm_storeu_ps(vvv,_E_n);                                                        
 		
 		Lo = vvv[0]+vvv[1]+vvv[2]+vvv[3];
-        AA = aa/(fabs(aa)+fabs(Eo-Lo)+2*m*(Eo-Ln)/Eo);        //  subnet stat with threshold
-        ee = Ls*Eo/(Eo-Ls);                                                                 
-        em = fabs(Eo-Lo)+2*m;                                 //  suball NULL               
-        ee = ee/(ee+em);                                      //  subnet stat without threshold
+        	AA = aa/(fabs(aa)+fabs(Eo-Lo)+2*m*(Eo-Ln)/Eo);        //  subnet stat with threshold
+        	ee = Ls*Eo/(Eo-Ls); 
+        	em = fabs(Eo-Lo)+2*m;	//  suball NULL
+        	ee = ee/(ee+em);       	//  subnet stat without threshold
        
 		aa = (aa-m)/(aa+m);                                                                    
 		
 		if(AA>stat && !mra)
 		{
 			stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
-		}
-
-
-	*/	
-		//fprintf(fpt,"k = %d l = %d p00[0] = %f p00[1] = %f p00[2] = %f\n", i, l, p00[0], p00[1], p00[2]);
+		}*/
 	}
-         
 	fclose(fpt);
 	return 1;
-
 }
                
 /*                                     
