@@ -302,7 +302,6 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
 			
 		aa = Ls*Ln/(Eo-Ls);
 		if((aa-m)/(aa+m)<0.33)	continue;	
-		cout<<"1"<<endl;	
 		gpu_net->pnt_(v00, pa, ml, (int)l, (int)V4);	// pointers to first pixel 00 data
 		//fprintf(fpt,"k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f\n", i, l, v00[0][0], v00[1][0], v00[2][0]);
 		gpu_net->pnt_(v90, pA, ml, (int)l, (int)V4);	// pointers to first pixel 90 data
@@ -319,12 +318,16 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
 			gpu_net->cpp_(p00,v00);	gpu_net->cpp_(p90,v90);			// copy amplitudes with target increment
 			//fprintf(fpt,"k = %d l = %d p00[0] = %f p00[1] = %f p00[2] = %f p00[3] = %f\n", i, l, p00[0], p00[1], p00[2], p00[3]);
 			gpu_net->cpf_(pfp,FP,l);gpu_net->cpf_(pfx,FX,l);		// copy antenna with target increment
-			fprintf(fpt,"k = %d l = %d FP[0] = %f FP[1] = %f FP[2] = %f FP[3] = %f\n", i, l, FP[0], FP[1], FP[2], FP[3]);
+			//fprintf(fpt,"k = %d l = %d FP[0] = %f FP[1] = %f FP[2] = %f FP[3] = %f\n", i, l, FP[0][l], FP[1][l], FP[2][l], FP[3][l]);
+			//fprintf(fpt,"k = %d l = %d pfp[0] = %f pfp[1] = %f pfp[2] = %f pfp[3] = %f\n", i, l, (pfp-4), (pfp-3), (pfp-2), (pfp-1));
 			_sse_zero_ps(_xi+jf);                      // zero MRA amplitudes
-            _sse_zero_ps(_XI+jf);                      // zero MRA amplitudes
-            _sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00
-            _sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90 
-            if(rE[l*tsize+j]>En) m++;              // count superthreshold pixels
+	        _sse_zero_ps(_XI+jf);                      // zero MRA amplitudes
+           	_sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00
+           	_sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90 
+			
+			fprintf(fpt, "k = %d l = %d rE = %f V4 = %d\n", i, l, rE[l*V4+j], V4);
+			fprintf(fpt, "k = %d l = %d pE = %f V4 = %d\n", i, l, pE[l*V4+j], V4);
+           	if(rE[l*V4+j]>En) m++;              // count superthreshold pixels
 		}
 		fprintf(fpt,"k = %d l = %d m = %d \n", i, l, m); 
 	/*	
@@ -369,6 +372,21 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
             _E_s = _sse_like4_ps(_fp+jf,_fx+jf,_bb+jf,_BB+jf);        // std likelihood
             _E_n = _mm_add_ps(_E_n,_E_s);                             // total likelihood
         }
+        _mm_storeu_ps(vvv,_E_n);                                                        
+		
+		Lo = vvv[0]+vvv[1]+vvv[2]+vvv[3];
+        AA = aa/(fabs(aa)+fabs(Eo-Lo)+2*m*(Eo-Ln)/Eo);        //  subnet stat with threshold
+        ee = Ls*Eo/(Eo-Ls);                                                                 
+        em = fabs(Eo-Lo)+2*m;                                 //  suball NULL               
+        ee = ee/(ee+em);                                      //  subnet stat without threshold
+       
+		aa = (aa-m)/(aa+m);                                                                    
+		
+		if(AA>stat && !mra)
+		{
+			stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
+		}
+
 
 	*/	
 		//fprintf(fpt,"k = %d l = %d p00[0] = %f p00[1] = %f p00[2] = %f\n", i, l, p00[0], p00[1], p00[2]);

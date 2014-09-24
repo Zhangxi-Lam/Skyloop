@@ -254,10 +254,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
             			}
 			}
 		}
-		FILE *fpt = fopen("skyloop_eTD", "a");
-		for( int i=0; i<NIFO; i++)
-			fprintf(fpt, "k = %d  eTD[0] = %f eTD[1] = %f eTD[2] = %f eTD[3] = %f\n", k, eTD[0].data[i], eTD[1].data[i], eTD[2].data[i], eTD[3].data[i]);
-		fclose(fpt);	
 //++++++++++++++++++++++++++++++++
 // assign the data 
 //++++++++++++++++++++++++++++++++
@@ -492,10 +488,6 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 			cudaMemcpyAsync(skyloop_other[i].ml[j], input_data[i].other_data.ml[j], Lsky * sizeof(short), cudaMemcpyHostToDevice, stream[i] );
 		}
 		//
-		FILE *fpt = fopen("skyloop_before","a");
-		for(int k=0; k<eTDDim; k++)
-			fprintf(fpt, "k = %d, l = %d, eTD[0] = %f eTD[1] = %f eTD[2] = %f eTD[3] = %f\n", i, k, input_data[i].other_data.eTD[0][k], input_data[i].other_data.eTD[1][k], input_data[i].other_data.eTD[2][k], input_data[i].other_data.eTD[3][k]);
-		fclose(fpt);
 		cudaMemcpyAsync(skyloop_other[i].mm, input_data[i].other_data.mm, Lsky * sizeof(short), cudaMemcpyHostToDevice, stream[i] );
 		cudaMemcpyAsync(skyloop_other[i].T_En, input_data[i].other_data.T_En, sizeof(float), cudaMemcpyHostToDevice, stream[i] );
 		cudaMemcpyAsync(skyloop_other[i].T_Es, input_data[i].other_data.T_Es, sizeof(float), cudaMemcpyHostToDevice, stream[i] );
@@ -592,6 +584,8 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 		pe[2] = PE_2[v];
 		pe[3] = PE_3[v];
 		rE = pe[0] + pe[1] + pe[2] + pe[3];								// get pixel energy
+		//assign the value to the local memory
+		gpu_rE[ptr+v] = rE;
       	// E>En  0/1 mask
 		msk = ( rE>=T_En );										// E>En  0/1 mask
 		Mm += msk;												// count pixels above threshold
@@ -604,7 +598,6 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 		rE *= msk;												
 		En += rE;												// network energy
 		// assign the value to the local memory
-		gpu_rE[ptr+v] = rE;
 		gpu_pE[ptr+v] = pE;
 		//new*/
 		v++;
