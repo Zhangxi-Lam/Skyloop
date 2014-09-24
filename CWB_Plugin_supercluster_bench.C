@@ -217,15 +217,10 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
 	V4 = *((post_data*)post_gpu_data)->other_data.V4;
 	tsize = *((post_data*)post_gpu_data)->other_data.tsize;
 	i = *((post_data*)post_gpu_data)->other_data.count;
-	ml[0] = ((post_data*)post_gpu_data)->other_data.ml[0];
-	ml[1] = ((post_data*)post_gpu_data)->other_data.ml[1];
-	ml[2] = ((post_data*)post_gpu_data)->other_data.ml[2];
-	ml[3] = ((post_data*)post_gpu_data)->other_data.ml[3];
-	eTD[0] = ((post_data*)post_gpu_data)->other_data.eTD[0];
-	eTD[1] = ((post_data*)post_gpu_data)->other_data.eTD[1];
-	eTD[2] = ((post_data*)post_gpu_data)->other_data.eTD[2];
 	rE = ((post_data*)post_gpu_data)->output.rE;
 	pE = ((post_data*)post_gpu_data)->output.pE;
+	for(int i=0; i<NIFO; i++)
+		ml[i] = ((post_data*)post_gpu_data)->other_data.ml[i];
 	
 	
 	std::vector<wavearray<float> > vtd;		// vectors of TD amplitudes
@@ -234,17 +229,25 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
 	wavearray<float> tmp(tsize*V4); tmp=0;
 	wavearray<float>  fp(NIFO*V4);  fp=0;     // aligned array for + antenna pattern 
 	wavearray<float>  fx(NIFO*V4);  fx=0;     // aligned array for x antenna pattern 
-	wavearray<float>  xi(NIFO*V4);  xi=0;     // 00 array for reconctructed responses 
-	wavearray<float>  bb(NIFO*V4);  bb=0;     // temporary array for MRA amplitudes  
-	wavearray<float>  BB(NIFO*V4);  BB=0;     // temporary array for MRA amplitudes  
-	wavearray<float>  XI(NIFO*V4);  XI=0;     // 90 array for reconstructed responses 
+	wavearray<float>  nr(NIFO*V4);  nr=0;     // aligned array for x antenna pattern 
+    wavearray<float>  Fp(NIFO*V4);  Fp=0;            // aligned array for pattern
+    wavearray<float>  Fx(NIFO*V4);  Fx=0;            // aligned array for pattern
 	wavearray<float>  am(NIFO*V4);  am=0;     // aligned array for TD amplitudes     
 	wavearray<float>  AM(NIFO*V4);  AM=0;     // aligned array for TD amplitudes     
-	
+	wavearray<float>  bb(NIFO*V4);  bb=0;     // temporary array for MRA amplitudes  
+	wavearray<float>  BB(NIFO*V4);  BB=0;     // temporary array for MRA amplitudes  
+	wavearray<float>  xi(NIFO*V4);  xi=0;     // 00 array for reconctructed responses 
+	wavearray<float>  XI(NIFO*V4);  XI=0;     // 90 array for reconstructed responses 
+
+	__m128* _Fp = (__m128*) Fp.data;
+	__m128* _Fx = (__m128*) Fx.data;
 	__m128* _am = (__m128*) am.data;
 	__m128* _AM = (__m128*) AM.data;
 	__m128* _xi = (__m128*) xi.data;
 	__m128* _XI = (__m128*) XI.data;
+	__m128* _fp = (__m128*) fp.data;
+	__m128* _fx = (__m128*) fx.data;
+	__m128* _nr = (__m128*) nr.data;
 	__m128* _bb = (__m128*) bb.data; 
 	__m128* _BB = (__m128*) BB.data; 
 	
@@ -268,7 +271,7 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
 	gpu_net->a_00.resize(NIFO*V4);	gpu_net->a_00=0.;
 	gpu_net->a_90.resize(NIFO*V4);	gpu_net->a_90=0.;
 	__m128* _aa = (__m128*) gpu_net->a_00.data;         // set pointer to 00 array
-        __m128* _AA = (__m128*) gpu_net->a_90.data;         // set pointer to 90 array
+    __m128* _AA = (__m128*) gpu_net->a_90.data;         // set pointer to 90 array
 
 	for(int j=0; j<V; j++)			// loop over selected pixels
 	{
@@ -295,27 +298,79 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
 		Eo = ((post_data*)post_gpu_data)->output.Eo[l];
 		Ls = ((post_data*)post_gpu_data)->output.Es[l];
 		m = ((post_data*)post_gpu_data)->output.Mm[l];
-//		fprintf(fpt, "k = %d l = %d En = %f Eo = %f Es = %f Mm = %d\n", i, l, Ln, Eo, Ls, m);
+		//fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", i, l, Ln, Eo, Ls, m);
 			
 		aa = Ls*Ln/(Eo-Ls);
 		if((aa-m)/(aa+m)<0.33)	continue;	
-		
 		cout<<"1"<<endl;	
-		//v00[0] = pa[0] + ml[0][l] * V4;
-		//v00[1] = pa[1] + ml[1][l] * V4;
-		//v00[2] = pa[2] + ml[2][l] * V4;
-		cout<<"nifo"<<gpu_net->ifoList.size()<<endl;	
-		cout<<"pa[0][0] = "<<pa[0][0]<<endl;
-		cout<<"ml[3][0] = "<<ml[3][0]<<endl;
 		gpu_net->pnt_(v00, pa, ml, (int)l, (int)V4);	// pointers to first pixel 00 data
-		cout<<"2"<<endl;
-		fprintf(fpt,"k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f\n", i, l, v00[0][0], v00[1][0], v00[2][0]);
-		cout<<"3"<<endl;	
+		//fprintf(fpt,"k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f\n", i, l, v00[0][0], v00[1][0], v00[2][0]);
+		gpu_net->pnt_(v90, pA, ml, (int)l, (int)V4);	// pointers to first pixel 90 data
 		
+		float *pfp = fp.data;
+		float *pfx = fx.data;
 		float *p00 =gpu_net->a_00.data;
-		gpu_net->cpp_(p00,v00);
+		float *p90 =gpu_net->a_90.data;
+		/*
+		m = 0;
+		for(int j=0; j<V; j++)
+		{
+			int jf= j*f_;
+			gpu_net->cpp_(p00,v00);	gpu_net->cpp_(p90,v90);			// copy amplitudes with target increment
+			fprintf(fpt,"k = %d l = %d p00[0] = %f p00[1] = %f p00[2] = %f p00[3] = %f\n", i, l, p00[0], p00[1], p00[2], p00[3]);
+			gpu_net->cpf_(pfp,FP,l);gpu_net->cpf_(pfx,FX,l);		// copy antenna with target increment
+			fprintf(fpt,"k = %d l = %d pfp[00] = %f pfp[1] = %f pfp[2] = %f pfp[3] = %f\n", i, l, pfp[0], pfp[1], pfp[2], pfp[3]);
+			_sse_zero_ps(_xi+jf);                      // zero MRA amplitudes
+            _sse_zero_ps(_XI+jf);                      // zero MRA amplitudes
+            _sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00
+            _sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90 
+            if(rE[l*tsize+j]>En) m++;              // count superthreshold pixels
+		}
+		fprintf(fpt,"k = %d l = %d m = %d \n", i, l, m); */
+	/*	
+        __m128* _pp = (__m128*) am.data;              // point to multi-res amplitudes
+        __m128* _PP = (__m128*) AM.data;              // point to multi-res amplitudes
 		
-		//gpu_net->pnt_(v90, pA, ml, (int)l, (int)V4);	// pointers to first pixel 90 data
+		if(mra)										// do MRA
+		{
+			_sse_MRA_ps(gpu_net, xi.data, XI.data, En, m);	// get principal components
+			_pp = (__m128*) xi.data;						// point to PC amplitudes
+			_PP = (__m128*) XI.data;						// point to Pc amplitudes
+		}		
+		
+		m = 0; Ls=Ln=Eo=0;
+		for(j=0; j<V; j++)
+		{
+			int jf = j*f_;                             // source sse pointer increment 
+            int mf = m*f_;                             // target sse pointer increment 
+            _sse_zero_ps(_bb+jf);                      // reset array for MRA amplitudes
+            _sse_zero_ps(_BB+jf);                      // reset array for MRA amplitudes
+            ee = _sse_abs_ps(_pp+jf,_PP+jf);           // total pixel energy            
+            if(ee<En) continue;                                                         
+            _sse_cpf_ps(_bb+mf,_pp+jf);                // copy 00 amplitude/PC          
+            _sse_cpf_ps(_BB+mf,_PP+jf);                // copy 90 amplitude/PC          
+            _sse_cpf_ps(_Fp+mf,_fp+jf);                // copy F+                       
+            _sse_cpf_ps(_Fx+mf,_fx+jf);                // copy Fx                       
+            _sse_mul_ps(_Fp+mf,_nr+jf);                // normalize f+ by rms           
+            _sse_mul_ps(_Fx+mf,_nr+jf);                // normalize fx by rms           
+            m++;                                                                        
+            em = _sse_maxE_ps(_pp+jf,_PP+jf);          // dominant pixel energy         
+            Ls += ee-em; Eo += ee;                     // subnetwork energy, network energy
+            if(ee-em>Es) Ln += ee;                     // network energy above subnet threshold
+		}
+		
+		size_t m4 = m + (m%4 ? 4 - m%4 : 0);
+        _E_n = _mm_setzero_ps();                     // + likelihood
+
+        for(j=0; j<m4; j+=4) 
+		{                                   
+        	int jf = j*f_;                                        
+            _sse_dpf4_ps(_Fp+jf,_Fx+jf,_fp+jf,_fx+jf);                // go to DPF
+            _E_s = _sse_like4_ps(_fp+jf,_fx+jf,_bb+jf,_BB+jf);        // std likelihood
+            _E_n = _mm_add_ps(_E_n,_E_s);                             // total likelihood
+        }
+
+	*/	
 		//fprintf(fpt,"k = %d l = %d p00[0] = %f p00[1] = %f p00[2] = %f\n", i, l, p00[0], p00[1], p00[2]);
 	}
          

@@ -356,7 +356,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 
   skyloop:
 
-	//FILE *fpt = fopen("skyloop", "a");
+	//FILE *fpt = fopen("skyloop_m", "a");
 	//fprintf(fpt, "Now in skyloop V4 = %u le=%d V=%u\n", V4, le, V);
 	//fclose(fpt);
 
@@ -394,6 +394,11 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          _mm_storeu_ps(vvv,_M_m);                                                              
          m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold               
 
+/*	FILE *fpt = fopen("skyloop_backup", "a");
+	fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
+	fclose(fpt);*/
+
+
          aa = Ls*Ln/(Eo-Ls);
          if((aa-m)/(aa+m)<0.33) continue;
                                          
@@ -409,15 +414,15 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
             int jf = j*f_;                             // source sse pointer increment 
             net->cpp_(p00,v00);  net->cpp_(p90,v90);   // copy amplitudes with target increment
             net->cpf_(pfp,FP,l); net->cpf_(pfx,FX,l);  // copy antenna with target increment   
-			FILE *fpt = fopen("skyloop_pfp", "a");
+/*			FILE *fpt = fopen("skyloop_pfp", "a");
 			fprintf(fpt,"k = %d l = %d pfp[0] = %f pfp[1] = %f pfp[2] = %f\n", k, l, pfp[0], pfp[1], pfp[2]);
-			fclose(fpt);
+			fclose(fpt);*/
             _sse_zero_ps(_xi+jf);                      // zero MRA amplitudes                  
             _sse_zero_ps(_XI+jf);                      // zero MRA amplitudes                  
             _sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00                         
             _sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90                         
             if(net->rNRG.data[j]>En) m++;              // count superthreshold pixels          
-         }                                                                                     
+         }
 
          __m128* _pp = (__m128*) am.data;              // point to multi-res amplitudes
          __m128* _PP = (__m128*) AM.data;              // point to multi-res amplitudes
