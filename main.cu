@@ -254,7 +254,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
             			}
 			}
 		}
-		cout<<"maincu 1"<<endl;
 		FILE *fpt = fopen("skyloop_eTD", "a");
 		for( int i=0; i<NIFO; i++)
 			fprintf(fpt, "k = %d  eTD[0] = %f eTD[1] = %f eTD[2] = %f eTD[3] = %f\n", k, eTD[0].data[i], eTD[1].data[i], eTD[2].data[i], eTD[3].data[i]);

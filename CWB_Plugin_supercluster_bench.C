@@ -311,22 +311,22 @@ long Callback(void* post_gpu_data, network *gpu_net, netcluster *pwc, double **F
 		float *pfx = fx.data;
 		float *p00 =gpu_net->a_00.data;
 		float *p90 =gpu_net->a_90.data;
-		/*
+		
 		m = 0;
 		for(int j=0; j<V; j++)
 		{
 			int jf= j*f_;
 			gpu_net->cpp_(p00,v00);	gpu_net->cpp_(p90,v90);			// copy amplitudes with target increment
-			fprintf(fpt,"k = %d l = %d p00[0] = %f p00[1] = %f p00[2] = %f p00[3] = %f\n", i, l, p00[0], p00[1], p00[2], p00[3]);
+			//fprintf(fpt,"k = %d l = %d p00[0] = %f p00[1] = %f p00[2] = %f p00[3] = %f\n", i, l, p00[0], p00[1], p00[2], p00[3]);
 			gpu_net->cpf_(pfp,FP,l);gpu_net->cpf_(pfx,FX,l);		// copy antenna with target increment
-			fprintf(fpt,"k = %d l = %d pfp[00] = %f pfp[1] = %f pfp[2] = %f pfp[3] = %f\n", i, l, pfp[0], pfp[1], pfp[2], pfp[3]);
+			fprintf(fpt,"k = %d l = %d FP[0] = %f FP[1] = %f FP[2] = %f FP[3] = %f\n", i, l, FP[0], FP[1], FP[2], FP[3]);
 			_sse_zero_ps(_xi+jf);                      // zero MRA amplitudes
             _sse_zero_ps(_XI+jf);                      // zero MRA amplitudes
             _sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00
             _sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90 
             if(rE[l*tsize+j]>En) m++;              // count superthreshold pixels
 		}
-		fprintf(fpt,"k = %d l = %d m = %d \n", i, l, m); */
+		fprintf(fpt,"k = %d l = %d m = %d \n", i, l, m); 
 	/*	
         __m128* _pp = (__m128*) am.data;              // point to multi-res amplitudes
         __m128* _PP = (__m128*) AM.data;              // point to multi-res amplitudes

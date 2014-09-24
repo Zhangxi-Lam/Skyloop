@@ -414,15 +414,21 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
             int jf = j*f_;                             // source sse pointer increment 
             net->cpp_(p00,v00);  net->cpp_(p90,v90);   // copy amplitudes with target increment
             net->cpf_(pfp,FP,l); net->cpf_(pfx,FX,l);  // copy antenna with target increment   
-/*			FILE *fpt = fopen("skyloop_pfp", "a");
-			fprintf(fpt,"k = %d l = %d pfp[0] = %f pfp[1] = %f pfp[2] = %f\n", k, l, pfp[0], pfp[1], pfp[2]);
-			fclose(fpt);*/
+			FILE *fpt = fopen("skyloop_FP", "a");
+			fprintf(fpt,"k = %d l = %d FP[0] = %f FP[1] = %f FP[2] = %f FP[3] = %f\n", k, l, FP[0], FP[1], FP[2], FP[3]);
+			fclose(fpt);
+
             _sse_zero_ps(_xi+jf);                      // zero MRA amplitudes                  
             _sse_zero_ps(_XI+jf);                      // zero MRA amplitudes                  
             _sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00                         
             _sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90                         
             if(net->rNRG.data[j]>En) m++;              // count superthreshold pixels          
          }
+		FILE *fpt = fopen("skyloop_m", "a");
+		fprintf(fpt,"k = %d l = %d m = %d \n", k, l, m); 
+		fclose(fpt);
+        
+		
 
          __m128* _pp = (__m128*) am.data;              // point to multi-res amplitudes
          __m128* _PP = (__m128*) AM.data;              // point to multi-res amplitudes
