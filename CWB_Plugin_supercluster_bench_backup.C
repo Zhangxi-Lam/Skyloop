@@ -525,7 +525,12 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 		fclose(fpt);*/
        }                                                               
 
-      if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
+      if(!mra && lm>=0)// get MRA principle components 
+	  {
+	  	mra=true; 
+		le=lb=lm; 
+		skyloop(mra, lm);
+	  } 
                                                                                               
       pwc->sCuts[id-1] = -1;                                                                  
       pwc->cData[id-1].likenet = Lm;                                                          
