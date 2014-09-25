@@ -452,10 +452,11 @@ skyloop:
 	}
 //	fclose(fpt); 
     if(!mra && lm>=0) {mra=true; le=lb=lm; is_goto = true; goto skyloop;}    // get MRA principle components
-	FILE *fpt1 = fopen("skyloop_after_input", "a");
+	vint = &(pwc->cList[id-1]);
+	
+	FILE *fpt1 = fopen("skyloop_my_after_input", "a");
         fprintf(fpt1, "id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
         fclose(fpt1);
-	vint = &(pwc->cList[id-1]);
     pwc->sCuts[id-1] = -1;
     pwc->cData[id-1].likenet = Lm;                                                         
     pwc->cData[id-1].energy = Em;
