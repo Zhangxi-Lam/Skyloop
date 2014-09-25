@@ -153,7 +153,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 	gpu_hist = hist;
 	gpu_nIFO = nIFO;
 	cout<<"XIFO = "<<XIFO<<endl;
-	cout<<"En = "<<En<<endl;
+	cout<<"Lsky = "<<Lsky<<endl;
 	cudaStream_t stream[StreamNum];			// define the stream
 	for(int i=0; i<StreamNum; i++)			
 		CUDA_CHECK(cudaStreamCreate(&stream[i]));	// create the new stream

@@ -529,7 +529,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 	  {
 	  	mra=true; 
 		le=lb=lm; 
-		skyloop(mra, lm);
+		goto skyloop;
 	  } 
                                                                                               
       pwc->sCuts[id-1] = -1;                                                                  
