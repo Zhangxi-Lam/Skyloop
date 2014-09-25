@@ -212,7 +212,6 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	float *eTD[NIFO];
 	double suball=0;
 	double submra=0;
-	FILE *fpt = fopen("skyloop_my", "a");
 	stat=Lm=Em=Am=EE=0.;	lm=Vm= -1;
 	count = 0;
 
@@ -321,12 +320,6 @@ skyloop:
 	{
 //		fprintf(fpt, "k = %d l = %d eTD[0] = %f eTD[1] = %f eTD[2] = %f\n", i, l, eTD[0][l], eTD[1][l], eTD[2][l]);
 //		fprintf(fpt, "k = %d l = %d ml[0] = %hd ml[1] = %hd ml[2] = %hd\n", i, l, ml[0][l], ml[1][l], ml[2][l]);		
-		if(is_goto)
-		{
-			cout<<"1"<<endl;
-			cout<<"l = "<<l<<endl;
-			
-		}
 		if(!mm[l] || l<0) continue; 
 		Ln = ((post_data*)post_gpu_data)->output.En[l];
 		Eo = ((post_data*)post_gpu_data)->output.Eo[l];
@@ -345,14 +338,10 @@ skyloop:
 		//fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", i, l, Ln, Eo, Ls, m);
 			
 		aa = Ls*Ln/(Eo-Ls);
-		if(is_goto)
-			cout<<"2"<<endl;
 		if((aa-m)/(aa+m)<0.33)	continue;	
 		gpu_net->pnt_(v00, pa, ml, (int)l, (int)V4);	// pointers to first pixel 00 data
 		//fprintf(fpt,"k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f\n", i, l, v00[0][0], v00[1][0], v00[2][0]);
 		gpu_net->pnt_(v90, pA, ml, (int)l, (int)V4);	// pointers to first pixel 90 data
-		if(is_goto)
-			cout<<"3"<<endl;
 		
 		float *pfp = fp.data;
 		float *pfx = fx.data;
@@ -363,15 +352,9 @@ skyloop:
 		for(int j=0; j<V; j++)
 		{
 			int jf= j*f_;
-		if(is_goto)
-			cout<<"4"<<endl;
 			gpu_net->cpp_(p00,v00);	gpu_net->cpp_(p90,v90);			// copy amplitudes with target increment
-		if(is_goto)
-			cout<<"5"<<endl;
 			//fprintf(fpt,"k = %d l = %d p00[0] = %f p00[1] = %f p00[2] = %f p00[3] = %f\n", i, l, p00[0], p00[1], p00[2], p00[3]);
 			gpu_net->cpf_(pfp,FP,l);gpu_net->cpf_(pfx,FX,l);		// copy antenna with target increment
-		if(is_goto)
-			cout<<"6"<<endl;
 			//fprintf(fpt,"k = %d l = %d FP[0] = %f FP[1] = %f FP[2] = %f FP[3] = %f\n", i, l, FP[0][l], FP[1][l], FP[2][l], FP[3][l]);
 			//fprintf(fpt,"k = %d l = %d pfp[0] = %f pfp[1] = %f pfp[2] = %f pfp[3] = %f\n", i, l, (pfp-4), (pfp-3), (pfp-2), (pfp-1));
 			_sse_zero_ps(_xi+jf);                      // zero MRA amplitudes
@@ -379,23 +362,16 @@ skyloop:
 	           	_sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00
         	   	_sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90 
 			
-		if(is_goto)
-			cout<<"7"<<endl;
 			//fprintf(fpt, "k = %d l = %d rE = %f V4 = %d\n", i, l, rE[l*V4+j], V4);
 			//fprintf(fpt, "k = %d l = %d pE = %f V4 = %d\n", i, l, pE[l*V4+j], V4);
            		if(gpu_net->rNRG.data[j]>En) m++;              // count superthreshold pixels
 		}
-		fprintf(fpt,"k = %d l = %d m = %d \n", i, l, m); 
 		
 	        __m128* _pp = (__m128*) am.data;              // point to multi-res amplitudes
         	__m128* _PP = (__m128*) AM.data;              // point to multi-res amplitudes
-		if(is_goto)
-			cout<<"8"<<endl;
 		
 		if(mra)										// do MRA
 		{
-			if(is_goto)
-			cout<<"9"<<endl;
 			_sse_MRA_ps(gpu_net, xi.data, XI.data, En, m);	// get principal components
 			_pp = (__m128*) xi.data;						// point to PC amplitudes
 			_PP = (__m128*) XI.data;						// point to Pc amplitudes
@@ -404,8 +380,6 @@ skyloop:
 		//fprintf(fpt,"k = %d l = %d _PP[0] = %f _PP[1] = %f _PP[2] = %f _PP[3] = %f\n", i, l, _PP[0], _PP[1], _PP[2], _PP[3]);
 		
 		m = 0; Ls=Ln=Eo=0;
-		if(is_goto)
-			cout<<"10"<<endl;
 		for(int j=0; j<V; j++)
 		{
 			int jf = j*f_;	// source sse pointer increment 
@@ -437,8 +411,6 @@ skyloop:
 					//fprintf(fpt, "k = %d l = %d Ln = %f \n", i, l, Ln);
 		}
 		
-		if(is_goto)
-			cout<<"11"<<endl;
 		size_t m4 = m + (m%4 ? 4 - m%4 : 0);
 	    _E_n = _mm_setzero_ps();                     // + likelihood
 
@@ -449,8 +421,6 @@ skyloop:
         	    _E_s = _sse_like4_ps(_fp+jf,_fx+jf,_bb+jf,_BB+jf);	// std likelihood
 	            _E_n = _mm_add_ps(_E_n,_E_s);            	      	// total likelihood
         	}
-		if(is_goto)
-			cout<<"12"<<endl;
 	        _mm_storeu_ps(vvv,_E_n);                                                        
 		
 		Lo = vvv[0]+vvv[1]+vvv[2]+vvv[3];
@@ -468,7 +438,6 @@ skyloop:
 			
 		if(AA>stat && !mra)
 		{
-			cout<<"if l = "<<l<<endl;
 			stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
 		}
 	/*	fprintf(fpt, "k = %d l = %d AA = %f \n", i, l, AA);
@@ -482,26 +451,24 @@ skyloop:
 		
 	}
 //	fclose(fpt); 
-    if(!mra && lm>=0) {mra=true; le=lb=lm; cout<<"goto"<<endl; is_goto = true; goto skyloop;}    // get MRA principle components
+    if(!mra && lm>=0) {mra=true; le=lb=lm; is_goto = true; goto skyloop;}    // get MRA principle components
+	FILE *fpt1 = fopen("skyloop_after_input", "a");
+        fprintf(fpt1, "id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
+        fclose(fpt1);
 	vint = &(pwc->cList[id-1]);
-	cout<<"vint->size() ="<<vint->size()<<endl;
-	cout<<"After goto"<<endl;
     pwc->sCuts[id-1] = -1;
     pwc->cData[id-1].likenet = Lm;                                                         
     pwc->cData[id-1].energy = Em;
     pwc->cData[id-1].theta = gpu_net->nLikelihood.getTheta(lm);
     pwc->cData[id-1].phi = gpu_net->nLikelihood.getPhi(lm); 
     pwc->cData[id-1].skyIndex = lm;
-	cout<<"After 1"<<endl;
 	rHo = 0.; 
 	if(mra)
 	{
-	cout<<"After 2"<<endl;
 		submra = Ls*Eo/(Eo-Ls);		// MRA subnet statistic
 		submra /= fabs(submra)+fabs(Eo-Lo)+2*(m+6);	// MRA subnet coefficient
 		To = 0;
         pwc->p_Ind[id-1].push_back(lm); 
-	cout<<"After 3"<<endl;
 		for(int j=0; j<vint->size(); j++)
 		{
 			pix = pwc->getPixel(id,j);
@@ -513,18 +480,15 @@ skyloop:
             if(j==1&&mra) pix->ellipticity = suball;   // subnet all-sky propagated to L-stage
             if(j==1&&mra) pix->polarisation = EE;      // suball NULL propagated to L-stage
          }   
-	cout<<"After 4"<<endl;
 			
 		To /= vint->size();
     	rHo = sqrt(Lo*Lo/(Eo+2*m)/nIFO);	// estimator of coherent amplitude     
 	}
-	cout<<"After 5"<<endl;
 		
 	if(gpu_hist && rHo>gpu_net->netRHO)
 		for(int j=0; j<vint->size(); j++)
 			gpu_hist->Fill(suball, submra);
 	
-	cout<<"After 6"<<endl;
 	if(fmin(suball, submra)>TH && rHo>gpu_net->netRHO)
 	{
 		count += vint->size();
@@ -535,15 +499,11 @@ skyloop:
             printf("E: %6.1f|%6.1f L: %6.1f|%6.1f|%6.1f pix: %4d|%4d|%3d|%2d \n",
                    Em,Eo,Lm,Lo,Ls,int(vint->size()),int(V),Vm,int(m));           
         	}
-	cout<<"After 7"<<endl;
 	}
 	else
 		pwc->sCuts[id-1]=1;
 
-	fprintf(fpt, "k = %d count = %d\n", i, count);
-	fclose(fpt);
 // clean time delay data
-	cout<<"After 8"<<endl;
 	V = vint->size();
 	for(int j=0; j<V; j++)	// loop over pixels
 	{
@@ -576,10 +536,8 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
    float mam[NIFO];
    float mAM[NIFO];
    net->pNRG=-1;
-	cout<<"MRA 1"<<endl;
    for(j=0; j<V; ++j) if(ee[j]>Eo) pp[j]=0;
 
-	cout<<"MRA 2"<<endl;
    __m128* _m00 = (__m128*) mam;
    __m128* _m90 = (__m128*) mAM;
    __m128* _amp = (__m128*) amp;
@@ -598,7 +556,6 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
       int    J = net->wdmMRA.getXTalk(m)->size()/7;
       float* c = net->wdmMRA.getXTalk(m)->data;             // c1*c2+c3*c4=c1*c3+c2*c4=0
 
-	cout<<"MRA 3"<<endl;
       if(E/EE < 0.01) break;                                // ignore small PC
 
       _sse_cpf_ps(mam,_a00+mm);                             // store a00 for max pixel
@@ -606,7 +563,6 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
       _sse_add_ps(_amp+mm,_m00);                            // update 00 PC
       _sse_add_ps(_AMP+mm,_m90);                            // update 90 PC
 
-	cout<<"MRA 4"<<endl;
       for(j=0; j<J; j++) {
          n = int(c[0]+0.1);
          if(ee[n]>Eo) {
@@ -615,7 +571,6 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
          }
          c += 7;
       }
-	cout<<"MRA 5"<<endl;
       //cout<<" "<<ee[m]<<" "<<k<<" "<<E<<" "<<EE<<" "<<endl;
       pp[m] = _sse_abs_ps(_amp+mm,_AMP+mm);    // store PC energy
       k++;

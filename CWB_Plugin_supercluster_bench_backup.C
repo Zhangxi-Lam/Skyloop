@@ -531,7 +531,10 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 		le=lb=lm; 
 		goto skyloop;
 	  } 
-                                                                                              
+         FILE *fpt1 = fopen("skyloop_after_input", "a");
+	fprintf(fpt1, "id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
+	fclose(fpt1); 
+                                                                                     
       pwc->sCuts[id-1] = -1;                                                                  
       pwc->cData[id-1].likenet = Lm;                                                          
       pwc->cData[id-1].energy = Em;                                                           
@@ -575,10 +578,10 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          }                                                                       
       }
       else pwc->sCuts[id-1]=1;
-	
+/*	
 	FILE *fpt = fopen("skyloop_output" , "a");
 	fprintf(fpt, "k = %d count = %d\n", k, (count-count_before));
-	fclose(fpt);
+	fclose(fpt);*/
 
 // clean time delay data
 
