@@ -25,6 +25,7 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K);
 void PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info);
 long gpu_subNetCut(network* net, int lag, float snc, TH2F* hist);
 
+float Lo;
 #define USE_LOCAL_SUBNETCUT	// comment to use the builtin implementation of subNetCut
 
 void 
@@ -188,7 +189,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX)
 {
 	bool mra = false;
-	bool is_goto = false;
 	float vvv[NIFO];
 	float *v00[NIFO];
 	float *v90[NIFO];
@@ -199,7 +199,7 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	float Ln = 0;
 	float Eo = 0;
 	float Ls = 0;
-	float aa, AA, En, Es, ee, em, stat, Lo, Lm, Em, Am, EE, rHo, To, TH;
+	float aa, AA, En, Es, ee, em, stat, Lm, Em, Am, EE, rHo, To, TH;
 	int m = 0;
 	int lm, Vm; 
 	size_t id, nIFO, V, V4, tsize, count;
@@ -212,6 +212,7 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	float *eTD[NIFO];
 	double suball=0;
 	double submra=0;
+//		FILE *fpt = fopen("skyloop_myLo", "a");
 	stat=Lm=Em=Am=EE=0.;	lm=Vm= -1;
 	count = 0;
 
@@ -440,6 +441,7 @@ skyloop:
 		{
 			stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
 		}
+//		fprintf(fpt, "k = %d l = %d Lo = %f\n", i ,l, Lo);
 	/*	fprintf(fpt, "k = %d l = %d AA = %f \n", i, l, AA);
 		fprintf(fpt, "k = %d l = %d Lo = %f \n", i, l, Lo);
 		fprintf(fpt, "k = %d l = %d Eo = %f \n", i, l, Eo);
@@ -451,11 +453,12 @@ skyloop:
 		
 	}
 //	fclose(fpt); 
-    if(!mra && lm>=0) {mra=true; le=lb=lm; is_goto = true; goto skyloop;}    // get MRA principle components
+    if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
 	vint = &(pwc->cList[id-1]);
 	
+//		fclose(fpt);
 	FILE *fpt1 = fopen("skyloop_my_after_input", "a");
-        fprintf(fpt1, "id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
+        fprintf(fpt1, "k = %d l = %d id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", i, l, id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
         fclose(fpt1);
     pwc->sCuts[id-1] = -1;
     pwc->cData[id-1].likenet = Lm;                                                         

@@ -350,7 +350,8 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
       bool mra = false;
       double suball=0; 
       double submra=0; 
-
+	FILE *fpt = fopen("skyloop_LoOnly", "a");
+	
       stat=Lm=Em=Am=EE=0.; lm=Vm= -1;    
 
 
@@ -513,6 +514,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          if(AA>stat && !mra) {
             stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
          }
+		fprintf(fpt, "k = %d l = %d Lo = %f \n", k, l, Lo);
 		/*FILE *fpt = fopen("skyloop_loopoutput","a");
 		fprintf(fpt, "k = %d l = %d AA = %f \n", k, l, AA);
 		fprintf(fpt, "k = %d l = %d Lo = %f \n", k, l, Lo);
@@ -531,8 +533,9 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 		le=lb=lm; 
 		goto skyloop;
 	  } 
+	fclose(fpt);
          FILE *fpt1 = fopen("skyloop_after_input", "a");
-	fprintf(fpt1, "id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
+	fprintf(fpt1, "k = %d l = %d id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", k, l, id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
 	fclose(fpt1); 
                                                                                      
       pwc->sCuts[id-1] = -1;                                                                  
