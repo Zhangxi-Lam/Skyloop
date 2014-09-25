@@ -457,9 +457,9 @@ skyloop:
 	vint = &(pwc->cList[id-1]);
 	
 //		fclose(fpt);
-	FILE *fpt1 = fopen("skyloop_my_after_input", "a");
+/*	FILE *fpt1 = fopen("skyloop_my_after_input", "a");
         fprintf(fpt1, "k = %d l = %d id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", i, l, id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
-        fclose(fpt1);
+        fclose(fpt1);*/
     pwc->sCuts[id-1] = -1;
     pwc->cData[id-1].likenet = Lm;                                                         
     pwc->cData[id-1].energy = Em;
