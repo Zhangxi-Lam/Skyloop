@@ -63,14 +63,17 @@ if __name__ == "__main__":
             try:
                 values0, values1 = get_values(line0), get_values(line1)
             except TypeError:  # Happens if a file is longer: None was parsed
-                print >> sys.stderr, "WARNING: one file has more lines."
+                print >> sys.stdout, "WARNING: one file has more lines."
                 line_num -= 1  # One more line read than exists
                 break
             
             # Basic check: do the two lines contain the same variables?
             if values0.viewkeys() ^ values1.viewkeys():
-                sys.exit("Error: Lines #{} must have the same variables."
-                         .format(line_num))
+                print >> sys.stdout, (
+                    "WARNING: Lines #{} must have the same variables."
+                    " Stopping there.".format(line_num))
+                line_num -= 1
+                break
 
             for variable in values0.iterkeys():
                 
@@ -95,7 +98,7 @@ if __name__ == "__main__":
     for (variable, errors) in relative_errors.iteritems():
         pyplot.figure(variable)
         pyplot.hist(errors)
-        pyplot.xlabel("Error")
+        pyplot.xlabel("Relative error")
         pyplot.ylabel("Count")
         pyplot.grid()
         pyplot.title("Relative error histogram for {}".format(variable))
