@@ -31,11 +31,13 @@ if __name__ == "__main__":
         description="""
         Compare the skyloop result summary printed for each cluster,
         between two versions of the output. The lines are compared one
-        by one and must therefore normally (mostly) match. The values
-        following the equal signs are matched together: the format is
-        '... = <value>' (followed by a space or newline). They should
-        therefore typically correspond to variables printed in the
-        same order. The program checks that the two files have the
+        by one and must therefore normally (mostly) match. The
+        variables and values following the equal signs are matched
+        together (by variable name). The variables in a line therefore
+        do not have to be in the same order, and different lines can
+        contain different variables. The program checks that variable
+        names must match line by line between the two files,
+        though. The program also checks that the two files have the
         same number of lines and issues a warning otherwise.""")
 
     parser.add_argument("path0", help="first output file")
