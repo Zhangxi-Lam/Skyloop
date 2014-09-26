@@ -7,14 +7,19 @@ two versions of the output.
 
 import re
 
-VALUES_FINDALL = re.compile("= (\S+)").findall
+# Regex for the values in a line:
+values_findall = re.compile("\s*(.*?)\s*=\s*(\S+)").findall
 
 def get_values(line):
     """
-    Return the values found after the equal signs in the given line,
-    as floats.
+    Return a mapping between variable names and values found around
+    the equal signs in the given line.
+
+    The values are returned as floats.
     """
-    return map(float, VALUES_FINDALL(line))
+    
+    return {variable: float(value)
+            for (variable, value) in values_findall(line)}
     
 if __name__ == "__main__":
 
