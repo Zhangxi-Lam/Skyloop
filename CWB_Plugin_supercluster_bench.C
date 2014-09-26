@@ -314,6 +314,7 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 		  }  
 		}
 	}
+	FILE *fpt = fopen("skyloop_mybackup", "a");
 
 skyloop:
 	// after skyloop
@@ -336,7 +337,7 @@ skyloop:
 				gpu_net->rNRG.data[j] = 0;
 				gpu_net->pNRG.data[j] = 0; 
 		}
-		//fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", i, l, Ln, Eo, Ls, m);
+		fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", i, l, Ln, Eo, Ls, m);
 			
 		aa = Ls*Ln/(Eo-Ls);
 		if((aa-m)/(aa+m)<0.33)	continue;	
@@ -452,12 +453,11 @@ skyloop:
 		fprintf(fpt, "k = %d l = %d em = %d \n", i, l, em);*/
 		
 	}
-//	fclose(fpt); 
     if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
 	vint = &(pwc->cList[id-1]);
 	
-//		fclose(fpt);
-/*	FILE *fpt1 = fopen("skyloop_my_after_input", "a");
+		fclose(fpt);
+	/*FILE *fpt1 = fopen("skyloop_my_after_input", "a");
         fprintf(fpt1, "k = %d l = %d id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", i, l, id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
         fclose(fpt1);*/
     pwc->sCuts[id-1] = -1;

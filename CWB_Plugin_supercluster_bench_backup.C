@@ -350,16 +350,13 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
       bool mra = false;
       double suball=0; 
       double submra=0; 
-	//FILE *fpt = fopen("skyloop_LoOnly", "a");
-	
+
       stat=Lm=Em=Am=EE=0.; lm=Vm= -1;    
 
 
   skyloop:
 
-	//FILE *fpt = fopen("skyloop_m", "a");
-	//fprintf(fpt, "Now in skyloop V4 = %u le=%d V=%u\n", V4, le, V);
-	//fclose(fpt);
+	FILE *fpt = fopen("skyloop_newbackup", "a");
 
       for(l=lb; l<=le; l++) {                         // loop over sky locations
          if(!mm[l] || l<0) continue;                  // skip delay configurations
@@ -395,11 +392,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          _mm_storeu_ps(vvv,_M_m);                                                              
          m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold               
 
-/*	FILE *fpt = fopen("skyloop_backup", "a");
 	fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
-	fclose(fpt);*/
-
-
          aa = Ls*Ln/(Eo-Ls);
          if((aa-m)/(aa+m)<0.33) continue;
                                          
@@ -415,28 +408,12 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
             int jf = j*f_;                             // source sse pointer increment 
             net->cpp_(p00,v00);  net->cpp_(p90,v90);   // copy amplitudes with target increment
             net->cpf_(pfp,FP,l); net->cpf_(pfx,FX,l);  // copy antenna with target increment   
-		/*	FILE *fpt = fopen("skyloop_FP", "a");
-			fprintf(fpt,"k = %d l = %d FP[0] = %f FP[1] = %f FP[2] = %f FP[3] = %f\n", k, l, FP[0][l], FP[1][l], FP[2][l], FP[3][l]);
-			fprintf(fpt,"k = %d l = %d pfp[0] = %f pfp[1] = %f pfp[2] = %f pfp[3] = %f\n", k, l, (pfp-4), (pfp-3), (pfp-2), (pfp-1));
-			fclose(fpt);*/
-
             _sse_zero_ps(_xi+jf);                      // zero MRA amplitudes                  
             _sse_zero_ps(_XI+jf);                      // zero MRA amplitudes                  
             _sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00                         
             _sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90                         
-
-			/*FILE *fpt = fopen("skyloop_pNRG", "a");
-			fprintf(fpt,"k = %d l = %d pE = %f V4 = %d\n", k, l, net->pNRG.data[j], V4); 
-			fclose(fpt);*/
-	
             if(net->rNRG.data[j]>En) m++;              // count superthreshold pixels          
-         }
-		
-		/*FILE *fpt = fopen("skyloop_m", "a");
-		fprintf(fpt,"k = %d l = %d m = %d \n", k, l, m); 
-		fclose(fpt);*/
-        
-		
+         }                                                                                     
 
          __m128* _pp = (__m128*) am.data;              // point to multi-res amplitudes
          __m128* _PP = (__m128*) AM.data;              // point to multi-res amplitudes
@@ -445,12 +422,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
             _sse_MRA_ps(net,xi.data,XI.data,En,m);     // get principal components
             _pp = (__m128*) xi.data;                   // point to PC amplitudes  
             _PP = (__m128*) XI.data;                   // point to PC amplitudes  
-         }                    
-	
-	/*FILE *fpt = fopen("skyloop_pp", "a");
-		fprintf(fpt,"k = %d l = %d _pp[0] = %f _pp[1] = %f _pp[2] = %f _pp[3] = %f\n", k, l, _pp[0], _pp[1], _pp[2], _pp[3]);
-		fprintf(fpt,"k = %d l = %d _PP[0] = %f _PP[1] = %f _PP[2] = %f _PP[3] = %f\n", k, l, _PP[0], _PP[1], _PP[2], _PP[3]);
-	fclose(fpt);*/
+         }                                                                        
 
          m = 0; Ls=Ln=Eo=0;
          for(j=0; j<V; j++) { 
@@ -466,24 +438,10 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
             _sse_cpf_ps(_Fx+mf,_fx+jf);                // copy Fx                       
             _sse_mul_ps(_Fp+mf,_nr+jf);                // normalize f+ by rms           
             _sse_mul_ps(_Fx+mf,_nr+jf);                // normalize fx by rms           
-		/*FILE *fpt = fopen("skyloop_bb", "a");
-		fprintf(fpt,"k = %d l = %d _bb[0] = %f _bb[1] = %f _bb[2] = %f _bb[3] = %f\n", k, l, _bb[0], _bb[1], _bb[2], _bb[3]);
-		fprintf(fpt,"k = %d l = %d _BB[0] = %f _BB[1] = %f _BB[2] = %f _BB[3] = %f\n", k, l, _BB[0], _BB[1], _BB[2], _BB[3]);
-		fprintf(fpt,"k = %d l = %d _Fp[0] = %f _Fp[1] = %f _Fp[2] = %f _Fp[3] = %f\n", k, l, _Fp[0], _Fp[1], _Fp[2], _Fp[3]);
-		fprintf(fpt,"k = %d l = %d _Fx[0] = %f _Fx[1] = %f _Fx[2] = %f _Fx[3] = %f\n", k, l, _Fx[0], _Fx[1], _Fx[2], _Fx[3]);
-	fclose(fpt);*/
-
             m++;                                                                        
             em = _sse_maxE_ps(_pp+jf,_PP+jf);          // dominant pixel energy         
             Ls += ee-em; Eo += ee;                     // subnetwork energy, network energy
             if(ee-em>Es) Ln += ee;                     // network energy above subnet threshold
-		/*FILE *fpt1 = fopen("skyloop_ee","a");
-			fprintf(fpt1, "k = %d l = %d ee = %f \n", i, l, ee);
-			fprintf(fpt1, "k = %d l = %d em = %f \n", i, l, em);
-			fprintf(fpt1, "k = %d l = %d Ls = %f \n", i, l, Ls);
-			fprintf(fpt1, "k = %d l = %d Eo = %f \n", i, l, Eo);
-			fprintf(fpt1, "k = %d l = %d Ln = %f \n", i, l, Ln);
-		fclose(fpt1);*/
          }                                                                                     
 
          size_t m4 = m + (m%4 ? 4 - m%4 : 0);
@@ -503,41 +461,14 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          em = fabs(Eo-Lo)+2*m;                                 //  suball NULL               
          ee = ee/(ee+em);                                      //  subnet stat without threshold
          aa = (aa-m)/(aa+m);                                                                    
-		/*FILE *fpt = fopen("skyloop_Lo", "a");
-		fprintf(fpt, "k = %d l = %d Lo = %f \n", i, l, Lo);
-		fprintf(fpt, "k = %d l = %d AA = %f \n", i, l, AA);
-		fprintf(fpt, "k = %d l = %d ee = %f \n", i, l, ee);
-		fprintf(fpt, "k = %d l = %d em = %f \n", i, l, em);
-		fprintf(fpt, "k = %d l = %d aa = %f \n", i, l, aa);	
-		fclose(fpt);*/
-	
+
          if(AA>stat && !mra) {
             stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
-         }
-	//	fprintf(fpt, "k = %d l = %d Lo = %f \n", k, l, Lo);
-		/*FILE *fpt = fopen("skyloop_loopoutput","a");
-		fprintf(fpt, "k = %d l = %d AA = %f \n", k, l, AA);
-		fprintf(fpt, "k = %d l = %d Lo = %f \n", k, l, Lo);
-		fprintf(fpt, "k = %d l = %d Eo = %f \n", k, l, Eo);
-		fprintf(fpt, "k = %d l = %d aa = %f \n", k, l, aa);
-		fprintf(fpt, "k = %d l = %d l= %d \n", k, l, l);
-		fprintf(fpt, "k = %d l = %d m = %d \n", k, l, m);
-		fprintf(fpt, "k = %d l = %d ee = %d \n", k, l, ee);
-		fprintf(fpt, "k = %d l = %d em = %d \n", k, l, em);
-		fclose(fpt);*/
+         }                                                             
        }                                                               
-
-      if(!mra && lm>=0)// get MRA principle components 
-	  {
-	  	mra=true; 
-		le=lb=lm; 
-		goto skyloop;
-	  } 
-//	fclose(fpt);
-  /*       FILE *fpt1 = fopen("skyloop_after_input", "a");
-	fprintf(fpt1, "k = %d l = %d id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", k, l, id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
-	fclose(fpt1); */
-                                                                                     
+	fclose(fpt);
+      if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
+                                                                                              
       pwc->sCuts[id-1] = -1;                                                                  
       pwc->cData[id-1].likenet = Lm;                                                          
       pwc->cData[id-1].energy = Em;                                                           
@@ -567,10 +498,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
                                                                                                             
       if(hist && rHo>net->netRHO)                                                                          
          for(j=0;j<vint->size();j++) hist->Fill(suball,submra);                                             
-// my
-	size_t count_before;
-	count_before = count; 
-// my
+
       if(fmin(suball,submra)>TH && rHo>net->netRHO) {
          count += vint->size();                       
          if(hist) {                                   
@@ -581,10 +509,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          }                                                                       
       }
       else pwc->sCuts[id-1]=1;
-/*	
-	FILE *fpt = fopen("skyloop_output" , "a");
-	fprintf(fpt, "k = %d count = %d\n", k, (count-count_before));
-	fclose(fpt);*/
 
 // clean time delay data
 
