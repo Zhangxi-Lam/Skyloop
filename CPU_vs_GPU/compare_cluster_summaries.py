@@ -26,6 +26,9 @@ if __name__ == "__main__":
     import argparse
     import itertools
     import sys
+    import collections
+
+    from matplotlib import pyplot
     
     parser = argparse.ArgumentParser(
         description="""
@@ -44,13 +47,58 @@ if __name__ == "__main__":
     parser.add_argument("path1", help="second output file")
     args = parser.parse_args()
 
+    # Main results of this comparison program: mapping between
+    # variables and observed relative errors, and counts of identical
+    # values. Relative errors are of the form value1 - value0, divided
+    # by value0 if it is not 0, or else by value1.
+    relative_errors = collections.defaultdict(list)
+    identical_value_counts = collections.Counter()
+    
     with open(args.path0) as file0, open(args.path1) as file1:
-        for (line0, line1) in itertools.izip_longest(file0, file1):
+        
+        for (line_num, (line0, line1)) in enumerate(
+            itertools.izip_longest(file0, file1), 1):
+
+            # Variables and values reading:
             try:
                 values0, values1 = get_values(line0), get_values(line1)
             except TypeError:  # Happens if a file is longer: None was parsed
-                print >> sys.stderr, "Warning: one file has more lines"
+                print >> sys.stderr, "WARNING: one file has more lines."
+                line_num -= 1  # One more line read than exists
                 break
             
-            print values0
+            # Basic check: do the two lines contain the same variables?
+            if values0.viewkeys() ^ values1.viewkeys():
+                sys.exit("Error: Lines #{} must have the same variables."
+                         .format(line_num))
 
+            for variable in values0.iterkeys():
+                
+                value0, value1 = values0[variable], values1[variable]
+
+                if value0 == value1:
+                    identical_value_counts[variable] += 1
+                else:
+                    ref_value = value0 if value0 else value1  # Never 0
+                    relative_errors[variable].append((value1-value0)/ref_value)
+                    
+    # Report:
+    
+    print "Number of identical values (increasing numbers, sorted names):"
+    
+    for (variable, count) in sorted(
+        identical_value_counts.viewitems(),
+        key=lambda (variable, count): (count, variable)):
+        
+        print "- {}: {}/{}".format(variable, count, line_num)
+
+    for (variable, errors) in relative_errors.iteritems():
+        pyplot.figure(variable)
+        pyplot.hist(errors)
+        pyplot.xlabel("Error")
+        pyplot.ylabel("Count")
+        pyplot.grid()
+        pyplot.title("Relative error histogram for {}".format(variable))
+        
+    print "Quit by closing all the windows or doing Ctrl-Z kill %%..."
+    pyplot.show()
