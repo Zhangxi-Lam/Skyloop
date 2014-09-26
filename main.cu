@@ -259,6 +259,8 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 //++++++++++++++++++++++++++++++++
 		if(alloced_gpu < BufferNum)
 		{
+		
+			
 			int i = alloced_gpu;
 			finish[i] = false;
 			*(pre_gpu_data[i].other_data.id) = id;
@@ -285,12 +287,18 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 					CUDA_CHECK(cudaStreamSynchronize(stream[i]));
 				alloced_gpu = 0;
 			}
-
 			
 			
-		}
+		 }
 			
 	}							// end of loop
+	if(alloced_gpu != 0)		// if there are some clusters waiting for GPU calculation
+	{
+		push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, eTDDim, V4max, Lsky, alloced_gpu, stream);
+		for(int i=0; i<alloced_gpu; i++)				// wait for all commands in the stream to complete
+			CUDA_CHECK(cudaStreamSynchronize(stream[i]));
+		alloced_gpu = 0;
+	}							
 	//cout<<"here"<<endl;
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data, stream);
 	cleanup_gpu_mem(skyloop_output, skyloop_other, stream);
