@@ -356,7 +356,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 
   skyloop:
 
-	FILE *fpt = fopen("skyloop_newbackup", "a");
 
       for(l=lb; l<=le; l++) {                         // loop over sky locations
          if(!mm[l] || l<0) continue;                  // skip delay configurations
@@ -392,7 +391,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          _mm_storeu_ps(vvv,_M_m);                                                              
          m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold               
 
-	fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
          aa = Ls*Ln/(Eo-Ls);
          if((aa-m)/(aa+m)<0.33) continue;
                                          
@@ -466,7 +464,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
             stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
          }                                                             
        }                                                               
-	fclose(fpt);
       if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
                                                                                               
       pwc->sCuts[id-1] = -1;                                                                  
@@ -519,6 +516,10 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          if(pix->tdAmp.size()) pix->clean();
       }
    }                                                 // end of loop over clusters
+	FILE *fpt = fopen("skyloop_count", "a");
+	fprintf(fpt, "lag = %d count = %d \n");
+	fclose(fpt);
+	cout<<"count = "<<count<<endl;
    return count;
 }
 

@@ -29,9 +29,9 @@ struct other                                    //the variable that not use in G
 	short *mm;				// skyMask.data
 	float *T_En, *T_Es, *TH;	// same
 	int *le, *lag;	// le, lag same
-	size_t *id, *nIFO, *V, *V4, *tsize; // nIFO same
+	int *stream;	// indicate which stream
+	size_t *id, *nIFO, *k, *V, *V4, *tsize; // nIFO same
 	size_t *count;			// result of each stream
-	bool *finish;			// indicate whether the caculation is finished
 };
 struct pre_data
 {

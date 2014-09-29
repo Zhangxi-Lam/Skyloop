@@ -14,5 +14,4 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 __inline__ __device__ float kernel_minSNE_ps (float pE, float* pe);
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data);
 
-void _skyloop(float **pe, size_t V4, float T_En, float T_Es, float *rE, float *pE, int l, short *mm, float &Ln, float &Eo, float &Ls, size_t &m);
 #endif

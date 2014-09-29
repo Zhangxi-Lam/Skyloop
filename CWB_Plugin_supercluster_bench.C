@@ -186,7 +186,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 	return count;
 }
 
-long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX)
+long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX, size_t *streamCount)
 {
 	bool mra = false;
 	float vvv[NIFO];
@@ -203,10 +203,10 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	int m = 0;
 	int lm, Vm; 
 	size_t id, nIFO, V, V4, tsize, count;
-	size_t i = 0;
+	size_t k = 0;
 	int f_ =NIFO/4;
 	int lb=0;
-	int l, le, lag;
+	int l, le, lag, stream;
 	short *ml[NIFO]; 
 	short *mm;
 	float *eTD[NIFO];
@@ -221,12 +221,13 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	TH = *((post_data*)post_gpu_data)->other_data.TH;
 	le = *((post_data*)post_gpu_data)->other_data.le;
 	lag = *((post_data*)post_gpu_data)->other_data.lag;
+	stream = *((post_data*)post_gpu_data)->other_data.stream;
 	id = *((post_data*)post_gpu_data)->other_data.id;
 	nIFO = *((post_data*)post_gpu_data)->other_data.nIFO;
 	V = *((post_data*)post_gpu_data)->other_data.V;
 	V4 = *((post_data*)post_gpu_data)->other_data.V4;
 	tsize = *((post_data*)post_gpu_data)->other_data.tsize;
-	i = *((post_data*)post_gpu_data)->other_data.count;
+	k = *((post_data*)post_gpu_data)->other_data.k;
 	mm = ((post_data*)post_gpu_data)->other_data.mm;
 	rE = ((post_data*)post_gpu_data)->output.rE;
 	pE = ((post_data*)post_gpu_data)->output.pE;
@@ -314,7 +315,7 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 		  }  
 		}
 	}
-	FILE *fpt = fopen("skyloop_mybackup", "a");
+//	FILE *fpt = fopen("skyloop_mybackup", "a");
 
 skyloop:
 	// after skyloop
@@ -337,7 +338,7 @@ skyloop:
 				gpu_net->rNRG.data[j] = 0;
 				gpu_net->pNRG.data[j] = 0; 
 		}
-		fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", i, l, Ln, Eo, Ls, m);
+//		fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
 			
 		aa = Ls*Ln/(Eo-Ls);
 		if((aa-m)/(aa+m)<0.33)	continue;	
@@ -456,7 +457,7 @@ skyloop:
     if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
 	vint = &(pwc->cList[id-1]);
 	
-		fclose(fpt);
+		//fclose(fpt);
 	/*FILE *fpt1 = fopen("skyloop_my_after_input", "a");
         fprintf(fpt1, "k = %d l = %d id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", i, l, id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
         fclose(fpt1);*/
@@ -516,8 +517,9 @@ skyloop:
 		if(pix->tdAmp.size())
 			pix->clean();
 	}
+	streamCount[stream] += count;
 	
-	return 1; 
+	return 0; 
 }
                
 inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
