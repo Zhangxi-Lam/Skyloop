@@ -146,7 +146,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 	for(int i=0; i<StreamNum; i++)
 	{
 		streamCount[i] = 0;
-	}
+	}	
 	// allocate the memory on cpu and gpu
 	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, V4max, Lsky);
 	allocate_gpu_mem(skyloop_output, skyloop_other, eTDDim, V4max, Lsky);
@@ -159,6 +159,9 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 	cudaStream_t stream[StreamNum];			// define the stream
 	for(int i=0; i<StreamNum; i++)			
 		CUDA_CHECK(cudaStreamCreate(&stream[i]));	// create the new stream
+	FILE *fpt1 = fopen("skyloop_ml", "a");
+	FILE *fpt2 = fopen("skyloop_mm", "a");
+	
 		
 	for(int i=0; i<BufferNum; i++)		// initialize the data
 	{
@@ -176,9 +179,11 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 				{
 					pre_gpu_data[i].other_data.ml[j][l] = ml[j][l];
 					post_gpu_data[i].other_data.ml[j][l] = ml[j][l];
+					fprintf(fpt1, "%hd\n", ml[j][l]);
 				}
 				pre_gpu_data[i].other_data.mm[l] = mm[l];
 				post_gpu_data[i].other_data.mm[l] = mm[l];
+				fprintf(fpt2, "%hd\n", mm[l]);
 			}
 			*(post_gpu_data[i].other_data.T_En) = En;
 			*(post_gpu_data[i].other_data.T_Es) = Es;
@@ -198,12 +203,16 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 		}
 				
 	}
+	fclose(fpt1);
+	fclose(fpt2);
+
 //++++++++++++++++++++++++++++++++
 // loop over cluster
 //++++++++++++++++++++++++++++++++
    	cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
    	K = cid.size();                                                         
-//	FILE *fpt = fopen("Result/time", "a");
+	cout<<"K = "<<K<<endl;
+	FILE *fpt = fopen("skyloop_inputV", "a");
 	for(k=0; k<K; k++)				// loop over clusters
 	{
 		id = size_t(cid.data[k]+0.1);
@@ -245,6 +254,8 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
               			   aa = pix->tdAmp[i].data[l];             // copy TD 00 data 
 		                   AA = pix->tdAmp[i].data[l+tsize];       // copy TD 90 data 
 		                   eTD[i].data[l*V4+j] = aa*aa+AA*AA;      // copy power      
+				//fprintf(fpt, "%f\n", aa*aa+AA*AA);
+				
 					// assign the data 
 				   			if(alloced_gpu<BufferNum)
 				   			{
@@ -270,6 +281,8 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 			*(pre_gpu_data[i].other_data.V4) = V4;
 			*(pre_gpu_data[i].other_data.tsize) = tsize;
 			*(pre_gpu_data[i].other_data.k) = k;
+			fprintf(fpt, "%d %d %d %f %f \n", V, V4, tsize, En, Es);
+			
 			
 			if(i<StreamNum)
 			{
@@ -283,40 +296,23 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 			alloced_gpu++;
 			if(alloced_gpu == StreamNum)		// if all streams' data have been assigned
 			{
-//				cudaEventRecord(start, 0);
 				push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, eTDDim, V4max, Lsky, StreamNum, stream);
 				for(int i=0; i<StreamNum; i++)				// wait for all commands in the stream to complete
 					CUDA_CHECK(cudaStreamSynchronize(stream[i]));
-//				cudaEventRecord(stop, 0);
-//				cudaEventSynchronize(stop);
-//				cudaEventElapsedTime(&elapsedTime, start, stop);
-//				wholeTime += elapsedTime;
-						
 				alloced_gpu = 0;
 			}
 			
 			
 		 }
 	}							// end of loop
+	fclose(fpt);
 	if(alloced_gpu != 0)		// if there are some clusters waiting for GPU calculation
 	{	
-//		cudaEventRecord(start, 0);
 		push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, eTDDim, V4max, Lsky, alloced_gpu, stream);
 		for(int i=0; i<alloced_gpu; i++)				// wait for all commands in the stream to complete
 			CUDA_CHECK(cudaStreamSynchronize(stream[i]));
-//		cudaEventRecord(stop, 0);
-//		cudaEventSynchronize(stop);
-//		cudaEventElapsedTime(&elapsedTime, start, stop);
-//		wholeTime += elapsedTime;
 		alloced_gpu = 0;
 	}
-//	fprintf(fpt, "lag = %d Time = %.3fms", lag, wholeTime);
-//	fclose(fpt);
-	
-								
-	//cout<<"here"<<endl;
-//	cudaEventDestroy(start);
-//	cudaEventDestroy(stop);
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data, stream);
 	cleanup_gpu_mem(skyloop_output, skyloop_other, stream);
 	for(int i=0; i<StreamNum; i++)	

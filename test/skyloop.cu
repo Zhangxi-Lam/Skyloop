@@ -1,0 +1,512 @@
+#define num_blocks 16
+#define num_threads 256
+#define shared_memory_usage 0
+
+#define StreamNum 4
+#define BufferNum 4
+#define NIFO 4
+#define nIFO 3
+#define XIFO 4
+#define CUDA_CHECK(value) {                                             \
+    cudaError_t _m_cudaStat = value;                                    \
+    if (_m_cudaStat != cudaSuccess) {                                   \
+        fprintf(stderr, "Error %s at line %d in file %s\n",             \
+                cudaGetErrorString(_m_cudaStat), __LINE__, __FILE__);   \
+        exit(1); }}
+
+
+
+#include "/home/hpc/cWB/TEST/S6A_BKG_LF_L1H1V1_2G_SUPERCLUSTER_run1a_bench2/macro/test/test_struct.h"
+#include "main.cuh"
+#include<fstream>
+#include<iostream>
+using namespace std;
+
+int main(void)
+{
+	struct pre_data pre_gpu_data[BufferNum];	// store the data before gpu calculation
+	struct post_data post_gpu_data[StreamNum];	// store the data transfer from gpu
+	struct skyloop_output skyloop_output[StreamNum];	// store the skyloop_output data
+	struct other skyloop_other[StreamNum];		// store the data which is not output
+	
+	ifstream file1("skyloop_mm");
+	ifstream file2("skyloop_ml");
+	ifstream file3("skyloop_input");
+	ifstream file4("skyloop_inputV");
+	
+	short temp1;
+	short temp2;
+	
+	int Tmax, V4max, eTDDim, Lsky;
+	int alloced_gpu = 0;
+	int K;
+	size_t V, V4, tsize;
+	float En, Es;
+	Tmax = 300;
+	V4max = 219;
+	Lsky = 3072;
+	eTDDim = Tmax * V4max;
+	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, V4max, Lsky);
+	allocate_gpu_mem(skyloop_output, skyloop_other, eTDDim, V4max, Lsky);
+
+	cudaStream_t stream[StreamNum];			// define the stream
+	for(int i=0; i<StreamNum; i++)			
+		CUDA_CHECK(cudaStreamCreate(&stream[i]));	// create the new stream
+	
+	FILE *fpt2 = fopen("./output/test_ml", "a");
+	FILE *fpt3 = fopen("./outputtest_mm", "a");
+	for(int i=0; i<BufferNum; i++)
+	{
+		if( i<StreamNum )
+		{
+			for(int l=0; l<Lsky; l++)
+			{
+				for(int j=0; j<NIFO; j++)
+				{
+					file2>>temp2;
+					pre_gpu_data[i].other_data.ml[j][l] = temp2;
+					fprintf(fpt2,"%hd\n", pre_gpu_data[i].other_data.ml[j][l]);
+				}
+				file1>>temp1;
+				pre_gpu_data[i].other_data.mm[l] = temp1;
+				fprintf(fpt3, "%hd\n", pre_gpu_data[i].other_data.mm[l]);
+			}
+		}
+		else 
+		{
+			for(int l=0; l<Lsky; l++)
+			{
+				for(int j=0; j<NIFO; j++)
+				{
+					file2>>temp2;
+					pre_gpu_data[i].other_data.ml[j][l] = temp2;
+				}
+				file1>>temp1;
+				pre_gpu_data[i].other_data.mm[l] = temp1;
+			}
+		}
+	}
+	fclose(fpt2);
+	fclose(fpt3);
+	
+	FILE *fpt = fopen("./output/test_input", "a");
+	FILE *fpt1 = fopen("./output/test_eTD", "a");
+	K = 10;
+	for(int k=0; k<K; k++)
+	{
+		file4>>V;
+		file4>>V4;
+		file4>>tsize;
+		file4>>En;
+		file4>>Es;
+		
+		for(int j=0; j<V; j++)
+		{
+			for(int i=0; i<nIFO; i++)
+			{
+				for(int l=0; l<tsize; l++)
+				{
+					if(alloced_gpu<BufferNum)
+					{
+						file3>>pre_gpu_data[alloced_gpu].other_data.eTD[i][l*V4+j];
+						fprintf(fpt1, "%f\n", pre_gpu_data[alloced_gpu].other_data.eTD[i][l*V4+j]);
+
+						if(i == nIFO - 1 && NIFO > nIFO)
+							for(int I = nIFO; I<NIFO; I++)
+							{
+								file3>>pre_gpu_data[alloced_gpu].other_data.eTD[I][l*V4+j];								
+								fprintf(fpt1, "%f\n", pre_gpu_data[alloced_gpu].other_data.eTD[I][l*V4+j]);
+							}
+					}
+				}
+			}
+		}
+		
+		if(alloced_gpu < BufferNum)
+		{
+			int i = alloced_gpu;
+			*(pre_gpu_data[i].other_data.V) = V;
+			*(pre_gpu_data[i].other_data.V4) = V4;
+			*(pre_gpu_data[i].other_data.tsize) = tsize;
+			*(pre_gpu_data[i].other_data.T_En) = En;
+			*(pre_gpu_data[i].other_data.T_Es) = Es;
+			*(post_gpu_data[i].other_data.k) = k;
+			fprintf(fpt, "%d %d %d %f %f\n", V, V4, tsize, En, Es);
+			
+			alloced_gpu++;
+			if(alloced_gpu == StreamNum)		// if all streams' data have been assigned
+			{
+				push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, eTDDim, V4max, Lsky, StreamNum, stream);
+				for(int i=0; i<StreamNum; i++)				// wait for all commands in the stream to complete
+					CUDA_CHECK(cudaStreamSynchronize(stream[i]));
+				alloced_gpu = 0;
+			}
+		 }
+	}
+	fclose(fpt);
+	fclose(fpt1);
+	if(alloced_gpu != 0)
+	{
+		push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, eTDDim, V4max, Lsky, alloced_gpu, stream);
+		for(int i=0; i<alloced_gpu; i++)				// wait for all commands in the stream to complete
+			CUDA_CHECK(cudaStreamSynchronize(stream[i]));
+		alloced_gpu = 0;
+	}
+	cleanup_cpu_mem(pre_gpu_data, post_gpu_data, stream);
+	cleanup_gpu_mem(skyloop_output, skyloop_other, stream);
+	for(int i=0; i<StreamNum; i++)	
+		cudaStreamDestroy(stream[i]);
+	cout<<"Finish!"<<endl;
+
+	return 0;
+}
+void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data)
+{
+	FILE *fpt = fopen("./output/test_skyloopOutput", "a");
+	float Ln, Eo, Ls;
+	int m, l, lb, k;
+	int le = 3071;
+	lb = 0;
+	k = *((post_data*)post_gpu_data)->other_data.k;
+	for(l=lb; l<=le; l++)
+	{
+		Ln = ((post_data*)post_gpu_data)->output.En[l];
+        Eo = ((post_data*)post_gpu_data)->output.Eo[l];
+        Ls = ((post_data*)post_gpu_data)->output.Es[l];
+        m = ((post_data*)post_gpu_data)->output.Mm[l];
+		fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
+	}
+	fclose(fpt);
+}
+void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int V4max, int Lsky)// allocate locked memory on CPU 
+{
+	for(int i = 0; i<BufferNum; i++)
+	{	
+		for(int j=0; j<NIFO; j++)
+		{
+			CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.eTD[j]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+			CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.ml[j]), Lsky * sizeof(short), cudaHostAllocMapped ) );
+		}
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.mm), Lsky * sizeof(short), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.T_En), sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.T_Es), sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.TH), sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.stream), sizeof(int), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.le), sizeof(int), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.lag), sizeof(int), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.id), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.k), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.V), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.V4), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.tsize), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.count), sizeof(size_t), cudaHostAllocMapped ) );
+	}
+	for(int i = 0; i<StreamNum; i++)
+	{
+		for(int j=0; j<NIFO; j++)	
+		{
+			CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.eTD[j]), eTDDim * sizeof(float), cudaHostAllocMapped ) );
+			CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.ml[j]), Lsky * sizeof(short), cudaHostAllocMapped ) );
+		}
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.rE), Lsky * V4max * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.pE), Lsky * V4max * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.Eo), Lsky * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.En), Lsky * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.Es), Lsky * sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.Mm), Lsky * sizeof(int), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.mm), Lsky * sizeof(short), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.T_En), sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.T_Es), sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.TH), sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.stream), sizeof(int), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.le), sizeof(int), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.lag), sizeof(int), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.id), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.k), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.V), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.V4), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.tsize), sizeof(size_t), cudaHostAllocMapped ) );
+	        CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].other_data.count), sizeof(size_t), cudaHostAllocMapped ) );
+		//cout<<" alloc cpu"<<endl;
+	}
+	
+		return;
+}
+
+void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, cudaStream_t *stream)
+{
+ 	for(int i = 0; i<BufferNum; i++)
+	{
+		for(int j=0; j<NIFO; j++)	
+		{
+				CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.eTD[j]));
+				CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.ml[j]));
+		}
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.mm));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.T_En));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.T_Es));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.TH));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.stream));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.le));
+	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.lag));
+	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.id));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.k));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.V));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.V4));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.tsize));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.count));
+	}		
+	for(int i=0; i<StreamNum; i++)
+	{
+		for(int j=0; j<NIFO; j++)
+		{
+			CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.eTD[j]));
+			CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.ml[j]));
+		}
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.rE));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.pE));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.Eo));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.En));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.Es));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.Mm));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.mm));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.T_En));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.T_Es));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.TH));
+        	CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.stream));
+        	CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.le));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.lag));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.id));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.k));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.V));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.V4));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.tsize));
+		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.count));
+		//cout<<"cleanup cpu"<<endl;
+	}
+	return;
+}
+
+void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int V4max, int Lsky)// allocate the memory on GPU
+{
+	for(int i = 0; i<StreamNum; i++)
+	{
+		for(int j=0; j<NIFO; j++)
+		{
+			CUDA_CHECK(cudaMalloc(&(skyloop_other[i].eTD[j]), eTDDim * sizeof(float) ) );
+			CUDA_CHECK(cudaMalloc(&(skyloop_other[i].ml[j]), Lsky * sizeof(short) ) );	
+		}
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].rE), Lsky * V4max * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].pE), Lsky * V4max * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].Eo), Lsky * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].En), Lsky * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].Es), Lsky * sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_output[i].Mm), Lsky * sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].mm), Lsky * sizeof(short) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].T_En), sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].T_Es), sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].TH), sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].stream), sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].le), sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].lag), sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].id), sizeof(size_t) ) );
+       		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].k), sizeof(size_t) ) );
+       		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].V), sizeof(size_t) ) );
+	   	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].V4), sizeof(size_t) ) );
+	   	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].tsize), sizeof(size_t) ) );
+	     	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].count), sizeof(size_t) ) );
+		//cout<<"alloc gpu"<<endl;
+	}
+}
+
+void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, cudaStream_t *stream)// cleanup the memory on GPU
+{
+	for(int i = 0; i<StreamNum; i++)
+	{
+		for(int j=0; j<NIFO; j++)
+		{
+			CUDA_CHECK(cudaFree(skyloop_other[i].eTD[j]) );
+			CUDA_CHECK(cudaFree(skyloop_other[i].ml[j]) );
+		}
+		CUDA_CHECK(cudaFree(skyloop_output[i].rE) );
+		CUDA_CHECK(cudaFree(skyloop_output[i].pE) );
+		CUDA_CHECK(cudaFree(skyloop_output[i].Eo) );
+		CUDA_CHECK(cudaFree(skyloop_output[i].En) );
+		CUDA_CHECK(cudaFree(skyloop_output[i].Es) );
+		CUDA_CHECK(cudaFree(skyloop_output[i].Mm) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].mm) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].T_En) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].T_Es) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].TH) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].stream) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].le) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].lag) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].id) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].k) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].V) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].V4) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].tsize) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].count) );
+		//cout<<"cleanup gpu"<<endl;
+	}
+	return;
+}
+
+__host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *post_gpu_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int V4max, int Lsky, int work_size, cudaStream_t *stream)
+{
+	for(int i=0; i<work_size; i++)// transfer the data from CPU to GPU
+	{
+		for(int j = 0; j<NIFO ; j++)
+		{
+			cudaMemcpyAsync(skyloop_other[i].eTD[j], input_data[i].other_data.eTD[j], eTDDim * sizeof(float), cudaMemcpyHostToDevice, stream[i] );
+			cudaMemcpyAsync(skyloop_other[i].ml[j], input_data[i].other_data.ml[j], Lsky * sizeof(short), cudaMemcpyHostToDevice, stream[i] );
+		}
+		//
+		cudaMemcpyAsync(skyloop_other[i].mm, input_data[i].other_data.mm, Lsky * sizeof(short), cudaMemcpyHostToDevice, stream[i] );
+		cudaMemcpyAsync(skyloop_other[i].T_En, input_data[i].other_data.T_En, sizeof(float), cudaMemcpyHostToDevice, stream[i] );
+		cudaMemcpyAsync(skyloop_other[i].T_Es, input_data[i].other_data.T_Es, sizeof(float), cudaMemcpyHostToDevice, stream[i] );
+		cudaMemcpyAsync(skyloop_other[i].k, input_data[i].other_data.k, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
+		cudaMemcpyAsync(skyloop_other[i].V, input_data[i].other_data.V, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
+		cudaMemcpyAsync(skyloop_other[i].V4, input_data[i].other_data.V4, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
+		cudaMemcpyAsync(skyloop_other[i].tsize, input_data[i].other_data.tsize, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
+	}
+
+	for(int i=0; i<work_size; i++)// call for gpu caculation
+		kernel_skyloop<<<num_blocks, num_threads, shared_memory_usage, stream[i]>>>(skyloop_other[i].eTD[0], skyloop_other[i].eTD[1], skyloop_other[i].eTD[2], skyloop_other[i].eTD[3], skyloop_other[i].ml[0], skyloop_other[i].ml[1], skyloop_other[i].ml[2], skyloop_other[i].ml[3], skyloop_other[i].mm, skyloop_other[i].V, skyloop_other[i].V4, skyloop_other[i].tsize, skyloop_other[i].T_En, skyloop_other[i].T_Es, skyloop_output[i].rE, skyloop_output[i].pE, skyloop_output[i].Eo, skyloop_output[i].En, skyloop_output[i].Es, skyloop_output[i].Mm, Lsky);
+
+	for(int i=0; i<work_size; i++)// transfer the data back from GPU to CPU
+	{
+                cudaMemcpyAsync(post_gpu_data[i].output.rE, skyloop_output[i].rE, Lsky * V4max * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
+                cudaMemcpyAsync(post_gpu_data[i].output.pE, skyloop_output[i].pE, Lsky * V4max * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
+                cudaMemcpyAsync(post_gpu_data[i].output.Eo, skyloop_output[i].Eo, Lsky * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
+                cudaMemcpyAsync(post_gpu_data[i].output.En, skyloop_output[i].En, Lsky * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
+                cudaMemcpyAsync(post_gpu_data[i].output.Es, skyloop_output[i].Es, Lsky * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
+                cudaMemcpyAsync(post_gpu_data[i].output.Mm, skyloop_output[i].Mm, Lsky * sizeof(int), cudaMemcpyDeviceToHost, stream[i] );
+		cudaStreamAddCallback(stream[i], MyCallback, (void*)&post_gpu_data[i], 0);
+	}
+//	cout<<"Push work into gpu success."<<endl;
+}
+
+__global__ void kernel_skyloop(float *eTD_0, float *eTD_1, float *eTD_2, float *eTD_3, short *ml_0, short *ml_1, short *ml_2, short *ml_3, short *gpu_mm, size_t *gpu_V, size_t *gpu_V4, size_t *gpu_tsize, float *gpu_T_En, float *gpu_T_Es, float *gpu_rE, float *gpu_pE, float *gpu_Eo, float *gpu_En, float *gpu_Es, int *gpu_Mm, int Lsky) 
+{
+	const int grid_size = blockDim.x * gridDim.x;
+	int l = blockIdx.x * blockDim.x + threadIdx.x;
+	float *pe[NIFO];
+	short *ml[NIFO];
+	short *mm;
+	float T_En, T_Es;								// two threshold
+	
+	size_t V, V4, tsize;
+	int le = Lsky - 1;
+
+	pe[0] = eTD_0;
+	pe[1] = eTD_1;
+	pe[2] = eTD_2;
+	pe[3] = eTD_3;
+	ml[0] = ml_0;
+	ml[1] = ml_1;
+	ml[2] = ml_2;
+	ml[3] = ml_3;
+	mm = gpu_mm;
+	V = *gpu_V;
+	V4 = *gpu_V4;
+	tsize = *gpu_tsize;
+	T_En = *gpu_T_En;
+	T_Es = *gpu_T_Es;
+
+	for(; l<=le; l+=grid_size)		// loop over sky locations
+	{
+		if(!mm[l]) continue;		// skip delay configurations
+		// _sse_point_ps 
+		pe[0] = pe[0] + (tsize/2)*V4;
+		pe[1] = pe[1] + (tsize/2)*V4;
+		pe[2] = pe[2] + (tsize/2)*V4;
+		pe[3] = pe[3] + (tsize/2)*V4;
+
+		pe[0] = pe[0] + ml[0][l] * (int)V4;
+		pe[1] = pe[1] + ml[1][l] * (int)V4;
+		pe[2] = pe[2] + ml[2][l] * (int)V4;
+		pe[3] = pe[3] + ml[3][l] * (int)V4;
+		// inner skyloop
+		kernel_skyloop_calculate(pe[0], pe[1], pe[2], pe[3], V, V4, T_En, T_Es, gpu_rE, gpu_pE, gpu_Eo, gpu_En, gpu_Es, gpu_Mm, l);
+	}
+		
+}
+
+__inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, float *PE_2, float *PE_3, size_t V, size_t V4, float T_En, float T_Es, float *gpu_rE, float *gpu_pE, float *gpu_Eo, float *gpu_En, float *gpu_Es, int *gpu_Mm, int l) 
+{
+	float msk;						// mask
+	size_t v = 0;					// indicate the pixel
+	size_t ptr;						// indicate the location 
+	float pe[NIFO];
+	float Eo, En, Es;
+	int Mm;
+	float rE;						// energy array rNRG.data 
+	float pE;						// energy array pNRG.data
+	
+	Eo = 0;							// total network energy
+	En = 0;							// network energy above the threshold
+	Es = 0;							// subnet energy above the threshold
+	Mm = 0;							// # of pixels above the threshold
+	
+	ptr = l*V4;
+	while( v<V )					// loop over selected pixels	
+	{
+		// *_rE = _sse_sum_ps(_pe);
+		pe[0] = PE_0[v];
+		pe[1] = PE_1[v];
+		pe[2] = PE_2[v];
+		pe[3] = PE_3[v];
+		rE = pe[0] + pe[1] + pe[2] + pe[3];								// get pixel energy
+		//assign the value to the local memory
+		gpu_rE[ptr+v] = rE;
+      	// E>En  0/1 mask
+		msk = ( rE>=T_En );										// E>En  0/1 mask
+		Mm += msk;												// count pixels above threshold
+		///*new
+		pE = rE * msk;											// zero sub-threshold pixels
+		Eo += pE;												// network energy
+		pE = kernel_minSNE_ps(pE, pe);						// subnetwork energy
+		Es += pE;												// subnetwork energy
+		msk = ( pE>=T_Es );										// subnet energy > Es 0/1 mask
+		rE *= msk;												
+		En += rE;												// network energy
+		// assign the value to the local memory
+		gpu_pE[ptr+v] = pE;
+		//new*/
+		v++;
+	}
+	Eo += 0.01;
+	Mm = Mm *2 +0.01;
+
+	gpu_En[l] = En;												// Write back to output
+	gpu_Eo[l] = Eo;												
+	gpu_Es[l] = Es;
+	gpu_Mm[l] = Mm;
+	
+}
+__inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
+{
+	float a, b, c, d;
+	int ab, ac, ad, bc, bd, cd;
+	float temp;
+	int flag;
+	
+	a = pe[0];
+	b = pe[1];
+	c = pe[2];
+	d = pe[3];
+	ab = ( a>=b );											// if a>=b, ab 1/0
+	ac = ( a>=c );											// if a>=c, ac 1/0
+	ad = ( a>=d );											// if a>=d, ad 1/0
+	bc = ( b>=c );											// if b>=c, bc 1/0
+	bd = ( b>=d );											// if b>=d, bd 1/0
+	cd = ( c>=d );											// if c>=d, cd 1/0
+	 
+	temp = a+b+c+d - ab*ac*ad*a - (1-ab)*bc*bd*b - (1-ac)*(1-bc)*cd*c - (1-ad)*(1-bd)*(1-cd)*d;
+	flag = ( temp>=pE );										// if temp>=pE, flag 1/0
+	temp = temp + pE - flag*temp - (1-flag)*pE;
+	return temp;
+} 
+
+
