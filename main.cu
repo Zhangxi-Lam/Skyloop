@@ -165,10 +165,10 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 	{
 		*(pre_gpu_data[i].other_data.T_En) = En;
 		*(pre_gpu_data[i].other_data.T_Es) = Es; 
-		//*(pre_gpu_data[i].other_data.TH) = TH;
-		//*(pre_gpu_data[i].other_data.le) = Lsky - 1;
-		//*(pre_gpu_data[i].other_data.lag) = lag;
-		//*(pre_gpu_data[i].other_data.nIFO) = nIFO;
+		*(pre_gpu_data[i].other_data.TH) = TH;
+		*(pre_gpu_data[i].other_data.le) = Lsky - 1;
+		*(pre_gpu_data[i].other_data.lag) = lag;
+		*(pre_gpu_data[i].other_data.nIFO) = nIFO;
 		if( i<StreamNum )
 		{
 			for(int l=0; l<Lsky; l++)
@@ -261,8 +261,8 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
             			}
 			}
 		}
-		//for(int l=0; l<eTDDim; l++)
-            //fprintf(fpt1,"%f %f %f %f\n", pre_gpu_data[alloced_gpu].other_data.eTD[0][l], pre_gpu_data[alloced_gpu].other_data.eTD[1][l], pre_gpu_data[alloced_gpu].other_data.eTD[2][l], pre_gpu_data[alloced_gpu].other_data.eTD[3][l]);
+		for(int l=0; l<eTDDim; l++)
+            fprintf(fpt1,"%f %f %f %f\n", pre_gpu_data[alloced_gpu].other_data.eTD[0][l], pre_gpu_data[alloced_gpu].other_data.eTD[1][l], pre_gpu_data[alloced_gpu].other_data.eTD[2][l], pre_gpu_data[alloced_gpu].other_data.eTD[3][l]);
 
 //++++++++++++++++++++++++++++++++
 // assign the data 
@@ -272,9 +272,11 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist)
 		
 			
 			int i = alloced_gpu;
+			*(pre_gpu_data[i].other_data.id) = id;
 			*(pre_gpu_data[i].other_data.V) = V;
 			*(pre_gpu_data[i].other_data.V4) = V4;
 			*(pre_gpu_data[i].other_data.tsize) = tsize;
+			*(pre_gpu_data[i].other_data.k) = k;
 			
 			
 			if(i<StreamNum)
@@ -328,17 +330,17 @@ void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.mm), Lsky * sizeof(short), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.T_En), sizeof(float), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.T_Es), sizeof(float), cudaHostAllocMapped ) );
-//		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.TH), sizeof(float), cudaHostAllocMapped ) );
-//		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.stream), sizeof(int), cudaHostAllocMapped ) );
-//		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.le), sizeof(int), cudaHostAllocMapped ) );
-//		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.lag), sizeof(int), cudaHostAllocMapped ) );
-//		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.id), sizeof(size_t), cudaHostAllocMapped ) );
-//		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.nIFO), sizeof(size_t), cudaHostAllocMapped ) );
-//		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.k), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.TH), sizeof(float), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.stream), sizeof(int), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.le), sizeof(int), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.lag), sizeof(int), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.id), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.nIFO), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.k), sizeof(size_t), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.V), sizeof(size_t), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.V4), sizeof(size_t), cudaHostAllocMapped ) );
 		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.tsize), sizeof(size_t), cudaHostAllocMapped ) );
-//		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.count), sizeof(size_t), cudaHostAllocMapped ) );
+		CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.count), sizeof(size_t), cudaHostAllocMapped ) );
 	}
 	for(int i = 0; i<StreamNum; i++)
 	{
@@ -385,17 +387,17 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.mm));
 		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.T_En));
 		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.T_Es));
-//		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.TH));
-//		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.stream));
-//		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.le));
-//	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.lag));
-//	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.id));
-//		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.nIFO));
-//		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.k));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.TH));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.stream));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.le));
+	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.lag));
+	        CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.id));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.nIFO));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.k));
 		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.V));
 		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.V4));
 		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.tsize));
-//		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.count));
+		CUDA_CHECK(cudaFreeHost(pre_gpu_data[i].other_data.count));
 	}		
 	for(int i=0; i<StreamNum; i++)
 	{
@@ -414,8 +416,8 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.T_En));
 		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.T_Es));
 		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.TH));
-       	CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.stream));
-       	CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.le));
+        	CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.stream));
+        	CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.le));
 		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.lag));
 		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.id));
 		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.nIFO));
@@ -447,17 +449,17 @@ void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skylo
 		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].mm), Lsky * sizeof(short) ) );
 		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].T_En), sizeof(float) ) );
 		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].T_Es), sizeof(float) ) );
-//		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].TH), sizeof(float) ) );
-//		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].stream), sizeof(int) ) );
-//		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].le), sizeof(int) ) );
-//		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].lag), sizeof(int) ) );
-//		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].id), sizeof(size_t) ) );
-//	   	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].nIFO), sizeof(size_t) ) );
-//    		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].k), sizeof(size_t) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].TH), sizeof(float) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].stream), sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].le), sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].lag), sizeof(int) ) );
+		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].id), sizeof(size_t) ) );
+	   	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].nIFO), sizeof(size_t) ) );
+       		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].k), sizeof(size_t) ) );
        		CUDA_CHECK(cudaMalloc(&(skyloop_other[i].V), sizeof(size_t) ) );
 	   	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].V4), sizeof(size_t) ) );
 	   	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].tsize), sizeof(size_t) ) );
-//	     	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].count), sizeof(size_t) ) );
+	     	CUDA_CHECK(cudaMalloc(&(skyloop_other[i].count), sizeof(size_t) ) );
 		//cout<<"alloc gpu"<<endl;
 	}
 }
@@ -480,17 +482,17 @@ void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloo
 		CUDA_CHECK(cudaFree(skyloop_other[i].mm) );
 		CUDA_CHECK(cudaFree(skyloop_other[i].T_En) );
 		CUDA_CHECK(cudaFree(skyloop_other[i].T_Es) );
-//		CUDA_CHECK(cudaFree(skyloop_other[i].TH) );
-//		CUDA_CHECK(cudaFree(skyloop_other[i].stream) );
-//		CUDA_CHECK(cudaFree(skyloop_other[i].le) );
-//		CUDA_CHECK(cudaFree(skyloop_other[i].lag) );
-//		CUDA_CHECK(cudaFree(skyloop_other[i].id) );
-//		CUDA_CHECK(cudaFree(skyloop_other[i].nIFO) );
-//		CUDA_CHECK(cudaFree(skyloop_other[i].k) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].TH) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].stream) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].le) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].lag) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].id) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].nIFO) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].k) );
 		CUDA_CHECK(cudaFree(skyloop_other[i].V) );
 		CUDA_CHECK(cudaFree(skyloop_other[i].V4) );
 		CUDA_CHECK(cudaFree(skyloop_other[i].tsize) );
-//		CUDA_CHECK(cudaFree(skyloop_other[i].count) );
+		CUDA_CHECK(cudaFree(skyloop_other[i].count) );
 		//cout<<"cleanup gpu"<<endl;
 	}
 	return;
@@ -509,8 +511,8 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 		cudaMemcpyAsync(skyloop_other[i].mm, input_data[i].other_data.mm, Lsky * sizeof(short), cudaMemcpyHostToDevice, stream[i] );
 		cudaMemcpyAsync(skyloop_other[i].T_En, input_data[i].other_data.T_En, sizeof(float), cudaMemcpyHostToDevice, stream[i] );
 		cudaMemcpyAsync(skyloop_other[i].T_Es, input_data[i].other_data.T_Es, sizeof(float), cudaMemcpyHostToDevice, stream[i] );
-//		cudaMemcpyAsync(skyloop_other[i].nIFO, input_data[i].other_data.nIFO, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
-//		cudaMemcpyAsync(skyloop_other[i].k, input_data[i].other_data.k, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
+		cudaMemcpyAsync(skyloop_other[i].nIFO, input_data[i].other_data.nIFO, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
+		cudaMemcpyAsync(skyloop_other[i].k, input_data[i].other_data.k, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
 		cudaMemcpyAsync(skyloop_other[i].V, input_data[i].other_data.V, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
 		cudaMemcpyAsync(skyloop_other[i].V4, input_data[i].other_data.V4, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
 		cudaMemcpyAsync(skyloop_other[i].tsize, input_data[i].other_data.tsize, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );

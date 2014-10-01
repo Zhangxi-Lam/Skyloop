@@ -2,8 +2,8 @@
 #define num_threads 256
 #define shared_memory_usage 0
 
-#define StreamNum 4
-#define BufferNum 4
+#define StreamNum 2
+#define BufferNum 2
 #define NIFO 4
 #define nIFO 3
 #define XIFO 4
@@ -83,7 +83,7 @@ int main(void)
 		}
 	}
 	
-	K = 10;
+	K = 116;
 	for(int k=0; k<K; k++)
 	{
 		file4>>V;
@@ -100,7 +100,12 @@ int main(void)
 			file3>>pre_gpu_data[alloced_gpu].other_data.eTD[2][l];
 			file3>>pre_gpu_data[alloced_gpu].other_data.eTD[3][l];
 		}
-			
+		/*FILE *fpt = fopen("skyloop_etd","a");
+		for(int l=0; l<eTDDim; l++)
+		{
+			fprintf(fpt, "%f %f %f %d\n", pre_gpu_data[alloced_gpu].other_data.eTD[0][l], pre_gpu_data[alloced_gpu].other_data.eTD[1][l], pre_gpu_data[alloced_gpu].other_data.eTD[2][l], pre_gpu_data[alloced_gpu].other_data.eTD[3][l]);
+		}
+		fclose(fpt);*/
 		if(alloced_gpu < BufferNum)
 		{
 			int i = alloced_gpu;
@@ -140,6 +145,7 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 {
 	//FILE *fpt = fopen("./output/test_skyloopOutput", "a");
 	float Ln, Eo, Ls;
+	float aa;
 	int m, l, lb, k;
 	int le = 3071;
 	lb = 0;
@@ -150,6 +156,7 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
         Eo = ((post_data*)post_gpu_data)->output.Eo[l];
         Ls = ((post_data*)post_gpu_data)->output.Es[l];
        	m = ((post_data*)post_gpu_data)->output.Mm[l];
+		aa = Ln + Eo + Ls + m;
 	//	fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
 	}
 	//fclose(fpt);
@@ -222,6 +229,7 @@ void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_d
 	{
 		for(int j=0; j<NIFO; j++)
 		{
+			CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.eTD[j]));
 			CUDA_CHECK(cudaFreeHost(post_gpu_data[i].other_data.ml[j]));
 		}
 		CUDA_CHECK(cudaFreeHost(post_gpu_data[i].output.rE));
@@ -312,6 +320,7 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 		cudaMemcpyAsync(skyloop_other[i].mm, input_data[i].other_data.mm, Lsky * sizeof(short), cudaMemcpyHostToDevice, stream[i] );
 		cudaMemcpyAsync(skyloop_other[i].T_En, input_data[i].other_data.T_En, sizeof(float), cudaMemcpyHostToDevice, stream[i] );
 		cudaMemcpyAsync(skyloop_other[i].T_Es, input_data[i].other_data.T_Es, sizeof(float), cudaMemcpyHostToDevice, stream[i] );
+		cudaMemcpyAsync(skyloop_other[i].k, input_data[i].other_data.k, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
 		cudaMemcpyAsync(skyloop_other[i].V, input_data[i].other_data.V, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
 		cudaMemcpyAsync(skyloop_other[i].V4, input_data[i].other_data.V4, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
 		cudaMemcpyAsync(skyloop_other[i].tsize, input_data[i].other_data.tsize, sizeof(size_t), cudaMemcpyHostToDevice, stream[i] );
