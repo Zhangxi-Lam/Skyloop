@@ -309,11 +309,17 @@ void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloo
 
 __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *post_gpu_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int V4max, int Lsky, int work_size, cudaStream_t *stream)
 {
+	int V4;
+	int etddim; 
+	int tsize;
 	for(int i=0; i<work_size; i++)// transfer the data from CPU to GPU
 	{
 		for(int j = 0; j<NIFO ; j++)
 		{
-			cudaMemcpyAsync(skyloop_other[i].eTD[j], input_data[i].other_data.eTD[j], eTDDim * sizeof(float), cudaMemcpyHostToDevice, stream[i] );
+			tsize = *(input_data[i].other_data.tsize);
+			V4 = *(input_data[i].other_data.V4);
+			etddim = tsize * V4;
+			cudaMemcpyAsync(skyloop_other[i].eTD[j], input_data[i].other_data.eTD[j], etddim * sizeof(float), cudaMemcpyHostToDevice, stream[i] );
 			cudaMemcpyAsync(skyloop_other[i].ml[j], input_data[i].other_data.ml[j], Lsky * sizeof(short), cudaMemcpyHostToDevice, stream[i] );
 		}
 		//
@@ -331,8 +337,9 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 
 	for(int i=0; i<work_size; i++)// transfer the data back from GPU to CPU
 	{
-                cudaMemcpyAsync(post_gpu_data[i].output.rE, skyloop_output[i].rE, Lsky * V4max * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
-                cudaMemcpyAsync(post_gpu_data[i].output.pE, skyloop_output[i].pE, Lsky * V4max * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
+		V4 = *(input_data[i].other_data.V4);
+                cudaMemcpyAsync(post_gpu_data[i].output.rE, skyloop_output[i].rE, Lsky * V4 * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
+                cudaMemcpyAsync(post_gpu_data[i].output.pE, skyloop_output[i].pE, Lsky * V4 * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
                 cudaMemcpyAsync(post_gpu_data[i].output.Eo, skyloop_output[i].Eo, Lsky * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
                 cudaMemcpyAsync(post_gpu_data[i].output.En, skyloop_output[i].En, Lsky * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
                 cudaMemcpyAsync(post_gpu_data[i].output.Es, skyloop_output[i].Es, Lsky * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
