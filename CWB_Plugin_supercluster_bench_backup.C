@@ -355,12 +355,11 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 
 
   skyloop:
-		FILE *fpt1 = fopen("skyloop_Eo", "a");
+	//	FILE *fpt1 = fopen("skyloop_Eo", "a");
       for(l=lb; l<=le; l++) {                         // loop over sky locations
          if(!mm[l] || l<0) continue;                  // skip delay configurations
                                                                                   
          _sse_point_ps(_pe, pe, ml, int(l), (int)V4); // point _pe to energy vectors
-                                                                                    
          __m128 _msk;                                                               
          __m128 _E_o = _mm_setzero_ps();              // total network energy       
          __m128 _E_n = _mm_setzero_ps();              // network energy above the threshold
@@ -375,19 +374,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
             _M_m = _mm_add_ps(_M_m,_msk);                      // count pixels above threshold
             *_pE = _mm_mul_ps(*_rE,_msk);                      // zero sub-threshold pixels   
             _E_o = _mm_add_ps(_E_o,*_pE);                      // network energy              
-			//adda
-			if((k==0) &&(l==0))
-			{
-				FILE *fpt = fopen("skyloop_pEEo", "a");
-				_mm_storeu_ps(vvv,*_pE);
-				fprintf(fpt, "pE %f %f %f %f\n", vvv[0], vvv[1], vvv[2], vvv[3]);
-				_mm_storeu_ps(vvv,_E_o);
-				fprintf(fpt, "Eo %f %f %f %f\n", vvv[0], vvv[1], vvv[2], vvv[3]);
-         		Eo = vvv[0]+vvv[1]+vvv[2]+vvv[3]+0.01;        // total network energy                 
-				fprintf(fpt, "Eo = %f\n", Eo);
-				fclose(fpt);
-			}
-			//add
             _sse_minSNE_ps(_rE,_pe,_pE);                       // subnetwork energy with _pe increment
             _E_s = _mm_add_ps(_E_s,*_pE);                      // subnetwork energy                   
             _msk = _mm_and_ps(_1,_mm_cmpge_ps(*_pE++,_Es));    // subnet energy > Es 0/1 mask         

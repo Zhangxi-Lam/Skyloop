@@ -186,7 +186,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 	return count;
 }
 
-long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX, size_t *streamCount)
+long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX, size_t *streamCount, int duration)
 {
 	bool mra = false;
 	float vvv[NIFO];
@@ -212,6 +212,8 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	float *eTD[NIFO];
 	double suball=0;
 	double submra=0;
+	
+	clock_t start, finish;
 //		FILE *fpt = fopen("skyloop_myLo", "a");
 	stat=Lm=Em=Am=EE=0.;	lm=Vm= -1;
 	count = 0;
@@ -338,7 +340,7 @@ skyloop:
 				gpu_net->rNRG.data[j] = 0;
 				gpu_net->pNRG.data[j] = 0; 
 		}
-		//fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
+		fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
 			
 		aa = Ls*Ln/(Eo-Ls);
 		if((aa-m)/(aa+m)<0.33)	continue;	

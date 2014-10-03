@@ -593,17 +593,26 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 	size_t v = 0;					// indicate the pixel
 	size_t ptr;						// indicate the location 
 	float pe[NIFO];
-	float Eo, En, Es;
+	float _Eo[4], _Es[4], _En[4];
 	int Mm;
 	float rE;						// energy array rNRG.data 
 	float pE;						// energy array pNRG.data
+	int count;
 	
-	Eo = 0;							// total network energy
-	En = 0;							// network energy above the threshold
-	Es = 0;							// subnet energy above the threshold
+	//Eo = 0;							// total network energy
+	//En = 0;							// network energy above the threshold
+	//Es = 0;							// subnet energy above the threshold
 	Mm = 0;							// # of pixels above the threshold
+
+	for(count=0; count<4; count++)
+	{
+		_Eo[count] = 0;
+		_Es[count] = 0;
+		_En[count] = 0;
+	}
 	
 	ptr = l*V4;
+	count = 0;
 	while( v<V )					// loop over selected pixels	
 	{
 		// *_rE = _sse_sum_ps(_pe);
@@ -619,24 +628,27 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 		Mm += msk;												// count pixels above threshold
 		///*new
 		pE = rE * msk;											// zero sub-threshold pixels
-		Eo += pE;												// network energy
+		_Eo[count] += pE;
+		//Eo += pE;												// network energy
 		pE = kernel_minSNE_ps(pE, pe);						// subnetwork energy
-		Es += pE;												// subnetwork energy
+		_Es[count] += pE;
+		//Es += pE;												// subnetwork energy
 		msk = ( pE>=T_Es );										// subnet energy > Es 0/1 mask
-		rE *= msk;												
-		En += rE;												// network energy
+		rE *= msk;											   
+		_En[count] += rE;
+		//En += rE;												// network energy
 		// assign the value to the local memory
 		gpu_pE[ptr+v] = pE;
 		//new*/
-		v++;
+		v++;	
+		count++;
+		count = count%4;
 	}
-	Eo += 0.01;
-	Mm = Mm *2 +0.01;
 
-	gpu_En[l] = En;												// Write back to output
-	gpu_Eo[l] = Eo;												
-	gpu_Es[l] = Es;
-	gpu_Mm[l] = Mm;
+	gpu_En[l] = _En[0] + _En[1] + _En[2] + _En[3];			// Write back to output
+	gpu_Eo[l] = _Eo[0] + _Eo[1] + _Eo[2] + _Eo[3] + 0.01;
+	gpu_Es[l] = _Es[0] + _Es[1] + _Es[2] + _Es[3];
+	gpu_Mm[l] = Mm * 2 + 0.01;
 	
 }
 __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
@@ -659,7 +671,7 @@ __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
 	 
 	temp = a+b+c+d - ab*ac*ad*a - (1-ab)*bc*bd*b - (1-ac)*(1-bc)*cd*c - (1-ad)*(1-bd)*(1-cd)*d;
 	flag = ( temp>=pE );										// if temp>=pE, flag 1/0
-	temp = temp + pE - flag*temp - (1-flag)*pE;
+	temp = (temp - flag*temp) + (pE - (1-flag)*pE);
 	return temp;
 } 
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data)

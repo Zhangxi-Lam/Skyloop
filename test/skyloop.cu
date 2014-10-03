@@ -2,8 +2,8 @@
 #define num_threads 256
 #define shared_memory_usage 0
 
-#define StreamNum 2
-#define BufferNum 2
+#define StreamNum 4
+#define BufferNum 4
 #define NIFO 4
 #define nIFO 3
 #define XIFO 4
@@ -83,9 +83,14 @@ int main(void)
 		}
 	}
 	
-	K = 116;
+	K = 115;
+	clock_t start, finish;
+	clock_t start1, finish1;
+	double diff = 0;
+	start = clock();
 	for(int k=0; k<K; k++)
 	{
+		start1 = clock();
 		file4>>V;
 		file4>>V4;
 		file4>>tsize;
@@ -100,6 +105,8 @@ int main(void)
 			file3>>pre_gpu_data[alloced_gpu].other_data.eTD[2][l];
 			file3>>pre_gpu_data[alloced_gpu].other_data.eTD[3][l];
 		}
+		finish1 = clock();
+		diff += (double)(finish1 - start1);
 		/*FILE *fpt = fopen("skyloop_etd","a");
 		for(int l=0; l<eTDDim; l++)
 		{
@@ -133,6 +140,10 @@ int main(void)
 			CUDA_CHECK(cudaStreamSynchronize(stream[i]));
 		alloced_gpu = 0;
 	}
+	finish = clock();
+	
+	printf("diff time = %f\n", (double)(diff)/CLOCKS_PER_SEC);
+	printf("time = %f\n", (double)(finish-start)/CLOCKS_PER_SEC);
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data, stream);
 	cleanup_gpu_mem(skyloop_output, skyloop_other, stream);
 	for(int i=0; i<StreamNum; i++)	
@@ -143,9 +154,8 @@ int main(void)
 }
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data)
 {
-	//FILE *fpt = fopen("./output/test_skyloopOutput", "a");
+//	FILE *fpt = fopen("./output/test_skyloopOutput", "a");
 	float Ln, Eo, Ls;
-	float aa;
 	int m, l, lb, k;
 	int le = 3071;
 	lb = 0;
@@ -153,13 +163,12 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 	for(l=lb; l<=le; l++)
 	{
 		Ln = ((post_data*)post_gpu_data)->output.En[l];
-        Eo = ((post_data*)post_gpu_data)->output.Eo[l];
-        Ls = ((post_data*)post_gpu_data)->output.Es[l];
-       	m = ((post_data*)post_gpu_data)->output.Mm[l];
-		aa = Ln + Eo + Ls + m;
-	//	fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
+        	Eo = ((post_data*)post_gpu_data)->output.Eo[l];
+	        Ls = ((post_data*)post_gpu_data)->output.Es[l];
+       		m = ((post_data*)post_gpu_data)->output.Mm[l];
+//		fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
 	}
-	//fclose(fpt);
+//	fclose(fpt);
 }
 void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int V4max, int Lsky)// allocate locked memory on CPU 
 {
@@ -392,7 +401,9 @@ __global__ void kernel_skyloop(float *eTD_0, float *eTD_1, float *eTD_2, float *
 		pe[3] = pe[3] + ml[3][l] * (int)V4;
 		// inner skyloop
 		kernel_skyloop_calculate(pe[0], pe[1], pe[2], pe[3], V, V4, T_En, T_Es, gpu_rE, gpu_pE, gpu_Eo, gpu_En, gpu_Es, gpu_Mm, l);
+		
 	}
+	
 		
 }
 
@@ -402,16 +413,24 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 	size_t v = 0;					// indicate the pixel
 	size_t ptr;						// indicate the location 
 	float pe[NIFO];
-	float Eo, En, Es;
+	float _Eo[4], _Es[4], _En[4];
 	int Mm;
 	float rE;						// energy array rNRG.data 
 	float pE;						// energy array pNRG.data
+	int count;
 	
-	Eo = 0;							// total network energy
-	En = 0;							// network energy above the threshold
-	Es = 0;							// subnet energy above the threshold
+	//Eo = 0;							// total network energy
+	//En = 0;							// network energy above the threshold
+	//Es = 0;							// subnet energy above the threshold
 	Mm = 0;							// # of pixels above the threshold
 	
+	for(count=0; count<4; count++)
+	{
+		_Eo[count] = 0;
+		_Es[count] = 0;
+		_En[count] = 0;
+	}
+	count = 0;
 	ptr = l*V4;
 	while( v<V )					// loop over selected pixels	
 	{
@@ -423,28 +442,29 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 		rE = pe[0] + pe[1] + pe[2] + pe[3];								// get pixel energy
 		//assign the value to the local memory
 		gpu_rE[ptr+v] = rE;
-      	// E>En  0/1 mask
 		msk = ( rE>=T_En );										// E>En  0/1 mask
 		Mm += msk;												// count pixels above threshold
 		///*new
 		pE = rE * msk;											// zero sub-threshold pixels
-		Eo += pE;												// network energy
+		_Eo[count] += pE;												// network energy
 		pE = kernel_minSNE_ps(pE, pe);						// subnetwork energy
-		Es += pE;												// subnetwork energy
+		_Es[count] += pE;												// subnetwork energy
 		msk = ( pE>=T_Es );										// subnet energy > Es 0/1 mask
 		rE *= msk;												
-		En += rE;												// network energy
+		_En[count] +=rE;											// network energy
+		//En += rE;												// network energy
 		// assign the value to the local memory
 		gpu_pE[ptr+v] = pE;
 		//new*/
 		v++;
+		count++;
+		count = count%4;
 	}
-	Eo += 0.01;
 	Mm = Mm *2 +0.01;
 
-	gpu_En[l] = En;												// Write back to output
-	gpu_Eo[l] = Eo;												
-	gpu_Es[l] = Es;
+	gpu_En[l] = _En[0] + _En[1] + _En[2] + _En[3];												// Write back to output
+	gpu_Eo[l] = _Eo[0] + _Eo[1] + _Eo[2] + _Eo[3] + 0.01;												
+	gpu_Es[l] = _Es[0] + _Es[1] + _Es[2] + _Es[3];
 	gpu_Mm[l] = Mm;
 	
 }

@@ -60,11 +60,11 @@ int main(void)
 //	a[0] = e[0] + d[0] + c[0] + b[0] + a[0] + 0.01;
 	a[0] = a[0] + b[0];
 	printf("a = %f\n", a[0]);
+	a[0] = a[0] + e[0];
+	printf("a = %f\n", a[0]);
 	a[0] = a[0] + c[0];
 	printf("a = %f\n", a[0]);
 	a[0] = a[0] + d[0];
-	printf("a = %f\n", a[0]);
-	a[0] = a[0] + e[0];
 	printf("a = %f\n", a[0]);
 	a[0] += 0.01;
 	_mm_storeu_ps(a, *_a);
