@@ -9,8 +9,8 @@ void test_function(void);
 
 __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *post_gpu_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, size_t *V4_array, size_t *tsize_array, size_t *k_array, int Lsky, int work_size, cudaStream_t *stream);
 
-__global__ void kernel_skyloop(float *eTD, short *ml_0, short *ml_1, short *ml_2, short *ml_3, short *gpu_mm, float *gpu_rE, float *gpu_aa, int Lsky, size_t k);
-__inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, float *PE_2, float *PE_3, size_t V, size_t V4, float *gpu_rE, float *gpu_aa, int l);
+__global__ void kernel_skyloop(float *eTD, short *ml_0, short *ml_1, short *ml_2, short *ml_3, short *gpu_mm, float *gpu_output, int Lsky, size_t k);
+__inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, float *PE_2, float *PE_3, size_t V, size_t V4, size_t tsize, float *gpu_output, int l);
 __inline__ __device__ float kernel_minSNE_ps (float pE, float* pe);
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data);
 
