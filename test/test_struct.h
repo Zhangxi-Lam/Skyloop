@@ -11,9 +11,7 @@ struct skyloop_output                           // the output of skyloop
 {
 	float *rE;				// pointer of rNRG.data	V4max
 	float *pE;				// pointer of pNRG.data	V4max
-	float *Eo;				// float
-	float *En;				// float
-	float *Es;				// float
+	float *aa;				// float
 	int *Mm;				// float
 };
 struct other                                    //the variable that not use in GPU
