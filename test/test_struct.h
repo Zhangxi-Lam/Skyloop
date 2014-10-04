@@ -16,7 +16,7 @@ struct skyloop_output                           // the output of skyloop
 };
 struct other                                    //the variable that not use in GPU
 {
-	float *eTD[NIFO];
+	float *eTD;
 	short *ml[NIFO];
 	short *mm;				// skyMask.data
 	float *T_En, *T_Es, *TH;	// same
