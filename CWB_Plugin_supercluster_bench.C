@@ -186,7 +186,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 	return count;
 }
 
-long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX, size_t *streamCount, int duration)
+long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX, size_t *streamCount)
 {
 	bool mra = false;
 	float vvv[NIFO];
@@ -212,8 +212,6 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	float *eTD[NIFO];
 	double suball=0;
 	double submra=0;
-	
-	clock_t start, finish;
 //		FILE *fpt = fopen("skyloop_myLo", "a");
 	stat=Lm=Em=Am=EE=0.;	lm=Vm= -1;
 	count = 0;
@@ -317,7 +315,7 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 		  }  
 		}
 	}
-	FILE *fpt = fopen("skyloop_mybackup", "a");
+//	FILE *fpt = fopen("skyloop_mybackup", "a");
 
 skyloop:
 	// after skyloop
@@ -340,7 +338,7 @@ skyloop:
 				gpu_net->rNRG.data[j] = 0;
 				gpu_net->pNRG.data[j] = 0; 
 		}
-		fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
+//		fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
 			
 		aa = Ls*Ln/(Eo-Ls);
 		if((aa-m)/(aa+m)<0.33)	continue;	
@@ -459,7 +457,7 @@ skyloop:
     if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
 	vint = &(pwc->cList[id-1]);
 	
-		fclose(fpt);
+		//fclose(fpt);
 	/*FILE *fpt1 = fopen("skyloop_my_after_input", "a");
         fprintf(fpt1, "k = %d l = %d id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", i, l, id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
         fclose(fpt1);*/

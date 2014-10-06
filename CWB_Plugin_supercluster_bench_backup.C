@@ -355,11 +355,14 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 
 
   skyloop:
-	//	FILE *fpt1 = fopen("skyloop_Eo", "a");
+
+	FILE *fpt = fopen("skyloop_newbackup", "a");
+
       for(l=lb; l<=le; l++) {                         // loop over sky locations
          if(!mm[l] || l<0) continue;                  // skip delay configurations
                                                                                   
          _sse_point_ps(_pe, pe, ml, int(l), (int)V4); // point _pe to energy vectors
+                                                                                    
          __m128 _msk;                                                               
          __m128 _E_o = _mm_setzero_ps();              // total network energy       
          __m128 _E_n = _mm_setzero_ps();              // network energy above the threshold
@@ -379,7 +382,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
             _msk = _mm_and_ps(_1,_mm_cmpge_ps(*_pE++,_Es));    // subnet energy > Es 0/1 mask         
             _E_n = _mm_add_ps(_E_n,_mm_mul_ps(*_rE++,_msk));   // network energy                      
          }                                                                                            
-		
+
          _mm_storeu_ps(vvv,_E_n);
          Ln = vvv[0]+vvv[1]+vvv[2]+vvv[3];             // network energy above subnet threshold
          _mm_storeu_ps(vvv,_E_o);                                                              
@@ -388,8 +391,8 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          Ls = vvv[0]+vvv[1]+vvv[2]+vvv[3];             // subnetwork energy                    
          _mm_storeu_ps(vvv,_M_m);                                                              
          m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold               
-		fprintf(fpt1, "k = %d l = %d Eo = %f\n", Eo);
-		
+
+	fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
          aa = Ls*Ln/(Eo-Ls);
          if((aa-m)/(aa+m)<0.33) continue;
                                          
@@ -462,10 +465,10 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          if(AA>stat && !mra) {
             stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
          }                                                             
-       }
+       }                                                               
+	fclose(fpt);
       if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
                                                                                               
-		fclose(fpt1);                                                               
       pwc->sCuts[id-1] = -1;                                                                  
       pwc->cData[id-1].likenet = Lm;                                                          
       pwc->cData[id-1].energy = Em;                                                           
@@ -516,10 +519,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          if(pix->tdAmp.size()) pix->clean();
       }
    }                                                 // end of loop over clusters
-	FILE *fpt = fopen("skyloop_count", "a");
-	fprintf(fpt, "lag = %d count = %d \n");
-	fclose(fpt);
-	cout<<"count = "<<count<<endl;
    return count;
 }
 
