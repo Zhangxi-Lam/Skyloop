@@ -23,7 +23,7 @@
 long subNetCut(network* net, int lag, float snc, TH2F* hist);
 inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K);
 void PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info);
-long gpu_subNetCut(network* net, int lag, float snc, TH2F* hist);
+long gpu_subNetCut(network* net, int lag, float snc, TH2F* hist, double *d);
 
 float Lo;
 #define USE_LOCAL_SUBNETCUT	// comment to use the builtin implementation of subNetCut
@@ -106,14 +106,20 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
 
       // apply cuts
       int psel = 0;
+	  clock_t start, finish;
       while(1) {
         count = pwc->loadTDampSSE(*net, 'a', cfg->BATCH, cfg->LOUD);
-        bench.Continue();
+        bench.Continue();	
+// add
+		start = clock();
 #ifdef USE_LOCAL_SUBNETCUT
         psel += subNetCut(net,(int)j,cfg->subnet,NULL);
 #else
         psel += net->subNetCut((int)j,cfg->subnet,NULL);
 #endif
+		finish = clock();
+		printf("This Time = %f\n", (double)(finish-start)/CLOCKS_PER_SEC);
+// add
         bench.Stop();
         PrintElapsedTime(bench.RealTime(),bench.CpuTime(),"subNetCut : Processing Time - ");
         int ptot = pwc->psize(1)+pwc->psize(-1);
@@ -182,11 +188,31 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
    }
 		
 	size_t count = 0;
-	count = gpu_subNetCut(net, lag, snc, hist);
+	double d[10];
+	for(int i=0; i<10; i++)
+		d[i] = 0;
+	count = gpu_subNetCut(net, lag, snc, hist, d);
+	
+	cout<<"Callback pre cal Time d[0] = "<<d[0]<<endl;
+	cout<<"Callback loop Time d[1] = "<<d[1]<<endl;
+	cout<<"Callback After Loop Time d[2] = "<<d[2]<<endl;
+	cout<<"Allocation Time d[3] = "<<d[3]<<endl;
+	cout<<"Loop Cluster Time d[4] = "<<d[4]<<endl;
+	cout<<"PRE_GPU Time d[5] = "<<d[5]<<endl;
+	cout<<"GPU Time d[6] = "<<d[6]<<endl;
+	FILE *fpt = fopen("skyloop_time", "a");
+	fprintf(fpt, "Callback pre cal Time d[0] = %f\n", d[0]);
+	fprintf(fpt, "Callback loop Time d[1] = %f\n", d[1]);
+	fprintf(fpt, "Callback After Loop Time d[2] = %f\n", d[2]);
+	fprintf(fpt, "Allocation Time d[3] = %f\n", d[3]);
+	fprintf(fpt, "Loop Cluster Time d[4] = %f\n", d[4]);
+	fprintf(fpt, "PRE_GPU Time d[5] = %f\n", d[5]);
+	fprintf(fpt, "GPU Time d[6] = %f\n", d[6]);
+	fclose(fpt);
 	return count;
 }
 
-long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX, size_t *streamCount)
+long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX, size_t *streamCount, double *d)
 {
 	bool mra = false;
 	float vvv[NIFO];
@@ -212,27 +238,31 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	float *eTD[NIFO];
 	double suball=0;
 	double submra=0;
-//		FILE *fpt = fopen("skyloop_myLo", "a");
+	int Lsky;
+
+	clock_t start[10], finish[10];
 	stat=Lm=Em=Am=EE=0.;	lm=Vm= -1;
 	count = 0;
-
-	En = *((post_data*)post_gpu_data)->other_data.T_En;
-	Es = *((post_data*)post_gpu_data)->other_data.T_Es;
-	TH = *((post_data*)post_gpu_data)->other_data.TH;
-	le = *((post_data*)post_gpu_data)->other_data.le;
-	lag = *((post_data*)post_gpu_data)->other_data.lag;
-	stream = *((post_data*)post_gpu_data)->other_data.stream;
-	id = *((post_data*)post_gpu_data)->other_data.id;
-	nIFO = *((post_data*)post_gpu_data)->other_data.nIFO;
-	V = *((post_data*)post_gpu_data)->other_data.V;
-	V4 = *((post_data*)post_gpu_data)->other_data.V4;
-	tsize = *((post_data*)post_gpu_data)->other_data.tsize;
-	k = *((post_data*)post_gpu_data)->other_data.k;
-	mm = ((post_data*)post_gpu_data)->other_data.mm;
-	rE = ((post_data*)post_gpu_data)->output.rE;
-	pE = ((post_data*)post_gpu_data)->output.pE;
+	start[0] = clock();
+	V4 = ((post_data*)post_gpu_data)->other_data.V4;
+	le = ((post_data*)post_gpu_data)->other_data.le;
+	k = ((post_data*)post_gpu_data)->other_data.k;
+	En = ((post_data*)post_gpu_data)->other_data.T_En;
+	Es = ((post_data*)post_gpu_data)->other_data.T_Es;
+	TH = ((post_data*)post_gpu_data)->other_data.TH;
+	lag = ((post_data*)post_gpu_data)->other_data.lag;
+	stream = ((post_data*)post_gpu_data)->other_data.stream;
+	id = ((post_data*)post_gpu_data)->other_data.id;
+	nIFO = ((post_data*)post_gpu_data)->other_data.nIFO;
+	V = ((post_data*)post_gpu_data)->other_data.V;
+	tsize = ((post_data*)post_gpu_data)->other_data.tsize;
+	k = ((post_data*)post_gpu_data)->other_data.k;
+	
+	Lsky = le + 1;
 	for(int i=0; i<NIFO; i++)
-		ml[i] = ((post_data*)post_gpu_data)->other_data.ml[i];
+		ml[i] = ((post_data*)post_gpu_data)->other_data.ml_mm + i*Lsky;
+	mm = ((post_data*)post_gpu_data)->other_data.ml_mm + 4*Lsky;
+	rE = ((post_data*)post_gpu_data)->output.output;
 	
 	
 	std::vector<wavearray<float> > vtd;		// vectors of TD amplitudes
@@ -242,8 +272,8 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	wavearray<float>  fp(NIFO*V4);  fp=0;     // aligned array for + antenna pattern 
 	wavearray<float>  fx(NIFO*V4);  fx=0;     // aligned array for x antenna pattern 
 	wavearray<float>  nr(NIFO*V4);  nr=0;     // aligned array for x antenna pattern 
-    wavearray<float>  Fp(NIFO*V4);  Fp=0;            // aligned array for pattern
-    wavearray<float>  Fx(NIFO*V4);  Fx=0;            // aligned array for pattern
+	wavearray<float>  Fp(NIFO*V4);  Fp=0;            // aligned array for pattern
+	wavearray<float>  Fx(NIFO*V4);  Fx=0;            // aligned array for pattern
 	wavearray<float>  am(NIFO*V4);  am=0;     // aligned array for TD amplitudes     
 	wavearray<float>  AM(NIFO*V4);  AM=0;     // aligned array for TD amplitudes     
 	wavearray<float>  bb(NIFO*V4);  bb=0;     // temporary array for MRA amplitudes  
@@ -282,7 +312,6 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 		pA[i] = vTD[i].data + (tsize/2)*V4;
 	}
 	
-///*new	
 	gpu_net->a_00.resize(NIFO*V4);	gpu_net->a_00=0.;
 	gpu_net->a_90.resize(NIFO*V4);	gpu_net->a_90=0.;
 	__m128* _aa = (__m128*) gpu_net->a_00.data;         // set pointer to 00 array
@@ -315,33 +344,34 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 		  }  
 		}
 	}
-//	FILE *fpt = fopen("skyloop_mybackup", "a");
+	
+	finish[0] = clock();
+	d[0] += (double)(finish[0] - start[0])/CLOCKS_PER_SEC;
+
+//	FILE *fpt = fopen("skyloop_myaa", "a");
 
 skyloop:
 	// after skyloop
+	start[1] = clock();	
 	for(l=lb; l<=le; l++)
 	{
+		int rEDim = Lsky * V4;
 //		fprintf(fpt, "k = %d l = %d eTD[0] = %f eTD[1] = %f eTD[2] = %f\n", i, l, eTD[0][l], eTD[1][l], eTD[2][l]);
 //		fprintf(fpt, "k = %d l = %d ml[0] = %hd ml[1] = %hd ml[2] = %hd\n", i, l, ml[0][l], ml[1][l], ml[2][l]);		
 		if(!mm[l] || l<0) continue; 
-		Ln = ((post_data*)post_gpu_data)->output.En[l];
-		Eo = ((post_data*)post_gpu_data)->output.Eo[l];
-		Ls = ((post_data*)post_gpu_data)->output.Es[l];
-		m = ((post_data*)post_gpu_data)->output.Mm[l];
+		
+		aa = ((post_data*)post_gpu_data)->output.output[rEDim + l];
 		
 		for(int j=0; j<V4; j++)
 		{
 			if(j<V)
 				gpu_net->rNRG.data[j] = rE[l*V4+j];
-				gpu_net->pNRG.data[j] = pE[l*V4+j];
 			if(j>=V)
 				gpu_net->rNRG.data[j] = 0;
-				gpu_net->pNRG.data[j] = 0; 
 		}
-//		fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
-			
-		aa = Ls*Ln/(Eo-Ls);
-		if((aa-m)/(aa+m)<0.33)	continue;	
+		//fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
+	
+		if(aa == -1)	continue;	
 		gpu_net->pnt_(v00, pa, ml, (int)l, (int)V4);	// pointers to first pixel 00 data
 		//fprintf(fpt,"k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f\n", i, l, v00[0][0], v00[1][0], v00[2][0]);
 		gpu_net->pnt_(v90, pA, ml, (int)l, (int)V4);	// pointers to first pixel 90 data
@@ -444,23 +474,15 @@ skyloop:
 			stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
 		}
 //		fprintf(fpt, "k = %d l = %d Lo = %f\n", i ,l, Lo);
-	/*	fprintf(fpt, "k = %d l = %d AA = %f \n", i, l, AA);
-		fprintf(fpt, "k = %d l = %d Lo = %f \n", i, l, Lo);
-		fprintf(fpt, "k = %d l = %d Eo = %f \n", i, l, Eo);
-		fprintf(fpt, "k = %d l = %d aa = %f \n", i, l, aa);
-		fprintf(fpt, "k = %d l = %d l= %d \n", i, l, l);
-		fprintf(fpt, "k = %d l = %d m = %d \n", i, l, m);
-		fprintf(fpt, "k = %d l = %d ee = %d \n", i, l, ee);
-		fprintf(fpt, "k = %d l = %d em = %d \n", i, l, em);*/
 		
 	}
     if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
 	vint = &(pwc->cList[id-1]);
 	
-		//fclose(fpt);
-	/*FILE *fpt1 = fopen("skyloop_my_after_input", "a");
-        fprintf(fpt1, "k = %d l = %d id = %d Lm = %f Em = %f lm = %d mra = %d Ls = %f Eo = %f m = %d Lo = %f vint->size() = %d suball = %lf EE = %f \n", i, l, id, Lm, Em, lm, mra, Ls, Eo, m, Lo, vint->size(), suball, EE);
-        fclose(fpt1);*/
+	finish[1] = clock();
+	d[1] += (double)(finish[1] - start[1])/CLOCKS_PER_SEC;
+	
+	start[2] = clock();
     pwc->sCuts[id-1] = -1;
     pwc->cData[id-1].likenet = Lm;                                                         
     pwc->cData[id-1].energy = Em;
@@ -519,6 +541,8 @@ skyloop:
 	}
 	streamCount[stream] += count;
 	
+	finish[2] = clock();
+	d[2] += (double)(finish[2] - start[2])/CLOCKS_PER_SEC;
 	return 0; 
 }
                

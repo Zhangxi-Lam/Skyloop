@@ -172,7 +172,7 @@ int main(void)
 }
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data)
 {
-//	FILE *fpt = fopen("./output/test_skyloopOutput", "a");
+	//FILE *fpt = fopen("./output/test_skyloopOutput", "a");
 	float aa;
 	int m, l, lb;
 	int le = 3071;
@@ -186,9 +186,9 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 	for(l=lb; l<=le; l++)
 	{
 	       	aa = ((post_data*)post_gpu_data)->output.output[rEDim + l];
-		//fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
+	//	fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
 	}
-//	fclose(fpt);
+	//fclose(fpt);
 }
 void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int V4max, int Lsky)// allocate locked memory on CPU 
 {

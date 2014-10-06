@@ -28,6 +28,7 @@ if __name__ == "__main__":
     import sys
     import collections
 
+    from matplotlib import pyplot
     
     parser = argparse.ArgumentParser(
         description="""

@@ -76,6 +76,8 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
 
       int cycle = cfg->simulation ? ifactor : Long_t(net->wc_List[j].shift);
 
+	clock_t startfile, finishfile;
+	startfile = clock();
       // read cluster metadata
       if(ifile!=NULL) wc.read(ifile,"coherence","clusters",0,cycle);
       else            wc.read(jfile,"coherence","clusters",0,cycle);
@@ -93,6 +95,8 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
       // supercluster analysis
       wc.supercluster('L',net->e2or,cfg->TFgap,false);  //likehood2G
       cout<<"super  clusters|pixels: "<<wc.esize(0)<<"|"<<wc.psize(0)<<endl;
+	finishfile = clock();
+	printf("Read File time = %f\n", (double)(finishfile-startfile)/CLOCKS_PER_SEC);
 
       // release all pixels
       pwc = net->getwc(j);
@@ -102,15 +106,19 @@ CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TSt
       pwc->setcore(false);
 
       // apply cuts
-      int psel = 0;
+      int psel = 0;	
+	clock_t start, finish;
       while(1) {
         count = pwc->loadTDampSSE(*net, 'a', cfg->BATCH, cfg->LOUD);
         bench.Continue();
+	start = clock();
 #ifdef USE_LOCAL_SUBNETCUT
         psel += subNetCut(net,(int)j,cfg->subnet,NULL);
 #else
         psel += net->subNetCut((int)j,cfg->subnet,NULL);
 #endif
+	finish = clock();
+	printf("CPU This Time = %f\n", (double)(finish-start)/CLOCKS_PER_SEC);
         bench.Stop();
         PrintElapsedTime(bench.RealTime(),bench.CpuTime(),"subNetCut : Processing Time - ");
         int ptot = pwc->psize(1)+pwc->psize(-1);
@@ -240,6 +248,8 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
    cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
                                                                            
    K = cid.size();                                                         
+	clock_t start, finish;
+	start = clock();
    for(k=0; k<K; k++) {                                   // loop over clusters 
       id = size_t(cid.data[k]+0.1);                                             
       if(pwc->sCuts[id-1] != -2) continue;                // skip rejected/processed clusters 
@@ -356,7 +366,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 
   skyloop:
 
-	FILE *fpt = fopen("skyloop_newbackup", "a");
 
       for(l=lb; l<=le; l++) {                         // loop over sky locations
          if(!mm[l] || l<0) continue;                  // skip delay configurations
@@ -392,7 +401,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          _mm_storeu_ps(vvv,_M_m);                                                              
          m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold               
 
-	fprintf(fpt, "k = %d l = %d Ln = %f Eo = %f Ls = %f m = %d\n", k, l, Ln, Eo, Ls, m);
          aa = Ls*Ln/(Eo-Ls);
          if((aa-m)/(aa+m)<0.33) continue;
                                          
@@ -466,7 +474,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
             stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
          }                                                             
        }                                                               
-	fclose(fpt);
       if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
                                                                                               
       pwc->sCuts[id-1] = -1;                                                                  
@@ -519,6 +526,8 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          if(pix->tdAmp.size()) pix->clean();
       }
    }                                                 // end of loop over clusters
+	finish = clock();
+	printf("Inside Time = %f\n", (double)(finish - start)/CLOCKS_PER_SEC);
    return count;
 }
 
