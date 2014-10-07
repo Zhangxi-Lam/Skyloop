@@ -29,6 +29,8 @@ TH2F *gpu_hist;
 netcluster *pwc;
 double *FP[NIFO];
 double *FX[NIFO];
+float *pa[NIFO];
+float *pA[NIFO];
 double gpu_d[10];
 size_t gpu_nIFO;
 size_t streamCount[StreamNum]; // the result of each stream
@@ -43,7 +45,7 @@ __constant__ size_t constV[CONSTANT_SIZE], consttsize[CONSTANT_SIZE];
                 cudaGetErrorString(_m_cudaStat), __LINE__, __FILE__);   \
         exit(1); }}
 
-extern long Callback(void *post_gpu_data, network *gpu_net,  TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX, size_t *streamCount, double *d);
+extern long Callback(void *post_gpu_data, network *gpu_net,  TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, size_t *streamCount, double *d);
 long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 {
 	//define variables
@@ -60,7 +62,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	short *mm = net->skyMask.data;
 	
 	short *ml[NIFO];
-	
+
 	clock_t start[10], finish[10];
 	
 	for(i=0; i<10; i++)
@@ -106,6 +108,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	V_array = (size_t*)malloc(sizeof(size_t) * K);
     tsize_array = (size_t*)malloc(sizeof(size_t) * K);
 	
+	//cout<<"1"<<endl;
 	for(k=0; k<K; k++)				// loop over clusters
 	{
 		V_array[k] = 0;
@@ -226,8 +229,10 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
    	K = cid.size();                                                         
 	
 	start[1] = clock();
+	//cout<<"2"<<endl;
 	for(k=0; k<K; k++)				// loop over clusters
 	{
+		if(!V_array[k])	continue;
 		start[2] = clock();
 		if(k>=constptr)
 		{
@@ -244,29 +249,27 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 			}
 		}
 		id = size_t(cid.data[k]+0.1);
-      	if(pwc->sCuts[id-1] != -2) continue;                // skip rejected/processed clusters 
-      	vint = &(pwc->cList[id-1]);                         // pixel list                       
-		V = vint->size();                                   // pixel list size                  
-		if(!V) continue;
-		
 		pI = net->wdmMRA.getXTalk(pwc, id);
-		
-		V = pI.size();                                      // number of loaded pixels
-		if(!V) continue;
-		
-		pix = pwc->getPixel(id,pI[0]);
-		tsize = pix->tdAmp[0].size();
-		if(!tsize || tsize&1) {                          // tsize%1 = 1/0 = power/amplitude
-			cout<<"network::subNetCut() error: wrong pixel TD data\n";
-			exit(1);
-		}
-		tsize /= 2;
-	    V4 = V + (V%4 ? 4 - V%4 : 0);     
-     	std::vector<wavearray<float> > eTD;     // vectors of TD energies  
+		V = V_array[k];
+		tsize = tsize_array[k];
+		V4 = V + (V%4 ? 4 - V%4 : 0);     
+		//cout<<"3"<<endl;
+     		std::vector<wavearray<float> > vtd;     // vectors of TD energies  
+     		std::vector<wavearray<float> > vTD;     // vectors of TD energies  
+     		std::vector<wavearray<float> > eTD;     // vectors of TD energies  
 		wavearray<float> tmp(tsize*V4); tmp=0;  // aligned array for TD amplitude	
 	
 		for(i=0; i<NIFO; i++)
+		{
+			vtd.push_back(tmp);
+			vTD.push_back(tmp);
 			eTD.push_back(tmp);					// array of aligned energy vectors
+		}
+		for(i=0; i<NIFO; i++)
+		{
+			pa[i] = vtd[i].data + (tsize/2)*V4;
+			pA[i] = vTD[i].data + (tsize/2)*V4;
+		}
 
 		net->pList.clear();
 		for( j=0; j<V; j++)
@@ -278,8 +281,8 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 						{                                
               			   aa = pix->tdAmp[i].data[l];             // copy TD 00 data 
 		                   AA = pix->tdAmp[i].data[l+tsize];       // copy TD 90 data 
-//		                   eTD[i].data[l*V4+j] = aa*aa+AA*AA;      // copy power     
-				
+				   vtd[i].data[l*V4+j] = aa;
+				   vTD[i].data[l*V4+j] = AA;
 					// assign the data 
 				   			if(alloced_gpu<BufferNum)
 				   			{
@@ -348,7 +351,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	for(int i=0; i<StreamNum; i++)
 		count += streamCount[i];
 //	cout<<"count = "<<count<<endl;
-	for(i=0; i<2; i++)
+	for(i=0; i<3; i++)
 		d[i] = gpu_d[i];
 	return count;
 }
@@ -519,7 +522,7 @@ __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
  
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data)
 {
-	Callback(post_gpu_data, gpu_net, gpu_hist, pwc, FP, FX, streamCount, gpu_d);
+	Callback(post_gpu_data, gpu_net, gpu_hist, pwc, FP, FX, pa, pA, streamCount, gpu_d);
 }
 
 void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int V4max, int Lsky)// allocate locked memory on CPU 

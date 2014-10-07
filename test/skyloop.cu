@@ -81,9 +81,10 @@ int main(void)
 	V4_array = (size_t*)malloc(sizeof(size_t) * K);
 	tsize_array = (size_t*)malloc(sizeof(size_t) * K);
 	 
-	clock_t start, finish;
-	clock_t start1, finish1;
-	double diff = 0;
+	clock_t start[10], finish[10];
+	double d[10];
+	for(int i=0; i<10; i++)
+		d[i] = 0;
 	for(int k=0; k<K; k++)
 	{
 		file4>>V;
@@ -105,10 +106,10 @@ int main(void)
 	cudaMemcpyToSymbol(constV4, V4_array, sizeof(size_t) * K);
 	cudaMemcpyToSymbol(consttsize, tsize_array, sizeof(size_t) * K);
 
-	start = clock();
+	start[0] = clock();
 	for(int k=0; k<K; k++)
 	{
-		start1 = clock();
+		start[1] = clock();
 		
 		etddim = V4_array[k] * tsize_array[k];
 		for(int l=0; l<eTDDim; l++)
@@ -130,10 +131,11 @@ int main(void)
 			}
 			
 		}
-		finish1 = clock();
-		diff += (double)(finish1 - start1);
+		finish[1] = clock();
+		d[1] += (double)(finish[1] - start[1]);
 		if(alloced_gpu < BufferNum)
-		{
+		{	
+			start[2] = clock();
 			int i = alloced_gpu;
 			k_array[i] = k;
 			
@@ -148,6 +150,8 @@ int main(void)
 					CUDA_CHECK(cudaStreamSynchronize(stream[i]));
 				alloced_gpu = 0;
 			}
+			finish[2] = clock();
+			d[2] += (double)(finish[2] - start[2]);
 		 }
 	}
 	if(alloced_gpu != 0)
@@ -157,11 +161,11 @@ int main(void)
 			CUDA_CHECK(cudaStreamSynchronize(stream[i]));
 		alloced_gpu = 0;
 	}
-	finish = clock();
+	finish[0] = clock();
 	
 //	printf("diff time = %f\n", (double)(diff)/CLOCKS_PER_SEC);
 	
-	printf("time = %f\n", (double)((finish-start)-diff)/CLOCKS_PER_SEC);
+	printf("time = %f\n", (double)(d[2])/CLOCKS_PER_SEC);
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data, stream);
 	cleanup_gpu_mem(skyloop_output, skyloop_other, stream);
 	for(int i=0; i<StreamNum; i++)	

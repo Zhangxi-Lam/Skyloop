@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+bool jump;
 //!SUPERCLUSTER
 
 long subNetCut(network* net, int lag, float snc, TH2F* hist);
@@ -218,6 +219,10 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
    double* FX[NIFO];
    double  xx[NIFO];
 
+	double d[10];
+	for(int i = 0; i<10; i++)
+		d[i] = 0;
+	clock_t start[10], finish[10];	
    for(i=0; i<NIFO; i++) {
       if(i<nIFO) {        
          ml[i] = net->getifo(i)->index.data;
@@ -247,21 +252,30 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 
    cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
                                                                            
-   K = cid.size();                                                         
-	clock_t start, finish;
-	start = clock();
+   K = cid.size();     
+	jump = false;
+	start[7] = clock();                                                    
    for(k=0; k<K; k++) {                                   // loop over clusters 
+	start[8] = clock();
       id = size_t(cid.data[k]+0.1);                                             
+	finish[8] = clock();
+	d[8] += (double)(finish[8] - start[8])/CLOCKS_PER_SEC; 
       if(pwc->sCuts[id-1] != -2) continue;                // skip rejected/processed clusters 
+	start[0] = clock();
       vint = &(pwc->cList[id-1]);                         // pixel list                       
       V = vint->size();                                   // pixel list size                  
+	finish[0] = clock();
+	d[0] += (double)(finish[0]-start[0])/CLOCKS_PER_SEC;
       if(!V) continue;                                                                        
-
+	start[1] = clock();
       pI = net->wdmMRA.getXTalk(pwc, id);
 
       V = pI.size();                                      // number of loaded pixels
+	finish[1] = clock();
+	d[1] += (double)(finish[1]-start[1])/CLOCKS_PER_SEC;
       if(!V) continue;                                                              
 
+	start[2] = clock();
       pix = pwc->getPixel(id,pI[0]);
       tsize = pix->tdAmp[0].size(); 
       if(!tsize || tsize&1) {                          // tsize%1 = 1/0 = power/amplitude
@@ -329,6 +343,11 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
       __m128* _AA = (__m128*) net->a_90.data;         // set pointer to 90 array
 
       net->pList.clear();
+	finish[2] = clock();
+	d[2] += (double)(finish[2]-start[2])/CLOCKS_PER_SEC;
+	finish[9] = clock();
+	d[9] += (double)(finish[9] - start[8])/CLOCKS_PER_SEC;
+	start[3] = clock();
       for(j=0; j<V; j++) {                             // loop over selected pixels 
          pix = pwc->getPixel(id,pI[j]);                // get pixel pointer         
          net->pList.push_back(pix);                    // store pixel pointers for MRA
@@ -349,7 +368,9 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
                eTD[i].data[l*V4+j] = aa*aa+AA*AA;      // copy power      
             }                                                             
          }                                                                
-      }                                                                   
+      } 
+	finish[3] = clock();
+	d[3] += (double)(finish[3]-start[3])/CLOCKS_PER_SEC;
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // first sky loop                                                          
@@ -369,7 +390,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 
       for(l=lb; l<=le; l++) {                         // loop over sky locations
          if(!mm[l] || l<0) continue;                  // skip delay configurations
-                                                                                  
+ 		start[4] = clock();                                                                                 
          _sse_point_ps(_pe, pe, ml, int(l), (int)V4); // point _pe to energy vectors
                                                                                     
          __m128 _msk;                                                               
@@ -402,7 +423,10 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold               
 
          aa = Ls*Ln/(Eo-Ls);
+		finish[4] = clock();
+		d[4] += (double)(finish[4] - start[4])/CLOCKS_PER_SEC;
          if((aa-m)/(aa+m)<0.33) continue;
+		start[5] = clock();
                                          
          net->pnt_(v00, pa, ml, (int)l, (int)V4);      // pointers to first pixel 00 data 
          net->pnt_(v90, pA, ml, (int)l, (int)V4);      // pointers to first pixel 90 data 
@@ -472,10 +496,13 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 
          if(AA>stat && !mra) {
             stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
-         }                                                             
+         }
+		finish[5] = clock();
+		d[5] += (double)(finish[5] - start[5])/CLOCKS_PER_SEC;                                                             
        }                                                               
       if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
-                                                                                              
+       
+		start[6] = clock();                                                                                       
       pwc->sCuts[id-1] = -1;                                                                  
       pwc->cData[id-1].likenet = Lm;                                                          
       pwc->cData[id-1].energy = Em;                                                           
@@ -525,9 +552,12 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
          pix->core = true;
          if(pix->tdAmp.size()) pix->clean();
       }
+	finish[6] = clock();
+	d[6] += (double)(finish[6] - start[6])/CLOCKS_PER_SEC;
    }                                                 // end of loop over clusters
-	finish = clock();
-	printf("Inside Time = %f\n", (double)(finish - start)/CLOCKS_PER_SEC);
+	finish[7] = clock();
+	d[7] += (double)(finish[7] - start[7])/CLOCKS_PER_SEC;
+	printf(" 0 = %f\n 1 = %f\n 2 = %f\n 3 = %f\n 4 = %f\n 5 = %f\n 6 = %f\n 7 = %f\n 8 = %f\n", d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8]);
    return count;
 }
 

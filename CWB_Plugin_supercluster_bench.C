@@ -212,15 +212,12 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 	return count;
 }
 
-long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX, size_t *streamCount, double *d)
+long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, size_t *streamCount, double *d)
 {
 	bool mra = false;
 	float vvv[NIFO];
 	float *v00[NIFO];
 	float *v90[NIFO];
-	float *pa[NIFO];
-	float *pA[NIFO];
-	double xx[NIFO];
 	float *rE, *pE;				//pointers of rNRG.data and pNRG.data
 	float Ln = 0;
 	float Eo = 0;
@@ -238,6 +235,7 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	float *eTD[NIFO];
 	double suball=0;
 	double submra=0;
+	double xx[NIFO];
 	int Lsky;
 
 	clock_t start[10], finish[10];
@@ -256,7 +254,6 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	nIFO = ((post_data*)post_gpu_data)->other_data.nIFO;
 	V = ((post_data*)post_gpu_data)->other_data.V;
 	tsize = ((post_data*)post_gpu_data)->other_data.tsize;
-	k = ((post_data*)post_gpu_data)->other_data.k;
 	
 	Lsky = le + 1;
 	for(int i=0; i<NIFO; i++)
@@ -264,14 +261,12 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	mm = ((post_data*)post_gpu_data)->other_data.ml_mm + 4*Lsky;
 	rE = ((post_data*)post_gpu_data)->output.output;
 	
-	
-	std::vector<wavearray<float> > vtd;		// vectors of TD amplitudes
-	std::vector<wavearray<float> > vTD;     // vectors of TD amplitudes
+	//cout<<"4"<<endl;	
 	std::vector<int> pI;				// buffer for pixel TDs
 	wavearray<float> tmp(tsize*V4); tmp=0;
 	wavearray<float>  fp(NIFO*V4);  fp=0;     // aligned array for + antenna pattern 
 	wavearray<float>  fx(NIFO*V4);  fx=0;     // aligned array for x antenna pattern 
-	wavearray<float>  nr(NIFO*V4);  nr=0;     // aligned array for x antenna pattern 
+	wavearray<float>  nr(NIFO*V4);  nr=0;            // aligned array for inverse rms 
 	wavearray<float>  Fp(NIFO*V4);  Fp=0;            // aligned array for pattern
 	wavearray<float>  Fx(NIFO*V4);  Fx=0;            // aligned array for pattern
 	wavearray<float>  am(NIFO*V4);  am=0;     // aligned array for TD amplitudes     
@@ -289,18 +284,19 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	__m128* _XI = (__m128*) XI.data;
 	__m128* _fp = (__m128*) fp.data;
 	__m128* _fx = (__m128*) fx.data;
-	__m128* _nr = (__m128*) nr.data;
 	__m128* _bb = (__m128*) bb.data; 
 	__m128* _BB = (__m128*) BB.data; 
-	
+	__m128* _nr = (__m128*) nr.data;
+
 	__m128 _E_n = _mm_setzero_ps();		// network energy above the threshold
     __m128 _E_s = _mm_setzero_ps();		// subnet energy above the threshold 
 	netpixel* pix;	
 	std::vector<int> *vint;
 
 	// initialize data
+	start[2] = clock();
 	pI = gpu_net->wdmMRA.getXTalk(pwc, id);
-	for(int i=0; i<NIFO; i++)
+	/*for(int i=0; i<NIFO; i++)
 	{
 		
 		vtd.push_back(tmp);
@@ -310,20 +306,22 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	{
 		pa[i] = vtd[i].data + (tsize/2)*V4;
 		pA[i] = vTD[i].data + (tsize/2)*V4;
-	}
+	}*/
 	
 	gpu_net->a_00.resize(NIFO*V4);	gpu_net->a_00=0.;
 	gpu_net->a_90.resize(NIFO*V4);	gpu_net->a_90=0.;
 	__m128* _aa = (__m128*) gpu_net->a_00.data;         // set pointer to 00 array
-        __m128* _AA = (__m128*) gpu_net->a_90.data;         // set pointer to 90 array
+    __m128* _AA = (__m128*) gpu_net->a_90.data;         // set pointer to 90 array
 
 	gpu_net->rNRG.resize(V4);	gpu_net->rNRG=0.;
 	gpu_net->pNRG.resize(V4);	gpu_net->pNRG=0.;
-
+	
+	finish[2] = clock();
+	d[2] +=(double)(finish[2] - start[2])/CLOCKS_PER_SEC;
+	//cout<<"4.1"<<endl;
 	for(int j=0; j<V; j++)			// loop over selected pixels
 	{
 		pix = pwc->getPixel(id, pI[j]);	// get pixel pointer
-		gpu_net->pList.push_back(pix);	// store pixel pointers for MRA
 		
 		double rms = 0.;
 		for(int i=0; i<nIFO; i++)
@@ -332,22 +330,14 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 			rms += xx[i]*xx[i];	// total inverse variance
 		
 		for(int i=0; i<nIFO; i++)
-		  {
 			nr.data[j*NIFO+i]=(float)xx[i]/sqrt(rms);	// normalized 1/rms
-			for(int l=0; l<tsize; l++)
-			{
-				aa = pix->tdAmp[i].data[l];		// copy TD 00 data
-				AA = pix->tdAmp[i].data[l+tsize];	// copy Td 90 data
-				vtd[i].data[l*V4+j] = aa;		// copy 00 data
-				vTD[i].data[l*V4+j] = AA;		// copy 90 data
-			}
-		  }  
 		}
 	}
 	
 	finish[0] = clock();
 	d[0] += (double)(finish[0] - start[0])/CLOCKS_PER_SEC;
 
+	//cout<<"5"<<endl;	
 //	FILE *fpt = fopen("skyloop_myaa", "a");
 
 skyloop:
@@ -361,7 +351,10 @@ skyloop:
 		if(!mm[l] || l<0) continue; 
 		
 		aa = ((post_data*)post_gpu_data)->output.output[rEDim + l];
-		
+		//fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
+	
+		if(aa == -1)	continue;	
+
 		for(int j=0; j<V4; j++)
 		{
 			if(j<V)
@@ -369,9 +362,6 @@ skyloop:
 			if(j>=V)
 				gpu_net->rNRG.data[j] = 0;
 		}
-		//fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
-	
-		if(aa == -1)	continue;	
 		gpu_net->pnt_(v00, pa, ml, (int)l, (int)V4);	// pointers to first pixel 00 data
 		//fprintf(fpt,"k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f\n", i, l, v00[0][0], v00[1][0], v00[2][0]);
 		gpu_net->pnt_(v90, pA, ml, (int)l, (int)V4);	// pointers to first pixel 90 data
@@ -482,7 +472,6 @@ skyloop:
 	finish[1] = clock();
 	d[1] += (double)(finish[1] - start[1])/CLOCKS_PER_SEC;
 	
-	start[2] = clock();
     pwc->sCuts[id-1] = -1;
     pwc->cData[id-1].likenet = Lm;                                                         
     pwc->cData[id-1].energy = Em;
@@ -539,10 +528,8 @@ skyloop:
 		if(pix->tdAmp.size())
 			pix->clean();
 	}
+	//cout<<"6"<<endl;	
 	streamCount[stream] += count;
-	
-	finish[2] = clock();
-	d[2] += (double)(finish[2] - start[2])/CLOCKS_PER_SEC;
 	return 0; 
 }
                
