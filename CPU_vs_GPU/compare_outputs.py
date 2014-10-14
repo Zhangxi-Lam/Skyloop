@@ -104,4 +104,3 @@ if __name__ == "__main__":
         pyplot.suptitle("{} vs {}".format(args.path0, args.path1))
         
     print "Quit by closing all the windows or doing Ctrl-Z kill %%..."
-    pyplot.show()

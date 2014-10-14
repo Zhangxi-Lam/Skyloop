@@ -200,7 +200,7 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 	cout<<"Loop Cluster Time d[4] = "<<d[4]<<endl;
 	cout<<"PRE_GPU Time d[5] = "<<d[5]<<endl;
 	cout<<"GPU Time d[6] = "<<d[6]<<endl;
-	FILE *fpt = fopen("skyloop_time", "a");
+	/*FILE *fpt = fopen("skyloop_time", "a");
 	fprintf(fpt, "Callback pre cal Time d[0] = %f\n", d[0]);
 	fprintf(fpt, "Callback loop Time d[1] = %f\n", d[1]);
 	fprintf(fpt, "Callback After Loop Time d[2] = %f\n", d[2]);
@@ -208,7 +208,8 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 	fprintf(fpt, "Loop Cluster Time d[4] = %f\n", d[4]);
 	fprintf(fpt, "PRE_GPU Time d[5] = %f\n", d[5]);
 	fprintf(fpt, "GPU Time d[6] = %f\n", d[6]);
-	fclose(fpt);
+	fclose(fpt);*/
+	//cout<<"finish"<<endl;
 	return count;
 }
 
@@ -239,6 +240,7 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	int Lsky;
 
 	clock_t start[10], finish[10];
+	//cout<<"Callback start"<<endl;
 	stat=Lm=Em=Am=EE=0.;	lm=Vm= -1;
 	count = 0;
 	start[0] = clock();
@@ -295,7 +297,6 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 
 	// initialize data
 	start[2] = clock();
-	pI = gpu_net->wdmMRA.getXTalk(pwc, id);
 	/*for(int i=0; i<NIFO; i++)
 	{
 		
@@ -316,22 +317,24 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	gpu_net->rNRG.resize(V4);	gpu_net->rNRG=0.;
 	gpu_net->pNRG.resize(V4);	gpu_net->pNRG=0.;
 	
+	pI = gpu_net->wdmMRA.getXTalk(pwc, id);
 	finish[2] = clock();
 	d[2] +=(double)(finish[2] - start[2])/CLOCKS_PER_SEC;
 	//cout<<"4.1"<<endl;
+	gpu_net->pList.clear();
 	for(int j=0; j<V; j++)			// loop over selected pixels
 	{
 		pix = pwc->getPixel(id, pI[j]);	// get pixel pointer
-		
+		gpu_net->pList.push_back(pix);
 		double rms = 0.;
 		for(int i=0; i<nIFO; i++)
 		{
 			xx[i] = 1./pix->data[i].noiserms;
 			rms += xx[i]*xx[i];	// total inverse variance
+		}
 		
 		for(int i=0; i<nIFO; i++)
 			nr.data[j*NIFO+i]=(float)xx[i]/sqrt(rms);	// normalized 1/rms
-		}
 	}
 	
 	finish[0] = clock();
@@ -340,27 +343,26 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	//cout<<"5"<<endl;	
 //	FILE *fpt = fopen("skyloop_myaa", "a");
 
+	start[1] = clock();	
+	int rEDim = Lsky * V4;
+	FILE *fpt = fopen("skyloop_myaa", "a");
+	FILE *fpt1 = fopen("skyloop_myrNRG", "a");
+	
 skyloop:
 	// after skyloop
-	start[1] = clock();	
 	for(l=lb; l<=le; l++)
 	{
-		int rEDim = Lsky * V4;
 //		fprintf(fpt, "k = %d l = %d eTD[0] = %f eTD[1] = %f eTD[2] = %f\n", i, l, eTD[0][l], eTD[1][l], eTD[2][l]);
 //		fprintf(fpt, "k = %d l = %d ml[0] = %hd ml[1] = %hd ml[2] = %hd\n", i, l, ml[0][l], ml[1][l], ml[2][l]);		
 		if(!mm[l] || l<0) continue; 
 		
-		aa = ((post_data*)post_gpu_data)->output.output[rEDim + l];
-		//fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
-	
-		if(aa == -1)	continue;	
-
-		for(int j=0; j<V4; j++)
+		aa = ((post_data*)post_gpu_data)->output.output[rEDim+l];
+		fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
+		if(aa == -1)	continue;
+		for(int j=0; j<V; j++)
 		{
-			if(j<V)
-				gpu_net->rNRG.data[j] = rE[l*V4+j];
-			if(j>=V)
-				gpu_net->rNRG.data[j] = 0;
+			gpu_net->rNRG.data[j] = rE[l*V4+j];
+			fprintf(fpt1, "k = %d l = %d rE = %f\n", k, l, gpu_net->rNRG.data[j]);	
 		}
 		gpu_net->pnt_(v00, pa, ml, (int)l, (int)V4);	// pointers to first pixel 00 data
 		//fprintf(fpt,"k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f\n", i, l, v00[0][0], v00[1][0], v00[2][0]);
@@ -467,6 +469,8 @@ skyloop:
 		
 	}
     if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
+	fclose(fpt);	
+	fclose(fpt1);
 	vint = &(pwc->cList[id-1]);
 	
 	finish[1] = clock();
@@ -592,15 +596,6 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
       pp[m] = _sse_abs_ps(_amp+mm,_AMP+mm);    // store PC energy
       k++;
    }
-/*
-   cout<<"EE="<<EE<<endl;
-   EE = 0;
-   for(j=0; j<V; ++j) {
-      if(pp[j]>=0) EE += ee[j];
-      if(pp[j]>=0.) cout<<j<<"|"<<pp[j]<<"|"<<ee[j]<<" ";               // find max pixel
-   }
-   cout<<"EE="<<EE<<endl;
-*/
    return k;
 }
 
