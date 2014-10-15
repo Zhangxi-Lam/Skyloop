@@ -2,6 +2,7 @@
 #define num_threads 256
 #define shared_memory_usage 0
 
+#define MaxPixel 10
 #define StreamNum 4
 #define BufferNum 4
 #define CONSTANT_SIZE 1000 
@@ -43,18 +44,26 @@ int main(void)
 	
 	int Tmax, V4max, eTDDim, Lsky;
 	int alloced_gpu = 0;
-	int K;
+	int K, k, i;
 	size_t V, V4, tsize;
 	size_t *V_array, *V4_array, *tsize_array;
 	int *k_sortArray;
-	size_t k_array[StreamNum];
+	size_t k_array[StreamNum][MaxPixel];
 	float En, Es;
 	int etddim;
-	Tmax = 300;
-	V4max = 219;
+	size_t ptr;					// indicate the pointer
+	int pixelCount;					// indicate the number of pixels that are send to the stream
+	size_t etddim_array[StreamNum];
+	size_t alloced_V4_array[StreamNum];
+	int pixel_array[StreamNum];
+	size_t alloced_V4;
+	int CombineSize;
+	Tmax = 219;
+	V4max = 300;
 	Lsky = 3072;
 	flag = false;
 	eTDDim = Tmax * V4max;
+	CombineSize = V4max / 2;
 	allocate_cpu_mem(pre_gpu_data, post_gpu_data, eTDDim, V4max, Lsky);
 	allocate_gpu_mem(skyloop_output, skyloop_other, eTDDim, V4max, Lsky);
 
@@ -113,49 +122,76 @@ int main(void)
 
 	start = clock();
 	FILE *fpt = fopen("skyloop_myeTD", "a");
+	alloced_V4 = 0;
+	ptr = 0;
+	pixelCount = 0;
 	for(int count=0; count<K; count++)
 	{
 		start1 = clock();
-		int k;	
 		k = k_sortArray[count];
+		i = alloced_gpu;
 		etddim = V4_array[k] * tsize_array[k];
-		string t;
-		file3.seekg(0, ios_base::beg);
-		for(int i=0; i<k*eTDDim; i++)
-			getline(file3, t);
-		for(int l=0; l<etddim; l++)
+		alloced_V4 += V4_array[k];
+		pixelCount++;
+		cout<<"k = "<<k<<" stream = "<<i<<" alloced_V4 = "<<alloced_V4<<" pixel = "<<pixelCount<<endl;
+		if(alloced_V4<=V4max && (alloced_V4 + pixelCount)<=(V4max+1))
 		{
+			string t;
+			file3.seekg(0, ios_base::beg);
+			for(int j=0; j<k*eTDDim; j++)
+				getline(file3, t);
+			for(int l=0; l<etddim; l++)
+			{
+				file3>>pre_gpu_data[alloced_gpu].other_data.eTD[ptr + l];
+				file3>>pre_gpu_data[alloced_gpu].other_data.eTD[ptr + l + etddim];
+				file3>>pre_gpu_data[alloced_gpu].other_data.eTD[ptr + l + 2 * etddim];
+				file3>>pre_gpu_data[alloced_gpu].other_data.eTD[ptr + l + 3 * etddim];
+//				fprintf(fpt,"k = %d %f %f %f %f\n", k, pre_gpu_data[alloced_gpu].other_data.eTD[ptr + l], pre_gpu_data[alloced_gpu].other_data.eTD[ptr + l + etddim], pre_gpu_data[alloced_gpu].other_data.eTD[ptr + l + 2 * etddim], pre_gpu_data[alloced_gpu].other_data.eTD[ptr + l + 3 * etddim]);
+			}
+			ptr += 4*etddim;
+			k_array[i][pixelCount] = k;
+			post_gpu_data[i].other_data.k[pixelCount] = k;
+			post_gpu_data[i].other_data.V4[pixelCount] = V4_array[k];
+			post_gpu_data[i].other_data.tsize[pixelCount] = tsize_array[k];
 			
-			file3>>pre_gpu_data[alloced_gpu].other_data.eTD[l];
-			file3>>pre_gpu_data[alloced_gpu].other_data.eTD[l + etddim];
-			file3>>pre_gpu_data[alloced_gpu].other_data.eTD[l + 2 * etddim];
-			file3>>pre_gpu_data[alloced_gpu].other_data.eTD[l + 3 * etddim];
 		}
 		finish1 = clock();
 		diff += (double)(finish1 - start1);
-		if(alloced_gpu < BufferNum)
+		if( pixelCount<=MaxPixel && alloced_V4<CombineSize )	continue;
+		else if(alloced_V4>V4max || (alloced_V4 + pixelCount)>(V4max+1))
 		{
-			int i = alloced_gpu;
-			k_array[i] = k;
-			
-			post_gpu_data[i].other_data.k = k;
-			post_gpu_data[i].other_data.V4 = V4_array[k];
-			post_gpu_data[i].other_data.tsize = tsize_array[k];
-			cout<<" k = "<<k<<" V4 = "<<V4_array[k]<<endl;
-			alloced_gpu++;
-			if(alloced_gpu == StreamNum)		// if all streams' data have been assigned
-			{
-				push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, V4_array, tsize_array, k_array, Lsky, StreamNum, stream);
-				for(int i=0; i<StreamNum; i++)				// wait for all commands in the stream to complete
-					CUDA_CHECK(cudaStreamSynchronize(stream[i]));
-				alloced_gpu = 0;
-			}
-		 }
+			alloced_V4 -= V4_array[k];
+			pixelCount--;
+			count--;
+		}
+		etddim_array[i] = ptr;
+		alloced_V4_array[i] = alloced_V4;
+		pixel_array[i] = pixelCount;
+		alloced_gpu++;
+		if(alloced_gpu == StreamNum)		// if all streams' data have been assigned
+		{
+			push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, alloced_V4_array, etddim_array, k_array, Lsky, pixel_array, StreamNum, stream);
+			for(int i=0; i<StreamNum; i++)				// wait for all commands in the stream to complete
+				CUDA_CHECK(cudaStreamSynchronize(stream[i]));
+			alloced_gpu = 0;
+			for(int j=0; j<StreamNum; j++)
+				for(int i=0; i<pixel_array[j]; i++)
+				{
+					k_array[j][i] = -1;
+					post_gpu_data[j].other_data.k[i] = -1;	
+					post_gpu_data[j].other_data.V4[i] = -1;
+					post_gpu_data[j].other_data.tsize[i] = -1;
+				}
+		}
+		//clear
+		ptr = 0;
+		pixelCount = 0;
+		alloced_V4 = 0;
 	}
 	fclose(fpt);
 	if(alloced_gpu != 0)
 	{
-		push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, V4_array, tsize_array, k_array, Lsky, alloced_gpu, stream);
+		push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, alloced_V4_array, etddim_array, k_array, Lsky, pixel_array, alloced_gpu, stream);
 		for(int i=0; i<alloced_gpu; i++)				// wait for all commands in the stream to complete
 			CUDA_CHECK(cudaStreamSynchronize(stream[i]));
 		alloced_gpu = 0;
@@ -210,19 +246,29 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 {
 	FILE *fpt = fopen("./output/test_skyloopOutput", "a");
 	float aa;
-	int m, l, lb;
+	int l, lb;
 	int le = 3071;
-	int rEDim;
 	lb = 0;
 	int k;
-	size_t V4, tsize;
-	k = ((post_data*)post_gpu_data)->other_data.k;
-	V4 = ((post_data*)post_gpu_data)->other_data.V4;
-	rEDim = 3072 * V4;
-	for(l=lb; l<=le; l++)
+	size_t V4;
+	int count=0;
+	size_t ptr = 0;
+	k = ((post_data*)post_gpu_data)->other_data.k[count];
+	while(k!=-1)
 	{
-	       	aa = ((post_data*)post_gpu_data)->output.output[rEDim + l];
-		//fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
+		V4 = ((post_data*)post_gpu_data)->other_data.V4[count];
+		ptr = ptr + 3072*V4;
+		for(l=lb; l<=le; l++)
+		{
+		       	aa = ((post_data*)post_gpu_data)->output.output[ptr + l];
+			fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
+		}
+		ptr = ptr + 3072;
+		count++;
+		if(count<MaxPixel)
+			k = ((post_data*)post_gpu_data)->other_data.k[count];
+		else 
+			break;
 	}
 	fclose(fpt);
 }
@@ -278,26 +324,21 @@ void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloo
 	return;
 }
 
-__host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *post_gpu_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, size_t *V4_array, size_t *tsize_array, size_t *k_array, int Lsky, int work_size, cudaStream_t *stream)
+__host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *post_gpu_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, size_t *alloced_V4_array, size_t *etddim_array, size_t k_array[][MaxPixel], int Lsky, int *pixel_array, int work_size, cudaStream_t *stream)
 {
-	int etddim;
-	int V4;
-	int k; 
 	for(int i=0; i<work_size; i++)// transfer the data from CPU to GPU
 	{
-		k = k_array[i];
-		etddim = tsize_array[k] * V4_array[k];
-		cudaMemcpyAsync(skyloop_other[i].eTD, input_data[i].other_data.eTD, NIFO * etddim * sizeof(float), cudaMemcpyHostToDevice, stream[i] );
+		cout<<"etddim = "<<etddim_array[i]<<endl;
+		cout<<"eTDDim = "<<300*219<<endl;
+		cudaMemcpyAsync(skyloop_other[i].eTD, input_data[i].other_data.eTD, NIFO * etddim_array[i] * sizeof(float), cudaMemcpyHostToDevice, stream[i] );
 	}
 
 	for(int i=0; i<work_size; i++)// call for gpu caculation
-		kernel_skyloop<<<num_blocks, num_threads, shared_memory_usage, stream[i]>>>(skyloop_other[i].eTD, skyloop_other[0].ml_mm, skyloop_output[i].output, Lsky, k_array[i]);
+		kernel_skyloop<<<num_blocks, num_threads, shared_memory_usage, stream[i]>>>(skyloop_other[i].eTD, skyloop_other[0].ml_mm, skyloop_output[i].output, Lsky, k_array[i]); 
 
 	for(int i=0; i<work_size; i++)// transfer the data back from GPU to CPU
 	{
-		k = k_array[i];
-		V4 = V4_array[k];
-        	cudaMemcpyAsync(post_gpu_data[i].output.output, skyloop_output[i].output, Lsky * V4 * sizeof(float) + Lsky * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
+        	cudaMemcpyAsync(post_gpu_data[i].output.output, skyloop_output[i].output, Lsky * alloced_V4_array[i] * sizeof(float) + Lsky * pixel_array[i] * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
 	        //cudaMemcpyAsync(post_gpu_data[i].output.aa, skyloop_output[i].aa, Lsky * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
 	}
 	for(int i=0; i<work_size; i++)
@@ -306,57 +347,66 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 //	cout<<"Push work into gpu success."<<endl;
 }
 
-__global__ void kernel_skyloop(float *eTD, short *ml_mm, float *gpu_output, int Lsky, size_t k) 
+__global__ void kernel_skyloop(float *eTD, short *ml_mm, float *gpu_output, int Lsky, size_t *k_array) 
 {
 	const int grid_size = blockDim.x * gridDim.x;
-	int l = blockIdx.x * blockDim.x + threadIdx.x;
+	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	float *pe[NIFO];
 	short *ml[NIFO];
 	short *mm;
 	size_t V, V4, tsize;
 	int le = Lsky - 1;
+	int l;
+	int k;
 	int msk;
-
-	V = constV[k];
-	tsize = consttsize[k];
-	msk = V%4;
-	msk = (msk>0);
-	V4 = V + msk*(4-V%4);
-		
-	pe[0] = eTD;
-	pe[1] = eTD + V4*tsize;
-	pe[2] = eTD + 2*V4*tsize;
-	pe[3] = eTD + 3*V4*tsize;
-	ml[0] = ml_mm;
-	ml[1] = ml_mm + Lsky;
-	ml[2] = ml_mm + 2*Lsky;
-	ml[3] = ml_mm + 3*Lsky;
-	mm = ml_mm + 4*Lsky;
+	int count = 0;
+	size_t etd_ptr = 0;
+	size_t output_ptr = 0;
 	
-	for(; l<=le; l+=grid_size)		// loop over sky locations
+	k = k_array[count];
+	while(k!=-1&&count<MaxPixel)
 	{
-		if(!mm[l]) continue;		// skip delay configurations
+		V = constV[k];
+		tsize = consttsize[k];
+		msk = V%4;
+		msk = (msk>0);
+		V4 = V + msk*(4-V%4);
+		
+		pe[0] = eTD + etd_ptr;
+		pe[1] = eTD + V4*tsize + etd_ptr;
+		pe[2] = eTD + 2*V4*tsize + etd_ptr;
+		pe[3] = eTD + 3*V4*tsize + etd_ptr;
+		ml[0] = ml_mm;
+		ml[1] = ml_mm + Lsky;
+		ml[2] = ml_mm + 2*Lsky;
+		ml[3] = ml_mm + 3*Lsky;
+		mm = ml_mm + 4*Lsky;
+	
+		for(l = tid; l<=le; l+=grid_size)		// loop over sky locations
+		{
+			if(!mm[l]) continue;		// skip delay configurations
 		
 		// _sse_point_ps 
-		pe[0] = pe[0] + (tsize/2)*V4;
-		pe[1] = pe[1] + (tsize/2)*V4;
-		pe[2] = pe[2] + (tsize/2)*V4;
-		pe[3] = pe[3] + (tsize/2)*V4;
-
-		pe[0] = pe[0] + ml[0][l] * (int)V4;
-		pe[1] = pe[1] + ml[1][l] * (int)V4;
-		pe[2] = pe[2] + ml[2][l] * (int)V4;
-		pe[3] = pe[3] + ml[3][l] * (int)V4;
+			pe[0] = pe[0] + (tsize/2)*V4;
+			pe[1] = pe[1] + (tsize/2)*V4;
+			pe[2] = pe[2] + (tsize/2)*V4;
+			pe[3] = pe[3] + (tsize/2)*V4;
+		
+			pe[0] = pe[0] + ml[0][l] * (int)V4;
+			pe[1] = pe[1] + ml[1][l] * (int)V4;
+			pe[2] = pe[2] + ml[2][l] * (int)V4;
+			pe[3] = pe[3] + ml[3][l] * (int)V4;
 		// inner skyloop
-		kernel_skyloop_calculate(pe[0], pe[1], pe[2], pe[3], V, V4, V4*Lsky, gpu_output, l);
-		
+			kernel_skyloop_calculate(pe[0], pe[1], pe[2], pe[3], V, V4, V4*Lsky, gpu_output, l, output_ptr);
+		}
+		etd_ptr = etd_ptr + V4*tsize;
+		output_ptr = output_ptr + V4*Lsky + Lsky;
+		count++;
+	k = k_array[count];
 	}
-
-	
-		
 }
 
-__inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, float *PE_2, float *PE_3, size_t V, size_t V4, size_t rEDim, float *gpu_output, int l) 
+__inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, float *PE_2, float *PE_3, size_t V, size_t V4, size_t rEDim, float *gpu_output, int l, size_t output_ptr) 
 {
 	int msk;						// mask
 	size_t v = 0;					// indicate the pixel
@@ -381,7 +431,7 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 		_En[count] = 0;
 	}
 	count = 0;
-	ptr = l*V4;
+	ptr = l*V4 + output_ptr;
 	while( v<V )					// loop over selected pixels	
 	{
 		// *_rE = _sse_sum_ps(_pe);
@@ -417,7 +467,7 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 	
 	msk = ((aa-Mm)/(aa+Mm)<0.33);								// if need continue 1/0
 	aa = aa*(1-msk)  - 1*msk;
-	gpu_output[rEDim + l] = aa;
+	gpu_output[rEDim + l + output_ptr] = aa;
 }
 __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
 {
