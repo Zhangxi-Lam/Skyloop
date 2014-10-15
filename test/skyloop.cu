@@ -46,6 +46,7 @@ int main(void)
 	int K;
 	size_t V, V4, tsize;
 	size_t *V_array, *V4_array, *tsize_array;
+	int *k_sortArray;
 	size_t k_array[StreamNum];
 	float En, Es;
 	int etddim;
@@ -80,11 +81,11 @@ int main(void)
 	V_array = (size_t*)malloc(sizeof(size_t) * K);
 	V4_array = (size_t*)malloc(sizeof(size_t) * K);
 	tsize_array = (size_t*)malloc(sizeof(size_t) * K);
+	k_sortArray = (int*)malloc(sizeof(int) * K);
 	 
-	clock_t start[10], finish[10];
-	double d[10];
-	for(int i=0; i<10; i++)
-		d[i] = 0;
+	clock_t start, finish;
+	clock_t start1, finish1;
+	double diff = 0;
 	for(int k=0; k<K; k++)
 	{
 		file4>>V;
@@ -100,48 +101,47 @@ int main(void)
 		V_array[k] = V;
 		V4_array[k] = V4;
 		tsize_array[k] = tsize;
+		k_sortArray[k] = k;
 				
 	}
+	
 	cudaMemcpyToSymbol(constV, V_array, sizeof(size_t) * K);
-	cudaMemcpyToSymbol(constV4, V4_array, sizeof(size_t) * K);
+//	cudaMemcpyToSymbol(constV4, V4_array, sizeof(size_t) * K);
 	cudaMemcpyToSymbol(consttsize, tsize_array, sizeof(size_t) * K);
+	
+	QuickSort(V_array, k_sortArray, 0, K-1);
 
-	start[0] = clock();
-	for(int k=0; k<K; k++)
+	start = clock();
+	FILE *fpt = fopen("skyloop_myeTD", "a");
+	for(int count=0; count<K; count++)
 	{
-		start[1] = clock();
-		
+		start1 = clock();
+		int k;	
+		k = k_sortArray[count];
 		etddim = V4_array[k] * tsize_array[k];
-		for(int l=0; l<eTDDim; l++)
+		string t;
+		file3.seekg(0, ios_base::beg);
+		for(int i=0; i<k*eTDDim; i++)
+			getline(file3, t);
+		for(int l=0; l<etddim; l++)
 		{
-			float temp;
-			if(l<etddim)
-			{
-				file3>>pre_gpu_data[alloced_gpu].other_data.eTD[l];
-				file3>>pre_gpu_data[alloced_gpu].other_data.eTD[l + etddim];
-				file3>>pre_gpu_data[alloced_gpu].other_data.eTD[l + 2 * etddim];
-				file3>>pre_gpu_data[alloced_gpu].other_data.eTD[l + 3 * etddim];
-			}
-			else
-			{
-				file3>>temp;
-				file3>>temp;
-				file3>>temp;
-				file3>>temp;
-			}
 			
+			file3>>pre_gpu_data[alloced_gpu].other_data.eTD[l];
+			file3>>pre_gpu_data[alloced_gpu].other_data.eTD[l + etddim];
+			file3>>pre_gpu_data[alloced_gpu].other_data.eTD[l + 2 * etddim];
+			file3>>pre_gpu_data[alloced_gpu].other_data.eTD[l + 3 * etddim];
 		}
-		finish[1] = clock();
-		d[1] += (double)(finish[1] - start[1]);
+		finish1 = clock();
+		diff += (double)(finish1 - start1);
 		if(alloced_gpu < BufferNum)
-		{	
-			start[2] = clock();
+		{
 			int i = alloced_gpu;
 			k_array[i] = k;
 			
 			post_gpu_data[i].other_data.k = k;
 			post_gpu_data[i].other_data.V4 = V4_array[k];
 			post_gpu_data[i].other_data.tsize = tsize_array[k];
+			cout<<" k = "<<k<<" V4 = "<<V4_array[k]<<endl;
 			alloced_gpu++;
 			if(alloced_gpu == StreamNum)		// if all streams' data have been assigned
 			{
@@ -150,10 +150,9 @@ int main(void)
 					CUDA_CHECK(cudaStreamSynchronize(stream[i]));
 				alloced_gpu = 0;
 			}
-			finish[2] = clock();
-			d[2] += (double)(finish[2] - start[2]);
 		 }
 	}
+	fclose(fpt);
 	if(alloced_gpu != 0)
 	{
 		push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, V4_array, tsize_array, k_array, Lsky, alloced_gpu, stream);
@@ -161,11 +160,11 @@ int main(void)
 			CUDA_CHECK(cudaStreamSynchronize(stream[i]));
 		alloced_gpu = 0;
 	}
-	finish[0] = clock();
+	finish = clock();
 	
 //	printf("diff time = %f\n", (double)(diff)/CLOCKS_PER_SEC);
 	
-	printf("time = %f\n", (double)(d[2])/CLOCKS_PER_SEC);
+	printf("time = %f\n", (double)((finish-start)-diff)/CLOCKS_PER_SEC);
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data, stream);
 	cleanup_gpu_mem(skyloop_output, skyloop_other, stream);
 	for(int i=0; i<StreamNum; i++)	
@@ -174,9 +173,42 @@ int main(void)
 
 	return 0;
 }
+
+void QuickSort(size_t *V_array, int *k_array, int p, int r)
+{
+	int q;
+	if(p<r)
+	{
+		q = Partition(V_array, k_array, p, r);
+		QuickSort(V_array, k_array, p, q-1);
+		QuickSort(V_array, k_array, q+1, r);
+	}
+}
+int Partition(size_t *V_array, int *k_array, int p, int r)
+{
+	int x, i, j;
+	int temp;
+	x = V_array[k_array[r]];
+	i = p-1;
+	for(j = p; j<r; j++)
+	{
+		if(V_array[k_array[j]]<=x)
+		{
+			i = i + 1;
+			temp = k_array[i];
+			k_array[i] = k_array[j];
+			k_array[j] = temp;
+		}
+	}
+	temp = k_array[i+1];
+	k_array[i+1] = k_array[r];
+	k_array[r] = temp;
+	i++;
+	return i;
+}
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data)
 {
-	//FILE *fpt = fopen("./output/test_skyloopOutput", "a");
+	FILE *fpt = fopen("./output/test_skyloopOutput", "a");
 	float aa;
 	int m, l, lb;
 	int le = 3071;
@@ -190,9 +222,9 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 	for(l=lb; l<=le; l++)
 	{
 	       	aa = ((post_data*)post_gpu_data)->output.output[rEDim + l];
-	//	fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
+		//fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
 	}
-	//fclose(fpt);
+	fclose(fpt);
 }
 void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int V4max, int Lsky)// allocate locked memory on CPU 
 {
@@ -283,10 +315,14 @@ __global__ void kernel_skyloop(float *eTD, short *ml_mm, float *gpu_output, int 
 	short *mm;
 	size_t V, V4, tsize;
 	int le = Lsky - 1;
+	int msk;
 
 	V = constV[k];
-	V4 = constV4[k];
 	tsize = consttsize[k];
+	msk = V%4;
+	msk = (msk>0);
+	V4 = V + msk*(4-V%4);
+		
 	pe[0] = eTD;
 	pe[1] = eTD + V4*tsize;
 	pe[2] = eTD + 2*V4*tsize;
@@ -380,7 +416,7 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 	aa = Es*En/(Eo-Es);
 	
 	msk = ((aa-Mm)/(aa+Mm)<0.33);								// if need continue 1/0
-	aa = aa*(1-msk) + (-1)*msk;
+	aa = aa*(1-msk)  - 1*msk;
 	gpu_output[rEDim + l] = aa;
 }
 __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)

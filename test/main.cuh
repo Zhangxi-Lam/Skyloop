@@ -6,6 +6,8 @@ void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skylo
 void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, cudaStream_t *stream);
 void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, cudaStream_t *stream);
 void test_function(void);
+void QuickSort(size_t *V_array, int *k_array, int p, int r);
+int Partition(size_t *V_array, int *k_array, int p, int r);
 
 __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *post_gpu_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, size_t *V4_array, size_t *tsize_array, size_t *k_array, int Lsky, int work_size, cudaStream_t *stream);
 
