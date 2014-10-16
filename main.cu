@@ -58,6 +58,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	int l;
 	float aa, AA;	
 	size_t i, j, k, V, V4, id, K;
+	int eTDCount = 0;
 	int Lsky = int(net->index.size());
 	short *mm = net->skyMask.data;
 	
@@ -106,7 +107,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	K = cid.size();
 	
 	V_array = (size_t*)malloc(sizeof(size_t) * K);
-    	tsize_array = (size_t*)malloc(sizeof(size_t) * K);
+   	tsize_array = (size_t*)malloc(sizeof(size_t) * K);
 	
 	//cout<<"1"<<endl;
 	for(k=0; k<K; k++)				// loop over clusters
@@ -206,7 +207,8 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 		post_gpu_data[i].other_data.TH = TH;
 		post_gpu_data[i].other_data.le = Lsky - 1;
 		post_gpu_data[i].other_data.lag = lag;
-		post_gpu_data[i].other_data.nIFO = nIFO;
+		
+	cout<<"eTDCount = "<<eTDCount<<endl;post_gpu_data[i].other_data.nIFO = nIFO;
 	}
 	for(int l=0; l<Lsky; l++)
 	{
@@ -228,7 +230,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
    	K = cid.size();                                                         
 	
 	start[1] = clock();
-	//cout<<"2"<<endl;
+	cout<<"K = "<<K<<endl;
 	for(k=0; k<K; k++)				// loop over clusters
 	{
 		if(!V_array[k])	continue;
@@ -270,6 +272,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 			pA[alloced_gpu][i] = vTD[i].data + (tsize/2)*V4;
 		}
 
+		eTDCount++;
 		for( j=0; j<V; j++)
 		{  
 			pix = pwc->getPixel(id,pI[j]);          // get pixel pointer   
@@ -348,6 +351,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	for(int i=0; i<StreamNum; i++)
 		count += streamCount[i];
 	cout<<"count = "<<count<<endl;
+	cout<<"eTDCount = "<<eTDCount<<endl;
 	for(i=0; i<3; i++)
 		d[i] = gpu_d[i];
 	return count;
