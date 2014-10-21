@@ -1,22 +1,7 @@
-#define NIFO 4
-/*struct skyloop_input                            // the input of skyloop
-{
-        float *eTD[NIFO];
-        short *ml[NIFO];
-		short *mm;								// Lsky
-        size_t *V, *V4;
-        float *T_En, *T_Es;
-		int *le;		
-};*/
+#define MaxPixel 10
 struct skyloop_output                           // the output of skyloop
 {
 	float *output;
-	/*float *rE;				// pointer of rNRG.data	V4max
-	float *pE;				// pointer of pNRG.data	V4max
-	float *Eo;				// float
-	float *En;				// float
-	float *Es;				// float
-	int *Mm;				// float*/
 };
 struct other                                    //the variable that not use in GPU
 {
@@ -25,7 +10,11 @@ struct other                                    //the variable that not use in G
 	float T_En, T_Es, TH;	// same
 	int le, lag;	// le, lag same
 	int stream;	// indicate which stream
-	size_t id, nIFO, k, V, V4, tsize; // nIFO same
+	size_t id[MaxPixel];
+	size_t k[MaxPixel];
+	size_t V[MaxPixel];
+	size_t V4[MaxPixel];
+	size_t tsize[MaxPixel]; 
 	size_t count;			// result of each stream
 };
 struct pre_data

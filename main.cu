@@ -23,14 +23,16 @@
 #define StreamNum 4 
 #define BufferNum 4  
 #define CONSTANT_SIZE 1500
+#define MaxPixel 10
+
 
 network *gpu_net;
 TH2F *gpu_hist;
 netcluster *pwc;
 double *FP[NIFO];
 double *FX[NIFO];
-float *pa[StreamNum][NIFO];
-float *pA[StreamNum][NIFO];
+float *pa[StreamNum][NIFO][MaxPixel];
+float *pA[StreamNum][NIFO][MaxPixel];
 double gpu_d[10];
 size_t gpu_nIFO;
 size_t streamCount[StreamNum]; // the result of each stream
@@ -91,12 +93,20 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	pwc = &net->wc_List[lag];
 	size_t count = 0;
 	size_t tsize = 0;
-	size_t V4max = 0;				// store the maximum of V4
-	size_t Tmax = 0;				// store the maximum of tsize
-	size_t *V_array, *tsize_array;
+	size_t V4max = 0;			// store the maximum of V4
+	size_t Tmax = 0;			// store the maximum of tsize
+	size_t *V_array, *tsize_array, *V4_array;
 	int *k_sortArray;
-	int kcount = 0;					// store the k that is not rejected/processed
-	size_t k_array[StreamNum];
+	int kcount = 0;				// store the k that is not rejected/processed
+	size_t k_array[StreamNum][MaxPixel];
+	int CombineSize = V4max / 2;
+	int etd_ptr, vtd_ptr, vTD_ptr;				// indicate the eTD's, vtd's and vTD's location
+	size_t etddim_array[StreamNum];
+	size_t alloced_V4_array[StreamNum];
+	int pixel_array[StreamNum];
+	int pixelCount;				// indicate the pixel number of each stream
+	size_t alloced_V4;			// indicate the overall V4 of each stream
+	int etddim;				// indicate the etd dim of each cluster;
 
 //++++++++++++++++++++++++++++++++
 // find out the maximum of V and tsize 
@@ -107,6 +117,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	K = cid.size();
 	
 	V_array = (size_t*)malloc(sizeof(size_t) * K);
+	V4_array = (size_t*)malloc(sizeof(size_t) * K);
     	tsize_array = (size_t*)malloc(sizeof(size_t) * K);
     	k_sortArray = (int*)malloc(sizeof(int) * K);
 	
@@ -137,6 +148,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 		tsize /= 2;
 	    	V4 = V + (V%4 ? 4 - V%4 : 0);     
 		V_array[k] = V;
+		V4_array[k] = V4;
 		tsize_array[k] = tsize;
 		k_sortArray[kcount] = k;
 		kcount++;
@@ -158,9 +170,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	int eTDDim = 0;					// the size of each eTD
 	int alloced_gpu = 0;				// the number of gpu which has been allocated data
 	
-	//cudaEvent_t start, stop;		// CUDA event for recording time
-	//float elapsedTime;				// 
-	//float wholeTime = 0;				// 
 	start[0] = clock();
 	
 	eTDDim = Tmax * V4max;
@@ -214,95 +223,122 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 //++++++++++++++++++++++++++++++++
 // loop over cluster
 //++++++++++++++++++++++++++++++++
+	std::vector<wavearray<float> > vtd;     // vectors of TD energies  
+     	std::vector<wavearray<float> > vTD;     // vectors of TD energies  
+	wavearray<float> tmp(Tmax*V4max); tmp=0;  // aligned array for TD amplitude	
+
 	QuickSort(V_array, k_sortArray, 0, kcount-1);
    	cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
    	K = cid.size();                                                         
 	
 	start[1] = clock();
 	//cout<<"2"<<endl;
+	alloced_V4 = 0;						// initialize
+	etd_ptr = MaxPixel;
+	vtd_ptr = 0;
+	vTD_ptr = 0;
+	pixelCount = 0;
+	for(i=0; i<NIFO; i++)
+	{
+		vtd.push_back(tmp);
+		vTD.push_back(tmp);
+	}
 	for(int z=0; z<kcount; z++)				// loop over clusters
 	{
-		k = k_sortArray[z];
 		start[2] = clock();
-		id = size_t(cid.data[k]+0.1);
-		pI = net->wdmMRA.getXTalk(pwc, id);
-		V = V_array[k];
+		k = k_sortArray[z];
+		V4 = V4_array[k];
 		tsize = tsize_array[k];
-		V4 = V + (V%4 ? 4 - V%4 : 0);     
-		//cout<<"3"<<endl;
-     		std::vector<wavearray<float> > vtd;     // vectors of TD energies  
-     		std::vector<wavearray<float> > vTD;     // vectors of TD energies  
-     		std::vector<wavearray<float> > eTD;     // vectors of TD energies  
-		wavearray<float> tmp(tsize*V4); tmp=0;  // aligned array for TD amplitude	
+		etddim = V4 * tsize;
+		alloced_V4 += V4;
+		if(alloced_V4<=V4max && (alloced_V4 + pixelCount + 1)<=(V4max+1))
+		{
+			id = size_t(cid.data[k]+0.1);
+			pI = net->wdmMRA.getXTalk(pwc, id);
 	
-		for(i=0; i<NIFO; i++)
-		{
-			vtd.push_back(tmp);
-			vTD.push_back(tmp);
-			eTD.push_back(tmp);					// array of aligned energy vectors
-		}
-		for(i=0; i<NIFO; i++)
-		{
-			pa[alloced_gpu][i] = vtd[i].data + (tsize/2)*V4;
-			pA[alloced_gpu][i] = vTD[i].data + (tsize/2)*V4;
-		}
-
-		for( j=0; j<V; j++)
-		{  
-			pix = pwc->getPixel(id,pI[j]);          // get pixel pointer   
-			for(i=0; i<nIFO; i++) {
-            			for( l=0; l<tsize; l++) 
-						{                                
-              			   aa = pix->tdAmp[i].data[l];             // copy TD 00 data 
-		                   AA = pix->tdAmp[i].data[l+tsize];       // copy TD 90 data 
-				   vtd[i].data[l*V4+j] = aa;
-				   vTD[i].data[l*V4+j] = AA;
-					// assign the data 
-				   			if(alloced_gpu<BufferNum)
-				   			{
-								int etddim = V4 * tsize;
-				   				pre_gpu_data[alloced_gpu].other_data.eTD[i*etddim + l*V4+j] = aa*aa+AA*AA;
-								if(i == nIFO - 1 && NIFO > nIFO)
-									for(int I = nIFO; I<NIFO; I++)
-					   					pre_gpu_data[alloced_gpu].other_data.eTD[I*etddim + l*V4+j] = 0;
-				   			}
-            			}
+			for(i=0; i<NIFO; i++)
+			{
+				pa[alloced_gpu][i][pixelCount] = vtd[i].data + (tsize/2)*V4 + vtd_ptr;
+				pA[alloced_gpu][i][pixelCount] = vTD[i].data + (tsize/2)*V4 + vTD_ptr;
 			}
+
+			for( j=0; j<V; j++)
+			{  
+				pix = pwc->getPixel(id,pI[j]);          // get pixel pointer   
+				for(i=0; i<nIFO; i++) 
+				{
+            				for( l=0; l<tsize; l++) 
+					{                                
+	              		   		aa = pix->tdAmp[i].data[l];             // copy TD 00 data 
+				        	AA = pix->tdAmp[i].data[l+tsize];       // copy TD 90 data 
+						vtd[i].data[l*V4+j+vtd_ptr] = aa;
+						vTD[i].data[l*V4+j+vTD_ptr] = AA;
+						// assign the data 
+					   	if(alloced_gpu<BufferNum)
+				  		{
+				   			pre_gpu_data[alloced_gpu].other_data.eTD[i*etddim + l*V4+j + etd_ptr] = aa*aa+AA*AA;
+							if(i == nIFO - 1 && NIFO > nIFO)
+								for(int I = nIFO; I<NIFO; I++)
+					   				pre_gpu_data[alloced_gpu].other_data.eTD[I*etddim + l*V4+j + etd_ptr] = 0;
+					   	}	
+        	    			}
+				}
+			}
+			i = alloced_gpu;
+			etd_ptr += NIFO*etddim;
+			k_array[i][pixelCount] = k+1;
+			pre_gpu_data[i].other_data.eTD[pixelCount] = k+1;
+			post_gpu_data[i].other_data.k[pixelCount] = k+1;
+			post_gpu_data[i].other_data.V[pixelCount] = V_array[k];
+			post_gpu_data[i].other_data.V4[pixelCount] = V4;
+			post_gpu_data[i].other_data.tsize[pixelCount] = tsize;
+			post_gpu_data[i].other_data.id[pixelCount] = id;
+			pixelCount++;
 		}
 		finish[2] = clock();
 		d[5] += (double)(finish[2] - start[2])/CLOCKS_PER_SEC;
-
+		if( pixelCount<MaxPixel && alloced_V4<CombineSize )	continue;
+		else if(alloced_V4>V4max || (alloced_V4 + pixeCount)>(V4max+1))
+		{
+			alloced_V4 -= V4_array[k];
+			count--;
+		}
+		cout<<"list"<<i<<" overall V4 = "<<alloced_V4<<endl;
+		for(int z=0; z<pixelCount; z++)
+			cout<<"k = "<<pre_gpu_data[i].other_data.eTD[z]-1<<endl;
+		etddim_array[i] = etd_ptr;
+		alloced_V4_array[i] = alloced_V4;	
+		pixel_array[i] = pixelCount;
+		alloced_gpu++;
 //++++++++++++++++++++++++++++++++
 // assign the data 
 //++++++++++++++++++++++++++++++++
-		if(alloced_gpu < BufferNum)
+		if(alloced_gpu == StreamNum)	// if all streams' data have been assigned
 		{
 			start[3] = clock();
-			
-			int i = alloced_gpu;
-			
-			if(i<StreamNum)
-			{
-				post_gpu_data[i].other_data.stream = i;
-				post_gpu_data[i].other_data.id = id;
-				post_gpu_data[i].other_data.V = V;
-				post_gpu_data[i].other_data.V4 = V4;
-				post_gpu_data[i].other_data.tsize = tsize;
-				post_gpu_data[i].other_data.k = k;
-				k_array[i] = k;
-			}
-			alloced_gpu++;
-			if(alloced_gpu == StreamNum)		// if all streams' data have been assigned
-			{
-				push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, V_array, tsize_array, k_array, Lsky, StreamNum, stream);
-				for(int i=0; i<StreamNum; i++)				// wait for all commands in the stream to complete
-					CUDA_CHECK(cudaStreamSynchronize(stream[i]));
-				alloced_gpu = 0;
-			}
-			
+			post_gpu_data[i].other_data.stream = i;
+			push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, alloced_V4_array, etddim_array, k_array, Lsky, pixel_array, StreamNum, stream);
+			for(int i=0; i<StreamNum; i++)				// wait for all commands in the stream to complete
+				CUDA_CHECK(cudaStreamSynchronize(stream[i]));
+			alloced_gpu = 0;
 			finish[3] =  clock();
 			d[6] += (double)(finish[3] - start[3])/CLOCKS_PER_SEC;
-		 }
+			for(j=0; j<StreamNum; j++)
+				for(i=0; i<pixel_array[j]; i++)
+				{
+					k_array[j][i] = 0;
+					post_gpu_data[j].other_data.id[i] = 0;
+					post_gpu_data[j].other_data.k[i] = 0;
+					post_gpu_data[j].other_data.V4[i] = 0;
+					post_gpu_data[j].other_data.tsize[i] = 0;
+				}
+		}
+		//clear
+		etd_ptr = MaxPixel;
+		vtd_ptr = 0;
+		vTD_ptr = 0;
+		pixelCount = 0;
+		alloced_V4 = 0;
 	}							// end of loop
 	if(alloced_gpu != 0)		// if there are some clusters waiting for GPU calculation
 	{	
@@ -325,39 +361,20 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	return count;
 }
 
-__host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *post_gpu_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, size_t *V_array, size_t *tsize_array, size_t *k_array, int Lsky, int work_size, cudaStream_t *stream)
+__host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *post_gpu_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, size_t *alloced_V4_array, size_t *etddim_array, size_t k_array[][MaxPixel], int Lsky, int *pixel_array, int work_size, cudaStream_t *stream)
 {
-	size_t V, V4;
-	int etddim;
-	int k;
 	for(int i=0; i<work_size; i++)// transfer the data from CPU to GPU
-	{
-		k = k_array[i];
-		V = V_array[k];
-		V4 = V + (V%4 ? 4 - V%4 : 0);
-        	etddim = tsize_array[k] * V4;
-		cudaMemcpyAsync(skyloop_other[i].eTD, input_data[i].other_data.eTD, NIFO * etddim * sizeof(float), cudaMemcpyHostToDevice, stream[i] );
-	}
+		cudaMemcpyAsync(skyloop_other[i].eTD, input_data[i].other_data.eTD, etddim_array[i] * sizeof(float), cudaMemcpyHostToDevice, stream[i] );
 
 	for(int i=0; i<work_size; i++)// call for gpu caculation
-	{
-		k = k_array[i];
-		V = V_array[k];
-		kernel_skyloop<<<num_blocks, num_threads, shared_memory_usage, stream[i]>>>(skyloop_other[i].eTD, skyloop_other[0].ml_mm, skyloop_output[i].output, Lsky, k_array[i], V, tsize_array[k]);
-	}
-
+		kernel_skyloop<<<num_blocks, num_threads, shared_memory_usage, stream[i]>>>(skyloop_other[i].eTD, skyloop_other[0].ml_mm, skyloop_output[i].output, Lsky);
 	for(int i=0; i<work_size; i++)// transfer the data back from GPU to CPU
-	{
-		k = k_array[i];
-		V = V_array[k];
-		V4 = V + (V%4 ? 4 - V%4 : 0);
-        	cudaMemcpyAsync(post_gpu_data[i].output.output, skyloop_output[i].output, Lsky * V4 * sizeof(float) + Lsky * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
-	}
+        	cudaMemcpyAsync(post_gpu_data[i].output.output, skyloop_output[i].output, Lsky * alloced_V4_array[i] * sizeof(float) + Lsky * pixel_array[i] * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
 	for(int i=0; i<work_size; i++)
 		cudaStreamAddCallback(stream[i], MyCallback, (void*)&post_gpu_data[i], 0);
 }
 
-__global__ void kernel_skyloop(float *eTD, short *ml_mm, float *gpu_output, int Lsky, size_t k, size_t V, size_t tsize) 
+__global__ void kernel_skyloop(float *eTD, short *ml_mm, float *gpu_output, int Lsky) 
 {
 	const int grid_size = blockDim.x * gridDim.x;
 	int l = blockIdx.x * blockDim.x + threadIdx.x;
@@ -365,7 +382,6 @@ __global__ void kernel_skyloop(float *eTD, short *ml_mm, float *gpu_output, int 
 	short *ml[NIFO];
 	short *mm;
 	int msk;	
-	//size_t V, V4, tsize;
 	size_t V4;
 	int le = Lsky - 1;
 
