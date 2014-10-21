@@ -200,16 +200,6 @@ long subNetCut(network* net, int lag, float snc, TH2F* hist)
 	cout<<"Loop Cluster Time d[4] = "<<d[4]<<endl;
 	cout<<"PRE_GPU Time d[5] = "<<d[5]<<endl;
 	cout<<"GPU Time d[6] = "<<d[6]<<endl;
-	/*FILE *fpt = fopen("skyloop_time", "a");
-	fprintf(fpt, "Callback pre cal Time d[0] = %f\n", d[0]);
-	fprintf(fpt, "Callback loop Time d[1] = %f\n", d[1]);
-	fprintf(fpt, "Callback After Loop Time d[2] = %f\n", d[2]);
-	fprintf(fpt, "Allocation Time d[3] = %f\n", d[3]);
-	fprintf(fpt, "Loop Cluster Time d[4] = %f\n", d[4]);
-	fprintf(fpt, "PRE_GPU Time d[5] = %f\n", d[5]);
-	fprintf(fpt, "GPU Time d[6] = %f\n", d[6]);
-	fclose(fpt);*/
-	//cout<<"finish"<<endl;
 	return count;
 }
 
@@ -239,11 +229,8 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	double xx[NIFO];
 	int Lsky;
 
-	clock_t start[10], finish[10];
-	//cout<<"Callback start"<<endl;
 	stat=Lm=Em=Am=EE=0.;	lm=Vm= -1;
 	count = 0;
-	start[0] = clock();
 	V4 = ((post_data*)post_gpu_data)->other_data.V4;
 	le = ((post_data*)post_gpu_data)->other_data.le;
 	k = ((post_data*)post_gpu_data)->other_data.k;
@@ -263,7 +250,6 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	mm = ((post_data*)post_gpu_data)->other_data.ml_mm + 4*Lsky;
 	rE = ((post_data*)post_gpu_data)->output.output;
 	
-	//cout<<"4"<<endl;	
 	std::vector<int> pI;				// buffer for pixel TDs
 	wavearray<float> tmp(tsize*V4); tmp=0;
 	wavearray<float>  fp(NIFO*V4);  fp=0;     // aligned array for + antenna pattern 
@@ -291,25 +277,19 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 	__m128* _nr = (__m128*) nr.data;
 
 	__m128 _E_n = _mm_setzero_ps();		// network energy above the threshold
-    __m128 _E_s = _mm_setzero_ps();		// subnet energy above the threshold 
+    	__m128 _E_s = _mm_setzero_ps();		// subnet energy above the threshold 
 	netpixel* pix;	
 	std::vector<int> *vint;
 
-	// initialize data
-	start[2] = clock();
-	
 	gpu_net->a_00.resize(NIFO*V4);	gpu_net->a_00=0.;
 	gpu_net->a_90.resize(NIFO*V4);	gpu_net->a_90=0.;
 	__m128* _aa = (__m128*) gpu_net->a_00.data;         // set pointer to 00 array
-    __m128* _AA = (__m128*) gpu_net->a_90.data;         // set pointer to 90 array
+    	__m128* _AA = (__m128*) gpu_net->a_90.data;         // set pointer to 90 array
 
 	gpu_net->rNRG.resize(V4);	gpu_net->rNRG=0.;
 	gpu_net->pNRG.resize(V4);	gpu_net->pNRG=0.;
 	
 	pI = gpu_net->wdmMRA.getXTalk(pwc, id);
-	finish[2] = clock();
-	d[2] +=(double)(finish[2] - start[2])/CLOCKS_PER_SEC;
-	//cout<<"4.1"<<endl;
 	gpu_net->pList.clear();
 	for(int j=0; j<V; j++)			// loop over selected pixels
 	{
@@ -325,16 +305,7 @@ long Callback(void* post_gpu_data, network *gpu_net, TH2F *gpu_hist, netcluster 
 		for(int i=0; i<nIFO; i++)
 			nr.data[j*NIFO+i]=(float)xx[i]/sqrt(rms);	// normalized 1/rms
 	}
-	
-	finish[0] = clock();
-	d[0] += (double)(finish[0] - start[0])/CLOCKS_PER_SEC;
-
-	//cout<<"5"<<endl;	
-
-	start[1] = clock();	
 	int rEDim = Lsky * V4;
-	FILE *fpt = fopen("skyloop_myaa", "a");
-	FILE *fpt1 = fopen("skyloop_myrNRG", "a");
 	
 skyloop:
 	// after skyloop
@@ -343,12 +314,10 @@ skyloop:
 		if(!mm[l] || l<0) continue; 
 		
 		aa = ((post_data*)post_gpu_data)->output.output[rEDim+l];
-		fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
 		if(aa == -1)	continue;
 		for(int j=0; j<V; j++)
 		{
 			gpu_net->rNRG.data[j] = rE[l*V4+j];
-			fprintf(fpt1, "k = %d l = %d rE = %f\n", k, l, gpu_net->rNRG.data[j]);	
 		}
 		gpu_net->pnt_(v00, pa, ml, (int)l, (int)V4);	// pointers to first pixel 00 data
 		gpu_net->pnt_(v90, pA, ml, (int)l, (int)V4);	// pointers to first pixel 90 data
@@ -368,7 +337,6 @@ skyloop:
 	        	_sse_zero_ps(_XI+jf);                      // zero MRA amplitudes
 	           	_sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00
         	   	_sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90 
-			
            		if(gpu_net->rNRG.data[j]>En) m++;              // count superthreshold pixels
 		}
 		
@@ -401,6 +369,7 @@ skyloop:
 	            	em = _sse_maxE_ps(_pp+jf,_PP+jf);   // dominant pixel energy
         	    	Ls += ee-em; Eo += ee;       // subnetwork energy, network energy
 	            	if(ee-em>Es) Ln += ee;       // network energy above subnet threshold
+		
 		}
 		
 		size_t m4 = m + (m%4 ? 4 - m%4 : 0);
@@ -420,6 +389,7 @@ skyloop:
         	ee = Ls*Eo/(Eo-Ls); 
         	em = fabs(Eo-Lo)+2*m;	//  suball NULL
         	ee = ee/(ee+em);       	//  subnet stat without threshold
+       
 		aa = (aa-m)/(aa+m);                                                                    
 			
 		if(AA>stat && !mra)
@@ -429,19 +399,15 @@ skyloop:
 		
 	}
     if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
-	fclose(fpt);	
-	fclose(fpt1);
 	vint = &(pwc->cList[id-1]);
 	
-	finish[1] = clock();
-	d[1] += (double)(finish[1] - start[1])/CLOCKS_PER_SEC;
 	
-    pwc->sCuts[id-1] = -1;
-    pwc->cData[id-1].likenet = Lm;                                                         
-    pwc->cData[id-1].energy = Em;
-    pwc->cData[id-1].theta = gpu_net->nLikelihood.getTheta(lm);
-    pwc->cData[id-1].phi = gpu_net->nLikelihood.getPhi(lm); 
-    pwc->cData[id-1].skyIndex = lm;
+    	pwc->sCuts[id-1] = -1;
+    	pwc->cData[id-1].likenet = Lm;                                                         
+   	pwc->cData[id-1].energy = Em;
+    	pwc->cData[id-1].theta = gpu_net->nLikelihood.getTheta(lm);
+    	pwc->cData[id-1].phi = gpu_net->nLikelihood.getPhi(lm); 
+    	pwc->cData[id-1].skyIndex = lm;
 	rHo = 0.; 
 	if(mra)
 	{
@@ -492,7 +458,6 @@ skyloop:
 		if(pix->tdAmp.size())
 			pix->clean();
 	}
-	//cout<<"6"<<endl;	
 	streamCount[stream] += count;
 	return 0; 
 }

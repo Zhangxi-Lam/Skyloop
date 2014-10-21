@@ -22,7 +22,6 @@
 
 #define StreamNum 4 
 #define BufferNum 4  
-#define CONSTANT_SIZE 1500
 
 network *gpu_net;
 TH2F *gpu_hist;
@@ -57,15 +56,11 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	int l;
 	float aa, AA;	
 	size_t i, j, k, V, V4, id, K;
+	int eTDCount = 0;
 	int Lsky = int(net->index.size());
 	short *mm = net->skyMask.data;
 	
 	short *ml[NIFO];
-
-	clock_t start[10], finish[10];
-	
-	for(i=0; i<10; i++)
-		gpu_d[i] = d[i];
 
 	for( i=0; i<NIFO; i++)
 	{
@@ -94,8 +89,8 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	size_t V4max = 0;				// store the maximum of V4
 	size_t Tmax = 0;				// store the maximum of tsize
 	size_t *V_array, *tsize_array;
-	int *k_sortArray;
-	int kcount = 0;					// store the k that is not rejected/processed
+	int *k_sortArray;	
+	size_t kcount = 0;				
 	size_t k_array[StreamNum];
 
 //++++++++++++++++++++++++++++++++
@@ -107,10 +102,9 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	K = cid.size();
 	
 	V_array = (size_t*)malloc(sizeof(size_t) * K);
-    	tsize_array = (size_t*)malloc(sizeof(size_t) * K);
-    	k_sortArray = (int*)malloc(sizeof(int) * K);
+   	tsize_array = (size_t*)malloc(sizeof(size_t) * K);
+	k_sortArray = (int*)malloc(sizeof(int) * K);
 	
-	//cout<<"1"<<endl;
 	for(k=0; k<K; k++)				// loop over clusters
 	{
 		V_array[k] = 0;
@@ -140,12 +134,13 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 		tsize_array[k] = tsize;
 		k_sortArray[kcount] = k;
 		kcount++;
-		
+
 		if( tsize > Tmax )
 			Tmax = tsize;
 		if( V4 > V4max )
 			V4max = V4;
 	}
+	
 	
 //++++++++++++++++++++++++++++++++
 // declare the variables used for gpu calculation 
@@ -157,11 +152,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	
 	int eTDDim = 0;					// the size of each eTD
 	int alloced_gpu = 0;				// the number of gpu which has been allocated data
-	
-	//cudaEvent_t start, stop;		// CUDA event for recording time
-	//float elapsedTime;				// 
-	//float wholeTime = 0;				// 
-	start[0] = clock();
 	
 	eTDDim = Tmax * V4max;
 	for(int i=0; i<StreamNum; i++)
@@ -196,7 +186,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 		post_gpu_data[i].other_data.TH = TH;
 		post_gpu_data[i].other_data.le = Lsky - 1;
 		post_gpu_data[i].other_data.lag = lag;
-		post_gpu_data[i].other_data.nIFO = nIFO;
 	}
 	for(int l=0; l<Lsky; l++)
 	{
@@ -209,21 +198,21 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 		pre_gpu_data[0].other_data.ml_mm[NIFO*Lsky+ l] = mm[l];
 	}
 	cudaMemcpyAsync(skyloop_other[0].ml_mm, pre_gpu_data[0].other_data.ml_mm, (1 + NIFO) * Lsky * sizeof(short), cudaMemcpyHostToDevice, stream[0] );
-	finish[0] = clock();
-	d[3] += (double)(finish[0] - start[0])/CLOCKS_PER_SEC;
 //++++++++++++++++++++++++++++++++
 // loop over cluster
 //++++++++++++++++++++++++++++++++
-	QuickSort(V_array, k_sortArray, 0, kcount-1);
    	cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
    	K = cid.size();                                                         
 	
-	start[1] = clock();
-	//cout<<"2"<<endl;
+	for(int i=0; i<kcount; i++)
+		cout<<"K = "<<k_sortArray[i]<<" V = "<<V_array[k_sortArray[i]]<<endl;
+	QuickSort(V_array, k_sortArray, 0, kcount-1);	
+	for(int i=0; i<kcount; i++)
+		cout<<"K = "<<k_sortArray[i]<<" V = "<<V_array[k_sortArray[i]]<<endl;
+
 	for(int z=0; z<kcount; z++)				// loop over clusters
 	{
 		k = k_sortArray[z];
-		start[2] = clock();
 		id = size_t(cid.data[k]+0.1);
 		pI = net->wdmMRA.getXTalk(pwc, id);
 		V = V_array[k];
@@ -247,12 +236,14 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 			pA[alloced_gpu][i] = vTD[i].data + (tsize/2)*V4;
 		}
 
+		eTDCount++;
 		for( j=0; j<V; j++)
 		{  
 			pix = pwc->getPixel(id,pI[j]);          // get pixel pointer   
-			for(i=0; i<nIFO; i++) {
+			for(i=0; i<nIFO; i++) 
+			{
             			for( l=0; l<tsize; l++) 
-						{                                
+				{                                
               			   aa = pix->tdAmp[i].data[l];             // copy TD 00 data 
 		                   AA = pix->tdAmp[i].data[l+tsize];       // copy TD 90 data 
 				   vtd[i].data[l*V4+j] = aa;
@@ -269,15 +260,12 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
             			}
 			}
 		}
-		finish[2] = clock();
-		d[5] += (double)(finish[2] - start[2])/CLOCKS_PER_SEC;
 
 //++++++++++++++++++++++++++++++++
 // assign the data 
 //++++++++++++++++++++++++++++++++
 		if(alloced_gpu < BufferNum)
 		{
-			start[3] = clock();
 			
 			int i = alloced_gpu;
 			
@@ -300,8 +288,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 				alloced_gpu = 0;
 			}
 			
-			finish[3] =  clock();
-			d[6] += (double)(finish[3] - start[3])/CLOCKS_PER_SEC;
 		 }
 	}							// end of loop
 	if(alloced_gpu != 0)		// if there are some clusters waiting for GPU calculation
@@ -311,8 +297,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 			CUDA_CHECK(cudaStreamSynchronize(stream[i]));
 		alloced_gpu = 0;
 	}
-	finish[1] = clock();
-	d[4] += (double)(finish[1] - start[1])/CLOCKS_PER_SEC;
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data, stream);
 	cleanup_gpu_mem(skyloop_output, skyloop_other, stream);
 	for(int i=0; i<StreamNum; i++)	
@@ -320,8 +304,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *d)
 	for(int i=0; i<StreamNum; i++)
 		count += streamCount[i];
 	cout<<"count = "<<count<<endl;
-	for(i=0; i<3; i++)
-		d[i] = gpu_d[i];
 	return count;
 }
 
@@ -336,6 +318,7 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 		V = V_array[k];
 		V4 = V + (V%4 ? 4 - V%4 : 0);
         	etddim = tsize_array[k] * V4;
+		cout<<"k = "<<k<<" V = "<<V<<" V4 = "<<V4<<endl;
 		cudaMemcpyAsync(skyloop_other[i].eTD, input_data[i].other_data.eTD, NIFO * etddim * sizeof(float), cudaMemcpyHostToDevice, stream[i] );
 	}
 
@@ -365,7 +348,6 @@ __global__ void kernel_skyloop(float *eTD, short *ml_mm, float *gpu_output, int 
 	short *ml[NIFO];
 	short *mm;
 	int msk;	
-	//size_t V, V4, tsize;
 	size_t V4;
 	int le = Lsky - 1;
 
@@ -385,7 +367,6 @@ __global__ void kernel_skyloop(float *eTD, short *ml_mm, float *gpu_output, int 
 
 	for(; l<=le; l+=grid_size)		// loop over sky locations
 	{
-		if(!mm[l])	continue;
 		// _sse_point_ps 
 		pe[0] = pe[0] + (tsize/2)*V4;
 		pe[1] = pe[1] + (tsize/2)*V4;
@@ -493,7 +474,7 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 {
 	int streamNum;
 	streamNum = ((post_data*)post_gpu_data)->other_data.stream;
-	//cout<<"Callback"<<endl;
+	cout<<"Callback"<<endl;
 	Callback(post_gpu_data, gpu_net, gpu_hist, pwc, FP, FX, pa[streamNum], pA[streamNum], streamCount, gpu_d);
 }
 
@@ -551,17 +532,17 @@ void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloo
 
 void QuickSort(size_t *V_array, int *k_array, int p, int r)
 {
-        int q;
-        if(p<r)
-        {
-                q = Partition(V_array, k_array, p, r);
-                QuickSort(V_array, k_array, p, q-1);
-                QuickSort(V_array, k_array, q+1, r);
-        }
+	int q;
+	if(p<r)
+	{
+		q = Partition(V_array, k_array, p, r);
+		QuickSort(V_array, k_array, p, q-1);
+		QuickSort(V_array, k_array, q+1, r);
+	}
 }
 int Partition(size_t *V_array, int *k_array, int p, int r)
 {
-        int x, i, j;
+	int x, i, j;
         int temp;
         x = V_array[k_array[r]];
         i = p-1;
