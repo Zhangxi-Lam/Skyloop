@@ -1,0 +1,533 @@
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/watrepo/!svn/ver/3588/wat/trunk/wat
+END
+Meyer.hh
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/Meyer.hh
+END
+waverdc.cc
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/waverdc.cc
+END
+wseries.hh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/3275/wat/trunk/wat/wseries.hh
+END
+Daubechies.cc
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/Daubechies.cc
+END
+time.cc
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/watrepo/!svn/ver/3068/wat/trunk/wat/time.cc
+END
+SymmArraySSE.cc
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/watrepo/!svn/ver/1613/wat/trunk/wat/SymmArraySSE.cc
+END
+readframe.hh
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/readframe.hh
+END
+netevent.hh
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/watrepo/!svn/ver/3529/wat/trunk/wat/netevent.hh
+END
+network.hh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/3559/wat/trunk/wat/network.hh
+END
+watasm_elf64.o
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/watrepo/!svn/ver/1993/wat/trunk/wat/watasm_elf64.o
+END
+LineFilter.hh
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/watrepo/!svn/ver/3068/wat/trunk/wat/LineFilter.hh
+END
+Wavelet.cc
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/1146/wat/trunk/wat/Wavelet.cc
+END
+lossy.cc
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/lossy.cc
+END
+watasm.S
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/watrepo/!svn/ver/1993/wat/trunk/wat/watasm.S
+END
+wavefft.hh
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/wavefft.hh
+END
+skymap.hh
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/watrepo/!svn/ver/3256/wat/trunk/wat/skymap.hh
+END
+WDMOverlap.cc
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/watrepo/!svn/ver/1166/wat/trunk/wat/WDMOverlap.cc
+END
+cluster.cc
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/cluster.cc
+END
+watexception.hh
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/watrepo/!svn/ver/807/wat/trunk/wat/watexception.hh
+END
+constants.hh
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/watrepo/!svn/ver/3076/wat/trunk/wat/constants.hh
+END
+Symlet.hh
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/watrepo/!svn/ver/1553/wat/trunk/wat/Symlet.hh
+END
+netpixel.cc
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/watrepo/!svn/ver/1119/wat/trunk/wat/netpixel.cc
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/watrepo/!svn/ver/3563/wat/trunk/wat/Makefile
+END
+wavecomplex.cc
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/watrepo/!svn/ver/3068/wat/trunk/wat/wavecomplex.cc
+END
+SymmArray.hh
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/watrepo/!svn/ver/1630/wat/trunk/wat/SymmArray.hh
+END
+wslice.hh
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/wslice.hh
+END
+WDM.hh
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/watrepo/!svn/ver/2310/wat/trunk/wat/WDM.hh
+END
+wat.hh
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/watrepo/!svn/ver/1176/wat/trunk/wat/wat.hh
+END
+wavelet_LinkDef.h
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/watrepo/!svn/ver/3095/wat/trunk/wat/wavelet_LinkDef.h
+END
+waverdc.hh
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/watrepo/!svn/ver/959/wat/trunk/wat/waverdc.hh
+END
+Daubechies.hh
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/watrepo/!svn/ver/1553/wat/trunk/wat/Daubechies.hh
+END
+FourierCoefficients.icc
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/FourierCoefficients.icc
+END
+time.hh
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/watrepo/!svn/ver/3068/wat/trunk/wat/time.hh
+END
+detector.cc
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/watrepo/!svn/ver/3588/wat/trunk/wat/detector.cc
+END
+SymmArraySSE.hh
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/watrepo/!svn/ver/1630/wat/trunk/wat/SymmArraySSE.hh
+END
+Haar.cc
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/Haar.cc
+END
+regression.cc
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/watrepo/!svn/ver/3070/wat/trunk/wat/regression.cc
+END
+watsse.hh
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/watrepo/!svn/ver/3534/wat/trunk/wat/watsse.hh
+END
+WaveDWT.cc
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/2310/wat/trunk/wat/WaveDWT.cc
+END
+Wavelet.hh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/1156/wat/trunk/wat/Wavelet.hh
+END
+injection.cc
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/watrepo/!svn/ver/3588/wat/trunk/wat/injection.cc
+END
+lossy.hh
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/lossy.hh
+END
+alm.hh
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/watrepo/!svn/ver/1188/wat/trunk/wat/alm.hh
+END
+monster.cc
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/3506/wat/trunk/wat/monster.cc
+END
+Biorthogonal.cc
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/Biorthogonal.cc
+END
+netcluster.cc
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/watrepo/!svn/ver/3577/wat/trunk/wat/netcluster.cc
+END
+WDMOverlap.hh
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/watrepo/!svn/ver/1166/wat/trunk/wat/WDMOverlap.hh
+END
+watplot.cc
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/3438/wat/trunk/wat/watplot.cc
+END
+cluster.hh
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/cluster.hh
+END
+rdfr.cc
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/rdfr.cc
+END
+wavearray.cc
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/watrepo/!svn/ver/3285/wat/trunk/wat/wavearray.cc
+END
+netpixel.hh
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/watrepo/!svn/ver/1070/wat/trunk/wat/netpixel.hh
+END
+readfrfile.cc
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/readfrfile.cc
+END
+wavecomplex.hh
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/watrepo/!svn/ver/3068/wat/trunk/wat/wavecomplex.hh
+END
+wavecor.cc
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/3068/wat/trunk/wat/wavecor.cc
+END
+skycoord.hh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/skycoord.hh
+END
+sseries.cc
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/3184/wat/trunk/wat/sseries.cc
+END
+SymmObjArray.cc
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/watrepo/!svn/ver/1613/wat/trunk/wat/SymmObjArray.cc
+END
+wavelinefilter.cc
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/watrepo/!svn/ver/1327/wat/trunk/wat/wavelinefilter.cc
+END
+Meyer.cc
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/Meyer.cc
+END
+wseries.cc
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/3286/wat/trunk/wat/wseries.cc
+END
+detector.hh
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/watrepo/!svn/ver/2947/wat/trunk/wat/detector.hh
+END
+Haar.hh
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/Haar.hh
+END
+readframe.cc
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/readframe.cc
+END
+netevent.cc
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/watrepo/!svn/ver/3574/wat/trunk/wat/netevent.cc
+END
+network.cc
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/3588/wat/trunk/wat/network.cc
+END
+regression.hh
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/watrepo/!svn/ver/3070/wat/trunk/wat/regression.hh
+END
+WaveDWT.hh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/2310/wat/trunk/wat/WaveDWT.hh
+END
+injection.hh
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/watrepo/!svn/ver/3580/wat/trunk/wat/injection.hh
+END
+LineFilter.cc
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/watrepo/!svn/ver/3068/wat/trunk/wat/LineFilter.cc
+END
+monster.hh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/3477/wat/trunk/wat/monster.hh
+END
+Biorthogonal.hh
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/watrepo/!svn/ver/1553/wat/trunk/wat/Biorthogonal.hh
+END
+netcluster.hh
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/watrepo/!svn/ver/3532/wat/trunk/wat/netcluster.hh
+END
+wavefft.cc
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/wavefft.cc
+END
+skymap.cc
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/watrepo/!svn/ver/3257/wat/trunk/wat/skymap.cc
+END
+watplot.hh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/3367/wat/trunk/wat/watplot.hh
+END
+rdfr.hh
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/rdfr.hh
+END
+watexception.cc
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/watrepo/!svn/ver/807/wat/trunk/wat/watexception.cc
+END
+wavearray.hh
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/watrepo/!svn/ver/2708/wat/trunk/wat/wavearray.hh
+END
+readfrfile.hh
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/readfrfile.hh
+END
+Symlet.cc
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/Symlet.cc
+END
+watfun.hh
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/watrepo/!svn/ver/2874/wat/trunk/wat/watfun.hh
+END
+wavecor.hh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/3068/wat/trunk/wat/wavecor.hh
+END
+SymmArray.cc
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/watrepo/!svn/ver/1613/wat/trunk/wat/SymmArray.cc
+END
+WDM.cc
+K 25
+svn:wc:ra_dav:version-url
+V 47
+/svn/watrepo/!svn/ver/3058/wat/trunk/wat/WDM.cc
+END
+sseries.hh
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/watrepo/!svn/ver/3051/wat/trunk/wat/sseries.hh
+END
+SymmObjArray.hh
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/watrepo/!svn/ver/1567/wat/trunk/wat/SymmObjArray.hh
+END
+wavelinefilter.hh
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/watrepo/!svn/ver/726/wat/trunk/wat/wavelinefilter.hh
+END

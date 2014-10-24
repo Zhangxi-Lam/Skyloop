@@ -1,0 +1,167 @@
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/watrepo/!svn/ver/3508/wat/trunk/wat/tutorials
+END
+DrawAlmFromFits.C
+K 25
+svn:wc:ra_dav:version-url
+V 68
+/svn/watrepo/!svn/ver/1191/wat/trunk/wat/tutorials/DrawAlmFromFits.C
+END
+ResampleSkymapFunction.C
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/watrepo/!svn/ver/2242/wat/trunk/wat/tutorials/ResampleSkymapFunction.C
+END
+DrawSkymapWithSkyplot.C
+K 25
+svn:wc:ra_dav:version-url
+V 74
+/svn/watrepo/!svn/ver/3071/wat/trunk/wat/tutorials/DrawSkymapWithSkyplot.C
+END
+SG1700Q100_probability.fits
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/watrepo/!svn/ver/1191/wat/trunk/wat/tutorials/SG1700Q100_probability.fits
+END
+revMonster.cc
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/watrepo/!svn/ver/3505/wat/trunk/wat/tutorials/revMonster.cc
+END
+testWDM_1.C
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/watrepo/!svn/ver/3071/wat/trunk/wat/tutorials/testWDM_1.C
+END
+testWDM_2.C
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/watrepo/!svn/ver/3030/wat/trunk/wat/tutorials/testWDM_2.C
+END
+DrawPowerSpectrumSphericalHarmonic.C
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/svn/watrepo/!svn/ver/2242/wat/trunk/wat/tutorials/DrawPowerSpectrumSphericalHarmonic.C
+END
+reviewMonster.C
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svn/watrepo/!svn/ver/3505/wat/trunk/wat/tutorials/reviewMonster.C
+END
+testWDM_3.C
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/watrepo/!svn/ver/3071/wat/trunk/wat/tutorials/testWDM_3.C
+END
+testWDM_4.C
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/watrepo/!svn/ver/3030/wat/trunk/wat/tutorials/testWDM_4.C
+END
+testWDM_5.C
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/watrepo/!svn/ver/3030/wat/trunk/wat/tutorials/testWDM_5.C
+END
+DrawPhaseShift.C
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/watrepo/!svn/ver/1218/wat/trunk/wat/tutorials/DrawPhaseShift.C
+END
+testWDM_6.C
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/watrepo/!svn/ver/3030/wat/trunk/wat/tutorials/testWDM_6.C
+END
+DrawSmoothFits.C
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/watrepo/!svn/ver/2242/wat/trunk/wat/tutorials/DrawSmoothFits.C
+END
+testWDM_7.C
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/watrepo/!svn/ver/3030/wat/trunk/wat/tutorials/testWDM_7.C
+END
+testWDM_8.C
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/watrepo/!svn/ver/3030/wat/trunk/wat/tutorials/testWDM_8.C
+END
+DrawClusterWithSkyplot.C
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/watrepo/!svn/ver/3071/wat/trunk/wat/tutorials/DrawClusterWithSkyplot.C
+END
+DrawFits.C
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/watrepo/!svn/ver/2398/wat/trunk/wat/tutorials/DrawFits.C
+END
+Test2G_Whitening.C
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/watrepo/!svn/ver/3407/wat/trunk/wat/tutorials/Test2G_Whitening.C
+END
+TestEulerCharacteristic.C
+K 25
+svn:wc:ra_dav:version-url
+V 76
+/svn/watrepo/!svn/ver/2762/wat/trunk/wat/tutorials/TestEulerCharacteristic.C
+END
+S6A_LDR_L1_LDAS_C02_L2.frames
+K 25
+svn:wc:ra_dav:version-url
+V 80
+/svn/watrepo/!svn/ver/3407/wat/trunk/wat/tutorials/S6A_LDR_L1_LDAS_C02_L2.frames
+END
+HowToAccessToWSeries.C
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/watrepo/!svn/ver/3300/wat/trunk/wat/tutorials/HowToAccessToWSeries.C
+END
+CreateOverlapCatalog.C
+K 25
+svn:wc:ra_dav:version-url
+V 73
+/svn/watrepo/!svn/ver/3508/wat/trunk/wat/tutorials/CreateOverlapCatalog.C
+END
+TestWriteOperatorWavearray.C
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/watrepo/!svn/ver/851/wat/trunk/wat/tutorials/TestWriteOperatorWavearray.C
+END
+SSeriesExample.C
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svn/watrepo/!svn/ver/3299/wat/trunk/wat/tutorials/SSeriesExample.C
+END
+TestWriteOperatorSkymap.C
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/watrepo/!svn/ver/843/wat/trunk/wat/tutorials/TestWriteOperatorSkymap.C
+END

@@ -1,0 +1,139 @@
+
+void readframes(char *filename, char *channel, wavearray<double> &w)
+{
+
+  FrFile *ifile;
+  FrVect *v;
+  FrameH *frame;
+  int buffersize=300;
+  char *buffer=new char[buffersize];
+
+  long start, stop, fstart, fend,  rstart, pstart;
+  int frlen, nframes, len;
+  double rate;
+  unsigned int wcounter=0;
+
+  FILE *framelist=fopen(filename,"r");
+
+  fgets(buffer,buffersize,framelist);
+  nframes=(int)atoi(buffer);
+  fgets(buffer,buffersize,framelist);
+  frlen=(int)atoi(buffer);
+  fgets(buffer,buffersize,framelist);
+  start=(long)atol(buffer);
+  fgets(buffer,buffersize,framelist);
+  stop=(long)atol(buffer);
+  fgets(buffer,buffersize,framelist);
+  rate=(double)atof(buffer);
+
+  fprintf(stdout,"-------------\n");
+  fprintf(stdout,"filename=%s channel=%s nframes=%d frlen=%d start=%d stop=%d rate=%f\n",
+	  filename, channel, nframes, frlen, start, stop, rate);
+  
+  w.resize(int((stop-start)*rate));
+  w.start(start);
+  w.rate(rate);
+  
+  rstart=start;
+  
+  for(int i=0;i<nframes;i++)
+    {
+      //bzero(buffer,buffersize);
+      fgets(buffer,buffersize,framelist);
+      fprintf(stdout,"framefile=%s\n",buffer);
+      ifile=FrFileINew(buffer);
+      if(ifile->error)
+	{
+	  fprintf(stderr,"Cannot read file %s, error=%d\n",buffer,ifile->error);
+	  fflush(stderr);
+	  fflush(stdout);
+	  break;
+	}
+      fstart=(long)FrFileITStart(ifile);
+      fend=(long)FrFileITEnd(ifile);
+      frlen=fend-fstart;
+      /*
+      if(i==0)
+	{
+	  pstart=fstart;
+	}
+
+      pstart=fstart;
+      */
+
+      if(start <= fstart && fend <= stop)
+	{
+	  rstart=fstart; len=frlen;
+	}
+      if(start >= fstart && fend <= stop)
+	{
+	  rstart=start;len=frlen-(start-fstart);
+	}
+      if(start <= fstart && stop <= fend)
+	{
+	  rstart=fstart;len=frlen-(fend-stop);
+	}
+      if(fstart<=start && stop<=fend)
+	{
+	  rstart=start;len=stop-start;
+	}
+
+      /*
+      if(fstart<start && start-fstart<frlen)
+	{
+	  len=frlen-(start-fstart);
+	  rstart=start;
+	}
+      else if(fstart+frlen>stop)
+	{
+	  len=stop-fstart;
+	  rstart=fstart;
+	}
+      else
+	{
+	  len=frlen;
+	  rstart=fstart;
+	}
+      */
+
+      fprintf(stdout,"i=%d rstart=%d len=%d fstart=%d\n",i,rstart,len,fstart);fflush(stdout);
+      v=FrFileIGetV(ifile,channel, rstart, len);
+      int debuglevel=1;
+      if(v==NULL)
+	{
+	  fprintf(stderr,"FrFileIGetV failed: \n");
+	  exit(1);
+	}
+      if(v->type!=FR_VECT_4R && v->type!=FR_VECT_8R)
+	{
+	  fprintf(stderr,"Wrong vector type %d\n",v->type);fflush(stderr);
+	  exit(1);
+	}      
+      long samples=long(len*rate);
+
+      if(v->type==FR_VECT_4R)
+	{
+	  for(long j=0;j<samples;j++)
+	    {
+	      w.data[wcounter]=double(v->dataF[j]);
+	      wcounter++;
+	    }
+	}
+      if(v->type==FR_VECT_8R)
+	{
+          for(long j=0;j<samples;j++)
+            {
+              w.data[wcounter]=v->dataD[j];
+              wcounter++;
+            }
+	}
+      
+      FrVectFree(v);
+      FrFileIEnd(ifile);
+    }
+  fclose(framelist);
+  delete [] buffer;
+
+}
+
+
