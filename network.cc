@@ -16,11 +16,12 @@
 #include "injection.hh"
 #include "network.hh"
 #include "TComplex.h"
-//#include "/home/hpc/cWB/trunk/wat/GPU/main.cuh"
 
 #define CLOCK_SIZE 10
 
 using namespace std;
+
+void test_function(network *net);
 
 ClassImp(network)
 
@@ -545,7 +546,9 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 // hist: diagnostic histogram
 // return number of processed pixels
 
-//	test_function(this);
+	gROOT->LoadMacro("/home/hpc/cWB/trunk/wat/GPU/main.so");
+	gROOT->LoadMacro("/home/hpc/cWB/trunk/wat/GPU/main.cuh++");
+	test_function(this);
 	clock_t Clock[CLOCK_SIZE];
 	double time[CLOCK_SIZE];
 	for(int t=0; t<CLOCK_SIZE; t++)

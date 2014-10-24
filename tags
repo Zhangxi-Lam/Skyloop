@@ -4,6 +4,7 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
+<<<<<<< HEAD
 ALM_HH	alm.hh	8;"	d
 AR	Makefile	/^AR	    = ar r$/;"	m
 ASM	Makefile	/^ASM	    = gcc$/;"	m
@@ -8487,3 +8488,309 @@ zero	wave_dict.cc	/^         int* zero; \/\/!$/;"	m	class:ROOT::Shadow::SymmArra
 ~xcsample	macro/xcsample.h	/^   virtual ~xcsample() { if (!fChain) return; delete fChain->GetCurrentFile(); };$/;"	f	class:xcsample
 ~xctrigger	macro/xctrigger.h	/^   virtual ~xctrigger() { $/;"	f	class:xctrigger
 ~xctriple	macro/xctriple.h	/^   virtual ~xctriple() { if(!fChain) return; delete fChain->GetCurrentFile(); }$/;"	f	class:xctriple
+=======
+Browse	gpu_network.hh	/^      virtual void Browse(TBrowser*) {print();}$/;"	f	class:network
+CWB_Plugin	Backup/CWB_Plugin_supercluster_bench_backup.C	/^CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TString ifo, int type)  {$/;"	f
+CWB_Plugin	CWB_Plugin_supercluster.C	/^CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TString ifo, int type)  {$/;"	f
+CWB_Plugin	CWB_Plugin_supercluster_bench.C	/^CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TString ifo, int type)  {$/;"	f
+CWB_Plugin	CWB_Plugin_supercluster_bench_backup.C	/^CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TString ifo, int type)  {$/;"	f
+CWB_Plugin	CWB_Plugin_supercluster_bench_debug.C	/^CWB_Plugin(TFile* jfile, CWB::config* cfg, network* net, WSeries<double>* x, TString ifo, int type)  {$/;"	f
+EFEC	gpu_network.hh	/^      bool   EFEC;              \/\/ true\/false - EFEC\/selestial coordinate system$/;"	m	class:network
+Edge	gpu_network.hh	/^      double Edge;              \/\/ time offset at the boundaries$/;"	m	class:network
+En	gpu_struct.h	/^	float *En;				\/\/ float$/;"	m	struct:skyloop_output
+Eo	gpu_struct.h	/^	float *Eo;				\/\/ float$/;"	m	struct:skyloop_output
+Es	gpu_struct.h	/^	float *Es;				\/\/ float$/;"	m	struct:skyloop_output
+Forward	gpu_network.hh	/^      void Forward(size_t k) $/;"	f	class:network
+Inverse	gpu_network.hh	/^      void Inverse(size_t k) $/;"	f	class:network
+MRA	gpu_network.hh	/^      bool   MRA;		\/\/ true\/false - used\/not-used likelihoodMRA$/;"	m	class:network
+Mm	gpu_struct.h	/^	int *Mm;				\/\/ float$/;"	m	struct:skyloop_output
+NDM	gpu_network.hh	/^      std::vector<vectorD> NDM; \/\/ network data matrix$/;"	m	class:network
+NETWORK_HH	gpu_network.hh	8;"	d
+NETX	gpu_function.h	3;"	d
+NETX	gpu_network.hh	30;"	d
+NETX	gpu_watsse.hh	18;"	d
+PrintElapsedTime	Backup/CWB_Plugin_supercluster_bench_backup.C	/^PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info) {$/;"	f
+PrintElapsedTime	CWB_Plugin_supercluster_bench.C	/^PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info) {$/;"	f
+PrintElapsedTime	CWB_Plugin_supercluster_bench_backup.C	/^PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info) {$/;"	f
+PrintElapsedTime	CWB_Plugin_supercluster_bench_debug.C	/^PrintElapsedTime(int job_elapsed_time, double cpu_time, TString info) {$/;"	f
+Step	gpu_network.hh	/^      double Step;              \/\/ time shift step$/;"	m	class:network
+TH	gpu_struct.h	/^	float *T_En, *T_Es, *TH;	\/\/ same$/;"	m	struct:other
+T_En	gpu_struct.h	/^	float *T_En, *T_Es, *TH;	\/\/ same$/;"	m	struct:other
+T_Es	gpu_struct.h	/^	float *T_En, *T_Es, *TH;	\/\/ same$/;"	m	struct:other
+USE_LOCAL_SUBNETCUT	Backup/CWB_Plugin_supercluster_bench_backup.C	26;"	d	file:
+USE_LOCAL_SUBNETCUT	CWB_Plugin_supercluster_bench.C	27;"	d	file:
+USE_LOCAL_SUBNETCUT	CWB_Plugin_supercluster_bench_backup.C	26;"	d	file:
+USE_LOCAL_SUBNETCUT	CWB_Plugin_supercluster_bench_debug.C	26;"	d	file:
+V	gpu_struct.h	/^	size_t *id, *nIFO, *V, *V4, *tsize; \/\/ nIFO same$/;"	m	struct:other
+V4	gpu_struct.h	/^	size_t *id, *nIFO, *V, *V4, *tsize; \/\/ nIFO same$/;"	m	struct:other
+WATSSE_HH	gpu_watsse.hh	6;"	d
+XIFO	Backup/CWB_Plugin_supercluster_bench_backup.C	1;"	d	file:
+XIFO	CWB_Plugin_supercluster.C	1;"	d	file:
+XIFO	CWB_Plugin_supercluster_bench.C	1;"	d	file:
+XIFO	CWB_Plugin_supercluster_bench_backup.C	1;"	d	file:
+XIFO	CWB_Plugin_supercluster_bench_debug.C	1;"	d	file:
+XIFO	gpu_function.h	1;"	d
+XIFO	gpu_network.hh	28;"	d
+XIFO	gpu_watsse.hh	16;"	d
+_LIKE	gpu_network.hh	/^      char   _LIKE;		     \/\/ X=likelihoodX, M=likelihoodM, ''=others$/;"	m	class:network
+_NET	gpu_function.h	10;"	d
+_NET	gpu_network.hh	37;"	d
+_NET	gpu_watsse.hh	25;"	d
+_WDM	gpu_network.hh	/^      bool   _WDM;		     \/\/ true\/false - used\/not-used WDM$/;"	m	class:network
+_sse_MRA_ps	Backup/CWB_Plugin_supercluster_bench_backup.C	/^inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {$/;"	f
+_sse_MRA_ps	CWB_Plugin_supercluster_bench.C	/^inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {$/;"	f
+_sse_MRA_ps	CWB_Plugin_supercluster_bench_backup.C	/^inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {$/;"	f
+_sse_MRA_ps	CWB_Plugin_supercluster_bench_debug.C	/^inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {$/;"	f
+_sse_MRA_ps	gpu_function.h	/^inline int network::_sse_MRA_ps(float* amp, float* AMP, float Eo, int K, class monster *wdmMRA) {$/;"	f	class:network
+_sse_MRA_ps	gpu_network.hh	/^inline int _sse_MRA_ps(float* amp, float* AMP, float Eo, int K, class monster *wdmMRA, float *a_00, float*a_90, float *rE, float *pE, int rNRG_size, wavearray<float> *pNRG) {$/;"	f
+_sse_MRA_ps	gpu_network.hh	/^inline int network::_sse_MRA_ps(float* amp, float* AMP, float Eo, int K) {$/;"	f	class:network
+_sse_abs4_ps	gpu_watsse.hh	/^static inline __m128 _sse_abs4_ps(__m128* _p) {$/;"	f
+_sse_abs_ps	gpu_function.h	/^static inline float _sse_abs_ps(__m128* _a, __m128* _A) {$/;"	f
+_sse_abs_ps	gpu_watsse.hh	/^static inline float _sse_abs_ps(__m128* _a) {$/;"	f
+_sse_abs_ps	gpu_watsse.hh	/^static inline float _sse_abs_ps(__m128* _a, __m128* _A) {$/;"	f
+_sse_add4_ps	gpu_watsse.hh	/^static inline void _sse_add4_ps(__m128* _a, __m128* _b, __m128 _c) {$/;"	f
+_sse_add_ps	gpu_function.h	/^static inline void _sse_add_ps(__m128* _a, __m128* _b) $/;"	f
+_sse_add_ps	gpu_watsse.hh	/^static inline void _sse_add_ps(__m128* _a, __m128* _b) {$/;"	f
+_sse_add_ps	gpu_watsse.hh	/^static inline void _sse_add_ps(__m128* _a, __m128* _b, __m128 _c) {$/;"	f
+_sse_core_ps	gpu_network.hh	/^inline int network::_sse_core_ps(float Eo, float EE) {$/;"	f	class:network
+_sse_cpf4_ps	gpu_watsse.hh	/^static inline void _sse_cpf4_ps(__m128* _aa, __m128* _pp) {$/;"	f
+_sse_cpf4_ps	gpu_watsse.hh	/^static inline void _sse_cpf4_ps(__m128* _aa, __m128* _pp, __m128 _c) {$/;"	f
+_sse_cpf4_ps	gpu_watsse.hh	/^static inline void _sse_cpf4_ps(float* aa, __m128* _pp) {$/;"	f
+_sse_cpf_ps	gpu_function.h	/^static inline void _sse_cpf_ps(__m128* _a, __m128* _p) {$/;"	f
+_sse_cpf_ps	gpu_watsse.hh	/^static inline void _sse_cpf_ps(__m128* _a, __m128* _p) {$/;"	f
+_sse_cpf_ps	gpu_watsse.hh	/^static inline void _sse_cpf_ps(float* a, __m128* _p) {$/;"	f
+_sse_cpf_ps	gpu_watsse.hh	/^static inline void _sse_cpf_ps(float* a, __m128* _p, float b) {$/;"	f
+_sse_cut_ps	gpu_watsse.hh	/^static inline __m128 _sse_cut_ps(__m128* _pE, __m128** _pe, __m128 _Es, __m128 _cmp) {$/;"	f
+_sse_div4_ps	gpu_watsse.hh	/^static inline __m128 _sse_div4_ps(__m128* _v, __m128* _u) {$/;"	f
+_sse_dot4_ps	gpu_watsse.hh	/^static inline __m128 _sse_dot4_ps(__m128* _p, __m128* _q) {$/;"	f
+_sse_dot_ps	gpu_watsse.hh	/^static inline float _sse_dot_ps(__m128* _a, __m128* _b) {$/;"	f
+_sse_dpf4_ps	gpu_function.h	/^static inline void _sse_dpf4_ps(__m128* _Fp, __m128* _Fx, __m128* _fp, __m128* _fx) {$/;"	f
+_sse_dpf4_ps	gpu_watsse.hh	/^static inline void _sse_dpf4_ps(__m128* _Fp, __m128* _Fx, __m128* _fp, __m128* _fx) {$/;"	f
+_sse_dsp4_ps	gpu_watsse.hh	/^static inline void _sse_dsp4_ps(__m128* u, __m128* v, __m128* _am, __m128* _AM, __m128* _u, __m128* _v) {$/;"	f
+_sse_ecoh4_ps	gpu_watsse.hh	/^static inline __m128 _sse_ecoh4_ps(__m128* _p, __m128* _q) {$/;"	f
+_sse_ecoh4_ps	gpu_watsse.hh	/^static inline __m128 _sse_ecoh4_ps(__m128* _p, __m128* _q, __m128 _L) {$/;"	f
+_sse_ed4_ps	gpu_watsse.hh	/^static inline __m128 _sse_ed4_ps(__m128* _p, __m128* _q) {$/;"	f
+_sse_ed4_ps	gpu_watsse.hh	/^static inline __m128 _sse_ed4_ps(__m128* _p, __m128* _q, __m128 _L) {$/;"	f
+_sse_ed4i_ps	gpu_watsse.hh	/^static inline __m128 _sse_ed4i_ps(__m128* _p, __m128* _q, __m128 _L) {$/;"	f
+_sse_ei4_ps	gpu_watsse.hh	/^static inline __m128 _sse_ei4_ps(__m128* _u, __m128 _L) {$/;"	f
+_sse_ei4xu_ps	gpu_watsse.hh	/^static inline __m128 _sse_ei4xu_ps(__m128* _x, __m128* _u, __m128 _L) {$/;"	f
+_sse_ei4xx_ps	gpu_watsse.hh	/^static inline __m128 _sse_ei4xx_ps(__m128* _x, __m128* _u, __m128 _L) {$/;"	f
+_sse_hard4_ps	gpu_watsse.hh	/^static inline void _sse_hard4_ps(__m128* _uu, __m128* _am, __m128* _AM, __m128 _c) {$/;"	f
+_sse_ifcp4_ps	gpu_watsse.hh	/^static inline void _sse_ifcp4_ps(__m128* _aa, __m128* _bb,  __m128 _c) {$/;"	f
+_sse_like4_ps	gpu_function.h	/^tatic inline __m128 _sse_like4_ps(__m128* fp, __m128* fx, __m128* am, __m128* AM) {$/;"	f
+_sse_like4_ps	gpu_watsse.hh	/^static inline __m128 _sse_like4_ps(__m128* _f, __m128* _a, __m128* _A) {$/;"	f
+_sse_like4_ps	gpu_watsse.hh	/^static inline __m128 _sse_like4_ps(__m128* am, __m128* AM) {$/;"	f
+_sse_like4_ps	gpu_watsse.hh	/^static inline __m128 _sse_like4_ps(__m128* fp, __m128* fx, __m128* am, __m128* AM) {$/;"	f
+_sse_like4_ps	gpu_watsse.hh	/^static inline __m128 _sse_like4_ps(__m128* fp, __m128* fx, __m128* am, __m128* AM, __m128 _D) {$/;"	f
+_sse_like4w_ps	gpu_watsse.hh	/^static inline __m128 _sse_like4w_ps(__m128* fp, __m128* fx, __m128* am, __m128* AM) {$/;"	f
+_sse_load_ps	gpu_watsse.hh	/^static inline void _sse_load_ps(__m128* _p, float a) {$/;"	f
+_sse_maxE_ps	gpu_function.h	/^static inline float _sse_maxE_ps(__m128* _a, __m128* _A) {$/;"	f
+_sse_maxE_ps	gpu_watsse.hh	/^static inline float _sse_maxE_ps(__m128* _a, __m128* _A) {$/;"	f
+_sse_minSNE_ps	gpu_function.h	/^static inline void _sse_minSNE_ps(__m128* _pE, __m128** _pe, __m128* _es) {$/;"	f
+_sse_minSNE_ps	gpu_watsse.hh	/^static inline void _sse_minSNE_ps(__m128* _pE, __m128** _pe, __m128* _es) {$/;"	f
+_sse_mul4_ps	gpu_watsse.hh	/^static inline void _sse_mul4_ps(__m128* _am, __m128 _c) {$/;"	f
+_sse_mul_ps	gpu_function.h	/^static inline void _sse_mul_ps(__m128* _a, __m128* _b) {$/;"	f
+_sse_mul_ps	gpu_watsse.hh	/^static inline float _sse_mul_ps(__m128* _a, __m128* _b, __m128* _o) {$/;"	f
+_sse_mul_ps	gpu_watsse.hh	/^static inline void _sse_mul_ps(__m128* _a, __m128* _b) {$/;"	f
+_sse_mul_ps	gpu_watsse.hh	/^static inline void _sse_mul_ps(__m128* _a, float b) {$/;"	f
+_sse_nind4_ps	gpu_watsse.hh	/^static inline __m128 _sse_nind4_ps(__m128* _am, __m128* _AM) {$/;"	f
+_sse_nrg_ps	gpu_watsse.hh	/^static inline float _sse_nrg_ps(__m128* _u, float c, __m128* _v, float s, __m128* _a) {$/;"	f
+_sse_null4_ps	gpu_watsse.hh	/^static inline __m128 _sse_null4_ps(__m128* _p, __m128* _q) {$/;"	f
+_sse_ort4_ps	gpu_watsse.hh	/^static inline void _sse_ort4_ps(__m128* _u, __m128* _v, __m128* _s, __m128* _c) {$/;"	f
+_sse_pnp4_ps	gpu_watsse.hh	/^static inline void _sse_pnp4_ps(__m128* _fp, __m128* _fx, __m128* _am, __m128* _AM, __m128* _u, __m128* _v) {$/;"	f
+_sse_point_ps	gpu_watsse.hh	/^static inline void _sse_point_ps(__m128** _p, float** p, short** m, int l, int n) {$/;"	f
+_sse_print_ps	gpu_watsse.hh	/^inline void _sse_print_ps(__m128* _p) {$/;"	f
+_sse_reg4x_ps	gpu_watsse.hh	/^static inline __m128 _sse_reg4x_ps(__m128 _L, __m128* fx, __m128* am, __m128* AM, __m128 _D) {$/;"	f
+_sse_rnorm4_ps	gpu_watsse.hh	/^static inline __m128 _sse_rnorm4_ps(__m128* _p) {$/;"	f
+_sse_rot4m_ps	gpu_watsse.hh	/^static inline void _sse_rot4m_ps(__m128* _u, __m128* _c, __m128* _v, __m128* _s, __m128* _a) {$/;"	f
+_sse_rot4p_ps	gpu_watsse.hh	/^static inline void _sse_rot4p_ps(__m128* _u, __m128* _c, __m128* _v, __m128* _s, __m128* _a) {$/;"	f
+_sse_rotadd_ps	gpu_watsse.hh	/^static inline void _sse_rotadd_ps(__m128* _u, float c, __m128* _v, float s, __m128* _a) {$/;"	f
+_sse_rotm_ps	gpu_watsse.hh	/^static inline void _sse_rotm_ps(__m128* u, float* c, __m128* v, float* s, __m128* a) {$/;"	f
+_sse_rotp_ps	gpu_watsse.hh	/^static inline void _sse_rotp_ps(__m128* u, float* c, __m128* v, float* s, __m128* a) {$/;"	f
+_sse_rotsub_ps	gpu_watsse.hh	/^static inline float _sse_rotsub_ps(__m128* _u, float c, __m128* _v, float s, __m128* _a) {$/;"	f
+_sse_sub4_ps	gpu_watsse.hh	/^static inline void _sse_sub4_ps(__m128* _a, __m128* _b, __m128 _c) {$/;"	f
+_sse_sub_ps	gpu_watsse.hh	/^static inline void _sse_sub_ps(__m128* _a, __m128* _b) {$/;"	f
+_sse_sum_ps	gpu_function.h	/^static inline __m128 _sse_sum_ps(__m128** _p) {$/;"	f
+_sse_sum_ps	gpu_watsse.hh	/^static inline __m128 _sse_sum_ps(__m128** _p) {$/;"	f
+_sse_zero_p	gpu_watsse.hh	/^static inline void _sse_zero_p(__m128* _p) {$/;"	f
+_sse_zero_ps	gpu_function.h	/^static inline void _sse_zero_ps(__m128* _p) $/;"	f
+_sse_zero_ps	gpu_network.hh	/^static inline void _sse_zero_ps(__m128* _p)$/;"	f
+aNET	gpu_network.hh	/^      double aNET;              \/\/ network alignment$/;"	m	class:network
+a_00	gpu_network.hh	/^      wavearray<float> a_00;         \/\/! buffer for cluster sky 00 amplitude$/;"	m	class:network
+a_90	gpu_network.hh	/^      wavearray<float> a_90;         \/\/! buffer for cluster sky 90 amplitudes$/;"	m	class:network
+acor	gpu_network.hh	/^      double acor;              \/\/ threshold on coherent pixel energy$/;"	m	class:network
+add	gpu_network.hh	/^      size_t add(WDM<double>* wdm) {if(wdm) wdmList.push_back(wdm); return wdmList.size();}$/;"	f	class:network
+addx	gpu_network.hh	/^inline void network::addx(double* a, double* b, double* p) {$/;"	f	class:network
+addx	gpu_network.hh	/^inline void network::addx(double* a, double** b, size_t j, double* p) {$/;"	f	class:network
+addx	gpu_network.hh	/^inline void network::addx(double** a, size_t i, double** b, size_t j, double* p) {$/;"	f	class:network
+cluster	gpu_network.hh	/^      size_t cluster(int kt, int kf) {$/;"	f	class:network
+constraint	gpu_network.hh	/^      inline void constraint(double d=1., double g=0.0001) { $/;"	f	class:network
+count	gpu_struct.h	/^	size_t *count;			\/\/ result of each stream$/;"	m	struct:other
+cpf_	gpu_function.h	/^inline void cpf_(float*& a, double** p, size_t i) \/\/GV$/;"	f
+cpf_	gpu_network.hh	/^inline void cpf_(float*& a, double** p, size_t i) \/\/GV$/;"	f
+cpf_	gpu_network.hh	/^inline void network::cpf_(float*& a, double** p) {$/;"	f	class:network
+cpf_	gpu_network.hh	/^inline void network::cpf_(float*& a, double** p, size_t i) { \/\/GV$/;"	f	class:network
+cpp_	gpu_function.h	/^inline void cpp_(float*& a, float** p) $/;"	f
+cpp_	gpu_network.hh	/^inline void cpp_(float*& a, float** p)$/;"	f
+cpp_	gpu_network.hh	/^inline void network::cpp_(float*& a, float** p) {$/;"	f	class:network
+delink	gpu_network.hh	/^      inline void delink(){$/;"	f	class:network
+delta	gpu_network.hh	/^      double delta;             \/\/ weak constraint parameter:$/;"	m	class:network
+divx	gpu_network.hh	/^inline double network::divx(double* a, double* b) {$/;"	f	class:network
+dot32	gpu_network.hh	/^inline double network::dot32(double* F, double* p, int* J) {$/;"	f	class:network
+dot32	gpu_network.hh	/^inline double network::dot32(std::vector<float>* F, double* p, std::vector<short>* J) {$/;"	f	class:network
+dot4	gpu_network.hh	/^inline double network::dot4(double* a, double* b) {$/;"	f	class:network
+dot4	gpu_network.hh	/^inline double network::dot4(double* a, double* b, double* c) {$/;"	f	class:network
+dotx	gpu_network.hh	/^inline double network::dotx(double* a, double* b) {$/;"	f	class:network
+dotx	gpu_network.hh	/^inline double network::dotx(double* a, double* b, double c) {$/;"	f	class:network
+dotx	gpu_network.hh	/^inline double network::dotx(double* a, double* b, double* c) {$/;"	f	class:network
+dotx	gpu_network.hh	/^inline double network::dotx(double* a, double** b, size_t j) {$/;"	f	class:network
+dotx	gpu_network.hh	/^inline double network::dotx(double* a, double** b, size_t j, double* p) {$/;"	f	class:network
+dotx	gpu_network.hh	/^inline double network::dotx(double** a, size_t i, double* b) {$/;"	f	class:network
+dotx	gpu_network.hh	/^inline double network::dotx(double** a, size_t i, double** b, size_t j) {$/;"	f	class:network
+dotx	gpu_network.hh	/^inline double network::dotx(double** a, size_t i, double** b, size_t j, double* p) {$/;"	f	class:network
+dotx	gpu_network.hh	/^inline double network::dotx(float* a, float* b) {$/;"	f	class:network
+dotx	gpu_network.hh	/^inline double network::dotx(float* a, float* b, float c) {$/;"	f	class:network
+dotx	gpu_network.hh	/^inline double network::dotx(float* a, float* b, float* c) {$/;"	f	class:network
+dpfx	gpu_network.hh	/^inline void network::dpfx(float* fp, float* fx) {$/;"	f	class:network
+dspx	gpu_network.hh	/^inline void network::dspx(float* fp, float* fx, float* am, float* AM, float* u, float* v) {$/;"	f	class:network
+dspx	gpu_network.hh	/^inline void network::dspx(float* u, float* v, float* am, float* AM) {$/;"	f	class:network
+e2or	gpu_network.hh	/^      double e2or;              \/\/ threshold on double OR energy$/;"	m	class:network
+eCOR	gpu_network.hh	/^      double eCOR;              \/\/ correlation energy$/;"	m	class:network
+eDisbalance	gpu_network.hh	/^      bool   eDisbalance;       \/\/ true\/false - enable\/disable energy disbalance ECED$/;"	m	class:network
+eTD	gpu_struct.h	/^	float *eTD[NIFO];$/;"	m	struct:other
+events	gpu_network.hh	/^      size_t events() {$/;"	f	class:network
+events	gpu_network.hh	/^      size_t events(int type, int lag=-1) {$/;"	f	class:network
+filter	gpu_network.hh	/^      std::vector<delayFilter> filter;    \/\/ delay filter (1G)$/;"	m	class:network
+filter90	gpu_network.hh	/^      std::vector<delayFilter> filter90;  \/\/ phase shifted delay filter (1G)$/;"	m	class:network
+finish	gpu_struct.h	/^	bool *finish;			\/\/ indicate whether the caculation is finished$/;"	m	struct:other
+gNET	gpu_network.hh	/^      double gNET;              \/\/ network sensitivity$/;"	m	class:network
+gamma	gpu_network.hh	/^      double gamma;             \/\/ hard constraint parameter:$/;"	m	class:network
+getIndex	gpu_network.hh	/^      inline int getIndex(double theta, double phi) {$/;"	f	class:network
+getNDM	gpu_network.hh	/^      inline double getNDM(size_t i, size_t j) { return NDM[i][j]; }$/;"	f	class:network
+getifo	gpu_network.hh	/^      inline detector* getifo(size_t n) { return ifoListSize()>n ? ifoList[n] : NULL; }$/;"	f	class:network
+getliveTime	gpu_network.hh	/^      inline double getliveTime(size_t n) { return livTimeSize()>n ? livTime[n] : 0.; }$/;"	f	class:network
+getmdcList	gpu_network.hh	/^      inline string getmdcList(size_t n) { return mdcListSize()>n ? mdcList[n] : "\\n"; }$/;"	f	class:network
+getmdcTime	gpu_network.hh	/^      inline double getmdcTime(size_t n) { return mdcTimeSize()>n ? mdcTime[n] : 0.; }$/;"	f	class:network
+getmdcTime	gpu_network.hh	/^      inline std::vector<double>* getmdcTime() { return &mdcTime; }$/;"	f	class:network
+getmdcType	gpu_network.hh	/^      inline string getmdcType(size_t n) { return mdcTypeSize()>n ? mdcType[n] : "\\n"; }$/;"	f	class:network
+getmdc__ID	gpu_network.hh	/^      inline size_t getmdc__ID(size_t n) { return mdc__IDSize()>n ? mdc__ID[n] : 0; }$/;"	f	class:network
+getwc	gpu_network.hh	/^      inline netcluster* getwc(size_t n) { return wc_ListSize()>n ? &wc_List[n] : NULL; }$/;"	f	class:network
+getwdm	gpu_network.hh	/^      inline WDM<double>* getwdm(size_t M) { $/;"	f	class:network
+gpu_pnt_	gpu_function.h	/^inline void gpu_pnt_(float** q, float** p, short** m, int l, int n) $/;"	f
+iNET	gpu_network.hh	/^      double iNET;              \/\/ network index$/;"	m	class:network
+id	gpu_struct.h	/^	size_t *id, *nIFO, *V, *V4, *tsize; \/\/ nIFO same$/;"	m	struct:other
+ifoList	gpu_network.hh	/^      std::vector<detector*>    ifoList;   \/\/ detectors$/;"	m	class:network
+ifoListSize	gpu_network.hh	/^      inline size_t ifoListSize() { return ifoList.size(); }$/;"	f	class:network
+ifoName	gpu_network.hh	/^      std::vector<char*>        ifoName;   \/\/ detector's names$/;"	m	class:network
+index	gpu_network.hh	/^      wavearray<int>    index;       \/\/ theta, phi mask index array$/;"	m	class:network
+index	gpu_network.hh	/^  int    index;$/;"	m	struct:waveSegment
+inix	gpu_network.hh	/^inline void network::inix(double* p, double a) {$/;"	f	class:network
+inix	gpu_network.hh	/^inline void network::inix(double** a, size_t j, double* p) {$/;"	f	class:network
+inix	gpu_network.hh	/^inline void network::inix(float* p, float a) {$/;"	f	class:network
+lag	gpu_struct.h	/^	int *le, *lag;	\/\/ le, lag same$/;"	m	struct:other
+le	gpu_struct.h	/^	int *le, *lag;	\/\/ le, lag same$/;"	m	struct:other
+like	gpu_network.hh	/^      char like() {return _LIKE;}	$/;"	f	class:network
+like	gpu_network.hh	/^      void    like(char _LIKE) {this->_LIKE=_LIKE;}  \/\/ set likelihood type	$/;"	f	class:network
+livTime	gpu_network.hh	/^      std::vector<double>       livTime;   \/\/ live time for time shifts$/;"	m	class:network
+livTimeSize	gpu_network.hh	/^      inline size_t livTimeSize() { return livTime.size(); }$/;"	f	class:network
+local	gpu_network.hh	/^      bool   local;             \/\/ true\/false - local\/global normalization$/;"	m	class:network
+mIFO	gpu_network.hh	/^      size_t mIFO;              \/\/ master IFO$/;"	m	class:network
+mdcList	gpu_network.hh	/^      std::vector<std::string>  mdcList;   \/\/ list of injections$/;"	m	class:network
+mdcListSize	gpu_network.hh	/^      inline size_t mdcListSize() { return mdcList.size(); }$/;"	f	class:network
+mdcTime	gpu_network.hh	/^      std::vector<double>       mdcTime;   \/\/ gps time of selected injections$/;"	m	class:network
+mdcTimeSize	gpu_network.hh	/^      inline size_t mdcTimeSize() { return mdcTime.size(); }$/;"	f	class:network
+mdcType	gpu_network.hh	/^      std::vector<std::string>  mdcType;   \/\/ list of injection types$/;"	m	class:network
+mdcTypeSize	gpu_network.hh	/^      inline size_t mdcTypeSize() { return mdcType.size(); }$/;"	f	class:network
+mdc__ID	gpu_network.hh	/^      std::vector<size_t>       mdc__ID;   \/\/ ID of selected injections$/;"	m	class:network
+mdc__IDSize	gpu_network.hh	/^      inline size_t mdc__IDSize() { return mdc__ID.size(); }$/;"	f	class:network
+ml	gpu_struct.h	/^	short *ml[NIFO];$/;"	m	struct:other
+mm	gpu_struct.h	/^	short *mm;				\/\/ skyMask.data$/;"	m	struct:other
+mulx	gpu_network.hh	/^inline void network::mulx(double* a, double b) {$/;"	f	class:network
+mulx	gpu_network.hh	/^inline void network::mulx(double* a, double b, double* p) {$/;"	f	class:network
+mulx	gpu_network.hh	/^inline void network::mulx(double** a, size_t i, double** b, size_t j, double* p) {$/;"	f	class:network
+mulx	gpu_network.hh	/^inline void network::mulx(float* a, float b) {$/;"	f	class:network
+mulx	gpu_network.hh	/^inline void network::mulx(float* a, float b, float* p) {$/;"	f	class:network
+nAlignment	gpu_network.hh	/^      skymap nAlignment;             \/\/ network alignment factor$/;"	m	class:network
+nCorrEnergy	gpu_network.hh	/^      skymap nCorrEnergy;            \/\/ reduced correlated energy$/;"	m	class:network
+nCorrelation	gpu_network.hh	/^      skymap nCorrelation;           \/\/ network correlation coefficient$/;"	m	class:network
+nDisbalance	gpu_network.hh	/^      skymap nDisbalance;            \/\/ energy disbalance$/;"	m	class:network
+nEllipticity	gpu_network.hh	/^      skymap nEllipticity;           \/\/ waveform ellipticity$/;"	m	class:network
+nIFO	gpu_struct.h	/^	size_t *id, *nIFO, *V, *V4, *tsize; \/\/ nIFO same$/;"	m	struct:other
+nLag	gpu_network.hh	/^      size_t nLag;              \/\/ number of time lags$/;"	m	class:network
+nLikelihood	gpu_network.hh	/^      skymap nLikelihood;            \/\/ network likelihood$/;"	m	class:network
+nNetIndex	gpu_network.hh	/^      skymap nNetIndex;              \/\/ network index$/;"	m	class:network
+nNullEnergy	gpu_network.hh	/^      skymap nNullEnergy;            \/\/ network null energy$/;"	m	class:network
+nPenalty	gpu_network.hh	/^      skymap nPenalty;               \/\/ signal * noise penalty factor$/;"	m	class:network
+nPolarisation	gpu_network.hh	/^      skymap nPolarisation;          \/\/ polarisation angle$/;"	m	class:network
+nProbability	gpu_network.hh	/^      skymap nProbability;           \/\/ probability skymap$/;"	m	class:network
+nRun	gpu_network.hh	/^      size_t nRun;              \/\/ run number$/;"	m	class:network
+nSensitivity	gpu_network.hh	/^      skymap nSensitivity;           \/\/ network sensitivity$/;"	m	class:network
+nSky	gpu_network.hh	/^      long   nSky;              \/\/ number of pixels for sky probability area$/;"	m	class:network
+nSkyStat	gpu_network.hh	/^      skymap nSkyStat;               \/\/ sky optimization statistic$/;"	m	class:network
+netCC	gpu_network.hh	/^      double netCC;             \/\/ threshold on netcc:$/;"	m	class:network
+netRHO	gpu_network.hh	/^      double netRHO;            \/\/ threshold on rho:$/;"	m	class:network
+network	gpu_network.hh	/^class network : public TNamed$/;"	c
+netx	gpu_network.hh	/^inline int network::netx(double* u, double um, double* v, double vm, double g) {$/;"	f	class:network
+netx	gpu_network.hh	/^inline int network::netx(float* u, float um, float* v, float vm, float g) {$/;"	f	class:network
+norm	gpu_network.hh	/^      double norm;              \/\/ norm factor$/;"	m	class:network
+optim	gpu_network.hh	/^      bool   optim;             \/\/ true\/false - process optimal\/all resolutions$/;"	m	class:network
+other	gpu_struct.h	/^struct other                                    \/\/the variable that not use in GPU$/;"	s
+other_data	gpu_struct.h	/^        struct other other_data;$/;"	m	struct:post_data	typeref:struct:post_data::other
+other_data	gpu_struct.h	/^    struct other other_data;$/;"	m	struct:pre_data	typeref:struct:pre_data::other
+output	gpu_struct.h	/^        struct skyloop_output output;$/;"	m	struct:post_data	typeref:struct:post_data::skyloop_output
+pE	gpu_struct.h	/^	float *pE;				\/\/ pointer of pNRG.data	V4max$/;"	m	struct:skyloop_output
+pList	gpu_network.hh	/^      std::vector<netpixel*>  pList; \/\/! list of pixel pointers for MRA$/;"	m	class:network
+pNRG	gpu_network.hh	/^      wavearray<float> pNRG;         \/\/! buffers for cluster MRA energy $/;"	m	class:network
+pOUT	gpu_network.hh	/^      bool   pOUT;              \/\/ true\/false printout flag$/;"	m	class:network
+pSigma	gpu_network.hh	/^      double pSigma;            \/\/ integration limit in sigmas for probability$/;"	m	class:network
+penalty	gpu_network.hh	/^      double penalty;           \/\/ penalty factor:$/;"	m	class:network
+pixeLHood	gpu_network.hh	/^      WSeries<double> pixeLHood;     \/\/ pixel likelihood statistic$/;"	m	class:network
+pixeLNull	gpu_network.hh	/^      WSeries<double> pixeLNull;     \/\/ pixel null statistic$/;"	m	class:network
+pnpx	gpu_network.hh	/^inline void network::pnpx(float* fp, float* fx, float* am, float* AM, float* u, float* v) {$/;"	f	class:network
+pnt_	gpu_network.hh	/^inline void network::pnt_(float** q, float** p, short** m, int l, int n) {$/;"	f	class:network
+pnt_	gpu_network.hh	/^inline void pnt_(float** q, float** p, short** m, int l, int n)$/;"	f
+post_data	gpu_struct.h	/^struct post_data$/;"	s
+pre_data	gpu_struct.h	/^struct pre_data$/;"	s
+precision	gpu_network.hh	/^      double precision;         \/\/ precision of energy calculation$/;"	m	class:network
+rE	gpu_struct.h	/^	float *rE;				\/\/ pointer of rNRG.data	V4max$/;"	m	struct:skyloop_output
+rNRG	gpu_network.hh	/^      wavearray<float> rNRG;         \/\/! buffers for cluster residual energy $/;"	m	class:network
+rTDF	gpu_network.hh	/^      double rTDF;              \/\/ effective rate of time-delay filter$/;"	m	class:network
+rot4	gpu_network.hh	/^inline double network::rot4(double* u, double c, double* v, double s, double* e) {$/;"	f	class:network
+rots	gpu_network.hh	/^inline float network::rots(float* u, float c, float* v, float s, float* e) {$/;"	f	class:network
+rotx	gpu_network.hh	/^inline double network::rotx(double* u, double c, double* v, double s, double* e) {$/;"	f	class:network
+rotx	gpu_network.hh	/^inline double network::rotx(float* u, float c, float* v, float s, float* e) {$/;"	f	class:network
+segList	gpu_network.hh	/^      std::vector<waveSegment>  segList;   \/\/ DQ segment list$/;"	m	class:network
+set2or	gpu_network.hh	/^      inline void set2or(double p) { this->e2or = p; }$/;"	f	class:network
+setAcore	gpu_network.hh	/^      inline void setAcore(double a) {$/;"	f	class:network
+setMRAcatalog	gpu_network.hh	/^      inline void setMRAcatalog(char* fn){ wdmMRA.read(fn);}$/;"	f	class:network
+setOffset	gpu_network.hh	/^      inline void setOffset(double t) { this->Edge = t; return; }$/;"	f	class:network
+setRMS	gpu_network.hh	/^inline void network::setRMS() {$/;"	f	class:network
+setRunID	gpu_network.hh	/^      inline void setRunID(size_t n) { this->nRun=n; return; }$/;"	f	class:network
+skyENRG	gpu_network.hh	/^      wavearray<double> skyENRG;     \/\/ energy skymap$/;"	m	class:network
+skyHole	gpu_network.hh	/^      wavearray<double> skyHole;     \/\/ static sky mask describing "holes"$/;"	m	class:network
+skyMask	gpu_network.hh	/^      wavearray<short>  skyMask;     \/\/ index array for setting sky mask$/;"	m	class:network
+skyMaskCC	gpu_network.hh	/^      wavearray<double> skyMaskCC;   \/\/ index array for setting sky mask Celestial Coordinates$/;"	m	class:network
+skyProb	gpu_network.hh	/^      wavearray<double> skyProb;     \/\/ sky probability$/;"	m	class:network
+skyloop_output	gpu_struct.h	/^struct skyloop_output                           \/\/ the output of skyloop$/;"	s
+start	gpu_network.hh	/^  double start;$/;"	m	struct:waveSegment
+stop	gpu_network.hh	/^  double stop;$/;"	m	struct:waveSegment
+subNetCut	Backup/CWB_Plugin_supercluster_bench_backup.C	/^long subNetCut(network* net, int lag, float snc, TH2F* hist)$/;"	f
+subNetCut	CWB_Plugin_supercluster_bench.C	/^long subNetCut(network* net, int lag, float snc, TH2F* hist)$/;"	f
+subNetCut	CWB_Plugin_supercluster_bench_backup.C	/^long subNetCut(network* net, int lag, float snc, TH2F* hist)$/;"	f
+subNetCut	CWB_Plugin_supercluster_bench_debug.C	/^long subNetCut(network* net, int lag, float snc, TH2F* hist)$/;"	f
+sumx	gpu_network.hh	/^inline double network::sumx(double* a) {$/;"	f	class:network
+tYPe	gpu_network.hh	/^      char   tYPe;              \/\/ likelihood type$/;"	m	class:network
+tsize	gpu_struct.h	/^	size_t *id, *nIFO, *V, *V4, *tsize; \/\/ nIFO same$/;"	m	struct:other
+vectorD	gpu_network.hh	/^typedef std::vector<double> vectorD;$/;"	t
+veto	gpu_network.hh	/^      wavearray<short>  veto;        \/\/ veto array for pixel selection$/;"	m	class:network
+waveSegment	gpu_network.hh	/^struct waveSegment {$/;"	s
+wc_List	gpu_network.hh	/^      std::vector<netcluster>   wc_List;   \/\/ netcluster structures for time shifts$/;"	m	class:network
+wc_ListSize	gpu_network.hh	/^      inline size_t wc_ListSize() { return wc_List.size(); }$/;"	f	class:network
+wdm	gpu_network.hh	/^      bool wdm()  {return _WDM;}	$/;"	f	class:network
+wdm	gpu_network.hh	/^      void    wdm(bool _WDM)   {this->_WDM =_WDM; }  \/\/ set wdm used\/unused	$/;"	f	class:network
+wdmList	gpu_network.hh	/^      std::vector<WDM<double>*> wdmList;   \/\/! list of wdm tranformations  $/;"	m	class:network
+wdmListSize	gpu_network.hh	/^      inline size_t wdmListSize() { return wdmList.size(); }$/;"	f	class:network
+wdmMRA	gpu_network.hh	/^      monster        wdmMRA;         \/\/! wdm multi-resolution analysis$/;"	m	class:network
+whp	gpu_network.hh	/^      WSeries<double> whp;      \/\/ + polarization$/;"	m	class:network
+whx	gpu_network.hh	/^      WSeries<double> whx;      \/\/ x polarization$/;"	m	class:network
+>>>>>>> S6A_BKG_LF_L1H1V1_2G_SUPERCLUSTER_run1a_bench2

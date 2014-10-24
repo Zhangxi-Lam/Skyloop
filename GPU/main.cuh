@@ -1,12 +1,11 @@
 #ifndef _MAIN_
 #define _MAIN_
-#include"gpu_network.hh" 
-
+ 
 void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, int eTDDim, int V4max, int Lsky);
 void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, int eTDDim, int V4max , int Lsky);
 void cleanup_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, cudaStream_t *stream);
 void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloop_other, cudaStream_t *stream);
-void test_function(network *net);
+void test_function(void);
 void QuickSort(size_t *V_array, int *k_array, int p, int r);
 int Partition(size_t *V_array, int *k_array, int p, int r);
 
