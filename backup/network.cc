@@ -17,7 +17,11 @@
 #include "network.hh"
 #include "TComplex.h"
 
+#define CLOCK_SIZE 10
+
 using namespace std;
+
+void test_function(network *net);
 
 ClassImp(network)
 
@@ -542,6 +546,13 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 // hist: diagnostic histogram
 // return number of processed pixels
 
+	clock_t Clock[CLOCK_SIZE];
+	double time[CLOCK_SIZE];
+	for(int t=0; t<CLOCK_SIZE; t++)
+		time[t] = 0;
+	
+	Clock[0] = clock();
+
    if(!this->wc_List[lag].size()) return 0;
 
    size_t nIFO = this->ifoList.size();
@@ -612,6 +623,8 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 
    cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
    
+	Clock[1] = clock();
+	time[0] = (double)(Clock[1] - Clock[0])/CLOCKS_PER_SEC;
    K = cid.size();
    for(k=0; k<K; k++) {                                   // loop over clusters 
       id = size_t(cid.data[k]+0.1);
@@ -619,11 +632,15 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
       vint = &(pwc->cList[id-1]);                         // pixel list
       V = vint->size();                                   // pixel list size
       if(!V) continue;
+	Clock[2] = clock();
 
       pI = wdmMRA.getXTalk(pwc, id);
 
       V = pI.size();                                      // number of loaded pixels
+	Clock[3] = clock();
+	time[1] += (double)(Clock[3] - Clock[2])/CLOCKS_PER_SEC;
       if(!V) continue;
+	Clock[4] = clock();
 
       pix = pwc->getPixel(id,pI[0]);
       tsize = pix->tdAmp[0].size();
@@ -690,6 +707,8 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 
       __m128* _aa = (__m128*) this->a_00.data;         // set pointer to 00 array
       __m128* _AA = (__m128*) this->a_90.data;         // set pointer to 90 array
+	Clock[5] = clock();
+	time[2] += (double)(Clock[5] - Clock[4])/CLOCKS_PER_SEC;
 
       this->pList.clear();
       for(j=0; j<V; j++) {                             // loop over selected pixels 
@@ -713,6 +732,16 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
             }
          }
       }
+	if(k==4)
+	{
+		FILE *fpt = fopen("./debug_files/skyloop_input", "a");
+		for(int l=0; l<V4*tsize; l++)
+			fprintf(fpt, "k = %d l = %d pe[0] = %f pe[1] = %f pe[2] = %f pe[3] = %f\n", k, l, eTD[0].data[l], eTD[1].data[l], eTD[2].data[l], eTD[3].data[l]);
+		fclose(fpt);	
+	}
+	
+	Clock[6] = clock();
+	time[3] += (double)(Clock[6] - Clock[5])/CLOCKS_PER_SEC;
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // first sky loop
@@ -725,17 +754,27 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
       double submra=0;
 
       stat=Lm=Em=Am=EE=0.; lm=Vm= -1;    
-	//FILE *fpt = fopen("debug_files/skyloop_V","a");
-	//fprintf(fpt, "k = %d K = %d Lsky = %d V = %d\n", k, K, Lsky, V);
-	//fclose(fpt);	
+//	FILE *fpt = fopen("debug_files/skyloop_pe","a");
 
-	clock_t Clock[10];
   skyloop:
 
       for(l=lb; l<=le; l++) {	                      // loop over sky locations
          if(!mm[l] || l<0) continue;                  // skip delay configurations
             
          _sse_point_ps(_pe, pe, ml, int(l), (int)V4); // point _pe to energy vectors
+/*		if(k == 4)
+		{
+			float temp[NIFO];
+         		_mm_storeu_ps(vvv,_pe[0][0]);
+			temp[0] = vvv[0];
+         		_mm_storeu_ps(vvv,_pe[1][0]);
+			temp[1] = vvv[0];
+         		_mm_storeu_ps(vvv,_pe[2][0]);
+			temp[2] = vvv[0];
+         		_mm_storeu_ps(vvv,_pe[3][0]);
+			temp[3] = vvv[0];
+			fprintf(fpt, "k = %d l = %d aa = %f aa = %f aa = %f aa = %f\n", k, l, temp[0], temp[1], temp[2], temp[3]);
+		}*/
                                      
          __m128 _msk;
          __m128 _E_o = _mm_setzero_ps();              // total network energy
@@ -767,7 +806,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	 m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold
 
 	 aa = Ls*Ln/(Eo-Ls);
-         if((aa-m)/(aa+m)<0.33) continue;
+         if((aa-m)/(aa+m)<0.33)	continue;
  
          pnt_(v00, pa, ml, (int)l, (int)V4);           // pointers to first pixel 00 data 
          pnt_(v90, pA, ml, (int)l, (int)V4);           // pointers to first pixel 90 data 
@@ -841,6 +880,10 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
        }
 
       if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
+//	fclose(fpt);
+	Clock[7] = clock();
+	time[4] += (double)(Clock[7] - Clock[6])/CLOCKS_PER_SEC;
+
       
       pwc->sCuts[id-1] = -1; 
       pwc->cData[id-1].likenet = Lm; 
@@ -890,8 +933,15 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
          pix = pwc->getPixel(id,j);
          pix->core = true;
          if(pix->tdAmp.size()) pix->clean(); 
-      } 
+      }
+	Clock[8] = clock();
+	time[5] += (double)(Clock[8] - Clock[7])/CLOCKS_PER_SEC;
    }                                                 // end of loop over clusters
+	Clock[9] = clock();
+	time[6] += (double)(Clock[9] - Clock[1])/CLOCKS_PER_SEC;
+	
+	printf("time[0] = %f\n time[1] = %f\n time[2] = %f\n time[3] = %f\n time[4] = %f\n time[5] = %f\n time[6] = %f\n", time[0], time[1], time[2], time[3], time[4], time[5], time[6]);
+	
    return count;
 }
 

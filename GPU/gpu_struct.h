@@ -7,6 +7,7 @@ struct other                                    //the variable that not use in G
 {
 	float *eTD;
 	short *ml_mm;
+	size_t *V_tsize;
 	float T_En, T_Es, TH;	// same
 	int le, lag;	// le, lag same
 	int stream;	// indicate which stream
