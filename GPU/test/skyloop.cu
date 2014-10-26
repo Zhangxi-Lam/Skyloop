@@ -336,16 +336,16 @@ __global__ void kernel_skyloop(float *eTD, short *ml_mm, float *gpu_output, int 
 		msk = (msk>0);
 		V4 = V + msk*(4-V%4);
 		
-		pe[0] = eTD + etd_ptr;
-		pe[1] = eTD + V4*tsize + etd_ptr;
-		pe[2] = eTD + 2*V4*tsize + etd_ptr;
-		pe[3] = eTD + 3*V4*tsize + etd_ptr;
-	
+			
 		for(l = tid; l<=le; l+=grid_size)		// loop over sky locations
 		{
 			if(!mm[l]) continue;		// skip delay configurations
 		
 		// _sse_point_ps 
+			pe[0] = eTD + etd_ptr;
+			pe[1] = eTD + V4*tsize + etd_ptr;
+			pe[2] = eTD + 2*V4*tsize + etd_ptr;
+			pe[3] = eTD + 3*V4*tsize + etd_ptr;
 			pe[0] = pe[0] + (tsize/2)*V4;
 			pe[1] = pe[1] + (tsize/2)*V4;
 			pe[2] = pe[2] + (tsize/2)*V4;

@@ -14,8 +14,6 @@
 #define MaxPixel 10
 #define CLOCK_SIZE 10
 
-bool flag = false; 	//debug
-
 network *gpu_net;
 TH2F *gpu_hist;
 netcluster *pwc;
@@ -222,7 +220,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 	for(int z=0; z<kcount; z++)			// loop over unskiped clusters
 	{
 		k = k_sortArray[z];
-		V = V_array[k];
 		V4 = V4_array[k];
 		tsize = tsize_array[k];
 		etddim = V4 * tsize;
@@ -247,37 +244,31 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
                                         {
                                                 aa = pix->tdAmp[i].data[l];             // copy TD 00 data 
                                                 AA = pix->tdAmp[i].data[l+tsize];       // copy TD 90 data 
-                                                vtd[i].data[l*V4+j+v_ptr + alloced_gpu*vDim] = aa;
-                                                vTD[i].data[l*V4+j+v_ptr + alloced_gpu*vDim] = AA;
+                                                vtd[i].data[l*V4+j+v_ptr] = aa;
+                                                vTD[i].data[l*V4+j+v_ptr] = AA;
                                                 // assign the data 
                                                 pre_gpu_data[alloced_gpu].other_data.eTD[i*etddim + l*V4+j + etd_ptr] = aa*aa+AA*AA;
                                                 if(i == nIFO - 1 && NIFO > nIFO)
                                                 	for(int I = nIFO; I<NIFO; I++)
-								{
-                                                        		pre_gpu_data[alloced_gpu].other_data.eTD[I*etddim + l*V4+j + etd_ptr] = 0;
-									if(j==(V-1))
-										for(int J=V; J<V4; J++)
-                                                        				pre_gpu_data[alloced_gpu].other_data.eTD[I*etddim + l*V4+J + etd_ptr] = 0;
-								}
+                                                        	pre_gpu_data[alloced_gpu].other_data.eTD[I*etddim + l*V4+j + etd_ptr] = 0;
                                         }
                                 }
-				
 			}
-			if(k == 125)
-                        {
-                                FILE *fpt = fopen("./debug_files/skyloop_myinput", "a");
-				fprintf(fpt, "V = %d V4 = %d tsize = %d\n", V, V4, tsize);
-                                for(int l=0; l<etddim; l++)
-                                        fprintf(fpt, "lag = %d k = %d l = %d pe[0] = %f pe[1] = %f pe[2] = %f pe[3] = %f\n", k, l, pre_gpu_data[alloced_gpu].other_data.eTD[l + etd_ptr], pre_gpu_data[alloced_gpu].other_data.eTD[1*etddim + l + etd_ptr], pre_gpu_data[alloced_gpu].other_data.eTD[2*etddim + l + etd_ptr], pre_gpu_data[alloced_gpu].other_data.eTD[3*etddim + l + etd_ptr]);
-                                fclose(fpt);            
-                        }
+/*			if(k == 4)
+			{
+				FILE *fpt = fopen("./debug_files/skyloop_myinput", "a");
+				for(int l=0; l<etddim; l++)
+					fprintf(fpt, "k = %d l = %d pe[0] = %f pe[1] = %f pe[2] = %f pe[3] = %f\n", k, l, pre_gpu_data[alloced_gpu].other_data.eTD[l + etd_ptr], pre_gpu_data[alloced_gpu].other_data.eTD[1*etddim + l + etd_ptr], pre_gpu_data[alloced_gpu].other_data.eTD[2*etddim + l + etd_ptr], pre_gpu_data[alloced_gpu].other_data.eTD[3*etddim + l + etd_ptr]);
+				fclose(fpt);		
+			}*/
+			
 			i = alloced_gpu;
 			etd_ptr += NIFO*etddim;	
 			v_ptr += V4*tsize;
 			k_array[i][pixelCount] = k+1;
 			pre_gpu_data[i].other_data.eTD[pixelCount] = k+1;
                         post_gpu_data[i].other_data.k[pixelCount] = k+1;
-                        post_gpu_data[i].other_data.V[pixelCount] = V;
+                        post_gpu_data[i].other_data.V[pixelCount] = V_array[k];
                         post_gpu_data[i].other_data.V4[pixelCount] = V4;
                         post_gpu_data[i].other_data.tsize[pixelCount] = tsize;
                         post_gpu_data[i].other_data.id[pixelCount] = id;
@@ -309,8 +300,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
                                         post_gpu_data[j].other_data.V4[i] = 0;
                                         post_gpu_data[j].other_data.tsize[i] = 0;	
 				}
-			vtd.clear();
-			vTD.clear();
 			for(int i=0; i<NIFO; i++)
 			{
 				vtd.push_back(tmp);
@@ -349,7 +338,7 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
                 cudaMemcpyAsync(skyloop_other[i].eTD, input_data[i].other_data.eTD, etddim_array[i] * sizeof(float), cudaMemcpyHostToDevice, stream[i] );
 
         for(int i=0; i<work_size; i++)// call for gpu caculation
-                kernel_skyloop<<<num_blocks, num_threads, shared_memory_usage, stream[i]>>>(skyloop_other[i].eTD, skyloop_other[0].ml_mm, skyloop_other[0].V_tsize, skyloop_output[i].output, pixel_array[i]);
+                kernel_skyloop<<<num_blocks, num_threads, shared_memory_usage, stream[i]>>>(skyloop_other[i].eTD, skyloop_other[0].ml_mm, skyloop_other[0].V_tsize, skyloop_output[i].output);
         for(int i=0; i<work_size; i++)// transfer the data back from GPU to CPU
                 cudaMemcpyAsync(post_gpu_data[i].output.output, skyloop_output[i].output, Lsky * alloced_V4_array[i] * sizeof(float) + Lsky * pixel_array[i] * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
         for(int i=0; i<work_size; i++)
@@ -357,7 +346,7 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 }
 
 
-__global__ void kernel_skyloop(float *eTD, short *ml_mm, size_t *V_tsize, float *gpu_output, int pixelcount)
+__global__ void kernel_skyloop(float *eTD, short *ml_mm, size_t *V_tsize, float *gpu_output)
 {
         const int grid_size = blockDim.x * gridDim.x;
         int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -381,14 +370,8 @@ __global__ void kernel_skyloop(float *eTD, short *ml_mm, size_t *V_tsize, float 
         ml[2] = ml_mm + 2*Lsky;
         ml[3] = ml_mm + 3*Lsky;
         mm = ml_mm + 4*Lsky;
-	pe[0] = eTD + etd_ptr;
-	pe[1] = eTD + V4*tsize + etd_ptr;
-	pe[2] = eTD + 2*V4*tsize + etd_ptr;
-	pe[3] = eTD + 3*V4*tsize + etd_ptr;
-
-	while(count<pixelcount)
+	while(k!=-1 && count<MaxPixel)
 	{
-		k = k_array[count] - 1;
 		V = V_tsize[k];
 		tsize = V_tsize[k+constK];
 		msk = V%4;
@@ -402,13 +385,6 @@ __global__ void kernel_skyloop(float *eTD, short *ml_mm, size_t *V_tsize, float 
 			pe[1] = eTD + V4*tsize + etd_ptr;
 			pe[2] = eTD + 2*V4*tsize + etd_ptr;
 			pe[3] = eTD + 3*V4*tsize + etd_ptr;
-		/*	if(k == 83)
-			{
-				gpu_output[tid*4] = pe[0][tid];	
-				gpu_output[tid*4+1] = pe[1][tid];	
-				gpu_output[tid*4+2] = pe[2][tid];	
-				gpu_output[tid*4+3] = pe[3][tid];	
-			}*/
 			pe[0] = pe[0] + (tsize/2)*V4;
                         pe[1] = pe[1] + (tsize/2)*V4;
                         pe[2] = pe[2] + (tsize/2)*V4;
@@ -417,14 +393,20 @@ __global__ void kernel_skyloop(float *eTD, short *ml_mm, size_t *V_tsize, float 
                         pe[1] = pe[1] + ml[1][l] * (int)V4;
                         pe[2] = pe[2] + ml[2][l] * (int)V4;
                         pe[3] = pe[3] + ml[3][l] * (int)V4;
-			
+	/*		if(k == 4 )
+			{
+				gpu_output[l*V4] = pe[0][0];
+				gpu_output[l*V4+1] = pe[1][0];
+				gpu_output[l*V4+2] = pe[2][0];
+				gpu_output[l*V4+3] = pe[3][0];	
+			}*/
 			kernel_skyloop_calculate(pe[0], pe[1], pe[2], pe[3], V, V4, V4*Lsky, gpu_output, l, output_ptr);
 		}
+	
 		etd_ptr = etd_ptr + NIFO*V4*tsize;
 		output_ptr = output_ptr + V4*Lsky + Lsky;
 		count++;
-//		gpu_output[tid*2] = count;
-//		gpu_output[tid*2+1] = pixelcount;
+		k = k_array[count] - 1;
         }
 
 }
@@ -462,7 +444,7 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
                 rE = pe[0] + pe[1] + pe[2] + pe[3];                                                             // get pixel energy
                 //assign the value to the local memory
                 gpu_output[ptr + v] = rE;
-	        // E>En  0/1 mask
+        // E>En  0/1 mask
                 msk = ( rE>=constEn );                                                                          // E>En  0/1 mask
                 Mm += msk;                                                                                              // count pixels above threshold
                 pE = rE * msk;                                                                                  // zero sub-threshold pixels
@@ -514,135 +496,61 @@ __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
 }
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gpu_data)
 {
-	FILE *fpt = fopen("./debug_files/skyloop_output", "a");
+	FILE *fpt = fopen("./debug_files/skyloop_myaa", "a");
+	float aa;
+	int l, lb;
 	int Lsky = gpu_Lsky;
-	int k, lag;
-	size_t V4;
-	int pixelcount=0;
+	int le = Lsky - 1;
+	lb = 0;
+	int k;
+	size_t V4, V;
+	float *rE;
+	int count=0;
 	size_t output_ptr = 0;
 	cout<<"Callback"<<endl;
-	k = ((post_data*)post_gpu_data)->other_data.k[pixelcount] - 1;
-	lag  = ((post_data*)post_gpu_data)->other_data.lag;
-	
+	k = ((post_data*)post_gpu_data)->other_data.k[count] - 1;
 	while(k != -1)
 	{
 		cout<<"k = "<<k<<endl;
-		V4 = ((post_data*)post_gpu_data)->other_data.V4[pixelcount];
-
-		if(k==125)
+		V4 = ((post_data*)post_gpu_data)->other_data.V4[count];
+		V = ((post_data*)post_gpu_data)->other_data.V[count];
+		rE = ((post_data*)post_gpu_data)->output.output + output_ptr;
+		
+		gpu_net->rNRG.resize(V4);	gpu_net->rNRG = 0.;
+		for(l=lb; l<=le; l++)
 		{
-		float aa;
-		for(int l=0; l<Lsky-1; l++)
-		{
-		//	aa = ((post_data*)post_gpu_data)->output.output[output_ptr + V4*Lsky + l];
-		//	aa = ((post_data*)post_gpu_data)->output.output[l];
-		//	fprintf(fpt, "lag = %d k = %d l = %d aa = %f V4 = %d\n", lag, k, l, aa, V4);
-		}
-		}
-		//after_skyloop(post_gpu_data, pixelcount, output_ptr);
-
+			aa = ((post_data*)post_gpu_data)->output.output[output_ptr + l];
+//			fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
+		}	
 		output_ptr = output_ptr + V4*Lsky + Lsky;
-		pixelcount++;
-		if(pixelcount<MaxPixel)
-			k = ((post_data*)post_gpu_data)->other_data.k[pixelcount] - 1;
+		count++;
+		if(count<MaxPixel)
+			k = ((post_data*)post_gpu_data)->other_data.k[count] - 1;
 		else 
 			break;
 	}
+	
+
+/*	while( k!=-1 )
+	{
+		cout<<"new k = "<<k<<endl;	
+		if(k == 4)
+		{
+			V4 = ((post_data*)post_gpu_data)->other_data.V4[count];
+			for(l=lb; l<=le; l++)
+			{	
+				fprintf(fpt, "k = %d l = %d aa = %f aa = %f aa = %f aa = %f\n", k, l,((post_data*)post_gpu_data)->output.output[l*V4], ((post_data*)post_gpu_data)->output.output[l*V4 +1], ((post_data*)post_gpu_data)->output.output[l*V4+2], ((post_data*)post_gpu_data)->output.output[l*V4+3]);
+			}
+		}
+		count++;
+		if(count<MaxPixel)
+			k = ((post_data*)post_gpu_data)->other_data.k[count] - 1;
+		else
+			break;
+	}
+*/
 	fclose(fpt);
 }
-void after_skyloop(void *post_gpu_data, int pixelcount, size_t output_ptr)
-{
-	bool mra = false;
-	float vvv[NIFO], *v00[NIFO], *v90[NIFO];
-	float *rE, *pE, *aa_array;
-	float Ln, Eo, Ls;
-	float aa, AA, En, Es, ee, em, stat, Lm, Em, Am, EE, rHo, To, TH;
-	int l, lb, le, lag, stream, lm, Vm, Lsky;
-	int f_ = NIFO/4;
-	int m;
-	size_t id, nIFO, V, V4, tsize, count;
-	size_t k = 0;
-	short *ml[NIFO], *mm;
-	double suball, submra;
-	double xx[NIFO];
-	
-	count = lb = m = Ln = Eo = Ls = 0;	suball = submra = 0;
-	stat=Lm=Em=Am=EE=0.;    lm=Vm= -1;	Lsky = gpu_Lsky;	le = Lsky - 1;
-	k = ((post_data*)post_gpu_data)->other_data.k[pixelcount] - 1;
-	V = ((post_data*)post_gpu_data)->other_data.V[pixelcount];
-	V4 = ((post_data*)post_gpu_data)->other_data.V4[pixelcount];
-	tsize = ((post_data*)post_gpu_data)->other_data.tsize[pixelcount];
-	id = ((post_data*)post_gpu_data)->other_data.id[pixelcount];
-	En = ((post_data*)post_gpu_data)->other_data.T_En;
-	Es = ((post_data*)post_gpu_data)->other_data.T_Es;
-	TH = ((post_data*)post_gpu_data)->other_data.TH;
-	lag = ((post_data*)post_gpu_data)->other_data.lag;
-	stream = ((post_data*)post_gpu_data)->other_data.stream;
-	
-	for(int i=0; i<NIFO; i++)
-		ml[i] = ((post_data*)post_gpu_data)->other_data.ml_mm + i*Lsky;                      
-        mm = ((post_data*)post_gpu_data)->other_data.ml_mm + NIFO*Lsky;                                 
-        rE = ((post_data*)post_gpu_data)->output.output + output_ptr;
-        aa_array = ((post_data*)post_gpu_data)->output.output + V4*Lsky + output_ptr;
-	
-	std::vector<int> pI;                      // buffer for pixel TDs                      
-        wavearray<float> tmp(tsize*V4); tmp=0;    
-        wavearray<float> fp(NIFO*V4);  fp=0;     // aligned array for + antenna pattern             
-        wavearray<float> fx(NIFO*V4);  fx=0;     // aligned array for x antenna pattern 
-        wavearray<float> nr(NIFO*V4);  nr=0;     // aligned array for inverse rms            
-        wavearray<float> Fp(NIFO*V4);  Fp=0;     // aligned array for pattern                
-        wavearray<float> Fx(NIFO*V4);  Fx=0;     // aligned array for pattern
-        wavearray<float> am(NIFO*V4);  am=0;     // aligned array for TD amplitudes                 
-        wavearray<float> AM(NIFO*V4);  AM=0;     // aligned array for TD amplitudes                 
-        wavearray<float> bb(NIFO*V4);  bb=0;     // temporary array for MRA amplitudes              
-        wavearray<float> BB(NIFO*V4);  BB=0;     // temporary array for MRA amplitudes  
-        wavearray<float> xi(NIFO*V4);  xi=0;     // 00 array for reconctructed responses            
-        wavearray<float> XI(NIFO*V4);  XI=0;     // 90 array for reconstructed responses
-	
-	__m128* _Fp = (__m128*) Fp.data;                                                             
-        __m128* _Fx = (__m128*) Fx.data;                                                             
-        __m128* _am = (__m128*) am.data;                                                             
-        __m128* _AM = (__m128*) AM.data;                                                             
-        __m128* _xi = (__m128*) xi.data;                                                             
-        __m128* _XI = (__m128*) XI.data;                                                             
-        __m128* _fp = (__m128*) fp.data;                                                             
-        __m128* _fx = (__m128*) fx.data;                                                             
-        __m128* _bb = (__m128*) bb.data;                                                             
-        __m128* _BB = (__m128*) BB.data;                                                             
-        __m128* _nr = (__m128*) nr.data;  
-	__m128 _E_n = _mm_setzero_ps();         // network energy above the threshold                
-	__m128 _E_s = _mm_setzero_ps();         // subnet energy above the threshold    
-
-	netpixel *pix;
-	std::vector<int> *vint;
-	
-	// initialize data
-	gpu_net->a_00.resize(NIFO*V4);  gpu_net->a_00=0.;                                            
-        gpu_net->a_90.resize(NIFO*V4);  gpu_net->a_90=0.;   
-        __m128* _aa = (__m128*) gpu_net->a_00.data;         // set pointer to 00 array               
-	__m128* _AA = (__m128*) gpu_net->a_90.data;         // set pointer to 90 array
-
-        gpu_net->rNRG.resize(V4);       gpu_net->rNRG=0.;
-        gpu_net->pNRG.resize(V4);       gpu_net->pNRG=0.;
-	
-	pI = gpu_net->wdmMRA.getXTalk(pwc, id);
-	gpu_net->pList.clear();
-	for(int j=0; j<V; j++)                  // loop over selected pixels
-        {
-                pix = pwc->getPixel(id, pI[j]); // get pixel pointer
-                gpu_net->pList.push_back(pix);
-                double rms = 0.;
-                for(int i=0; i<nIFO; i++)
-                {
-                        xx[i] = 1./pix->data[i].noiserms;
-                        rms += xx[i]*xx[i];     // total inverse variance
-                }
-                for(int i=0; i<nIFO; i++)
-                        nr.data[j*NIFO+i]=(float)xx[i]/sqrt(rms);       // normalized 1/rms
-        }
-	
-}
-
 void QuickSort(size_t *V_array, int *k_array, int p, int r)
 {
         int q;
