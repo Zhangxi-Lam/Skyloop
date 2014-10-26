@@ -68,7 +68,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
         int kcount = 0;                         // store the k that is not rejected/processed
         size_t k_array[StreamNum][MaxPixel];
         int CombineSize;
-        int etd_ptr, vtd_ptr, vTD_ptr;                          // indicate the eTD's, vtd's and vTD's location
+        int etd_ptr, v_ptr;                          // indicate the eTD's, vtd's and vTD's location
         size_t etddim_array[StreamNum];
         size_t alloced_V4_array[StreamNum];
         int pixel_array[StreamNum];
@@ -147,9 +147,11 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
         struct other skyloop_other[StreamNum];          // store the data which is not output
 
         int eTDDim = 0;                                 // the size of each eTD
+	int vDim = 0;
         int alloced_gpu = 0;                            // the number of gpu which has been allocated data
 
         eTDDim = Tmax * V4max;
+	vDim = eTDDim;
         for(int i=0; i<StreamNum; i++)
                 streamCount[i] = 0;
 	// allocate the memory on cpu and gpu
@@ -195,13 +197,12 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 	}
 	cudaMemcpyAsync(skyloop_other[0].ml_mm, pre_gpu_data[0].other_data.ml_mm, (1 + NIFO) * Lsky * sizeof(short), cudaMemcpyHostToDevice, stream[0] );
 	cudaMemcpyAsync(skyloop_other[0].V_tsize, pre_gpu_data[0].other_data.V_tsize, K * 2 * sizeof(size_t), cudaMemcpyHostToDevice, stream[0] );
-	
 //++++++++++++++++++++++++++++++++
 // loop over cluster
 //++++++++++++++++++++++++++++++++
 	std::vector<wavearray<float> > vtd;     	// vectors of TD energies  
         std::vector<wavearray<float> > vTD;     	// vectors of TD energies  
-        wavearray<float> tmp(Tmax*V4max); tmp=0;	// aligned array for TD amplitude   
+        wavearray<float> tmp(StreamNum * Tmax*V4max); tmp=0;	// aligned array for TD amplitude   
 
 	QuickSort(V_array, k_sortArray, 0, kcount-1);
 	cid = pwc->get((char*)"ID", 0,'S',0);		// get cluster ID
@@ -214,13 +215,11 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
         }
 	alloced_V4 = 0;					// initialize
 	etd_ptr = MaxPixel;
-	vtd_ptr = 0;
-	vTD_ptr = 0;
+	v_ptr = 0;
 	pixelCount = 0;
 	for(int z=0; z<kcount; z++)			// loop over unskiped clusters
 	{
 		k = k_sortArray[z];
-				
 		V4 = V4_array[k];
 		tsize = tsize_array[k];
 		etddim = V4 * tsize;
@@ -232,8 +231,8 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 
                         for(i=0; i<NIFO; i++)
                         {
-                                pa[alloced_gpu][i][pixelCount] = vtd[i].data + (tsize/2)*V4 + vtd_ptr;
-                                pA[alloced_gpu][i][pixelCount] = vTD[i].data + (tsize/2)*V4 + vTD_ptr;
+                                pa[alloced_gpu][i][pixelCount] = vtd[i].data + (tsize/2)*V4 + v_ptr + alloced_gpu*vDim;
+                                pA[alloced_gpu][i][pixelCount] = vTD[i].data + (tsize/2)*V4 + v_ptr + alloced_gpu*vDim;
                         }
 			
 			for(j=0; j<V; j++)
@@ -245,16 +244,13 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
                                         {
                                                 aa = pix->tdAmp[i].data[l];             // copy TD 00 data 
                                                 AA = pix->tdAmp[i].data[l+tsize];       // copy TD 90 data 
-                                                vtd[i].data[l*V4+j+vtd_ptr] = aa;
-                                                vTD[i].data[l*V4+j+vTD_ptr] = AA;
+                                                vtd[i].data[l*V4+j+v_ptr] = aa;
+                                                vTD[i].data[l*V4+j+v_ptr] = AA;
                                                 // assign the data 
-                                                if(alloced_gpu<BufferNum)
-                                                {
-                                                        pre_gpu_data[alloced_gpu].other_data.eTD[i*etddim + l*V4+j + etd_ptr] = aa*aa+AA*AA;
-                                                        if(i == nIFO - 1 && NIFO > nIFO)
-                                                                for(int I = nIFO; I<NIFO; I++)
-                                                                        pre_gpu_data[alloced_gpu].other_data.eTD[I*etddim + l*V4+j + etd_ptr] = 0;
-                                                }
+                                                pre_gpu_data[alloced_gpu].other_data.eTD[i*etddim + l*V4+j + etd_ptr] = aa*aa+AA*AA;
+                                                if(i == nIFO - 1 && NIFO > nIFO)
+                                                	for(int I = nIFO; I<NIFO; I++)
+                                                        	pre_gpu_data[alloced_gpu].other_data.eTD[I*etddim + l*V4+j + etd_ptr] = 0;
                                         }
                                 }
 			}
@@ -268,6 +264,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 			
 			i = alloced_gpu;
 			etd_ptr += NIFO*etddim;	
+			v_ptr += V4*tsize;
 			k_array[i][pixelCount] = k+1;
 			pre_gpu_data[i].other_data.eTD[pixelCount] = k+1;
                         post_gpu_data[i].other_data.k[pixelCount] = k+1;
@@ -293,6 +290,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 			push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, alloced_V4_array, etddim_array, Lsky, pixel_array, StreamNum, stream);
 			for(int i=0; i<StreamNum; i++)
 				CUDA_CHECK(cudaStreamSynchronize(stream[i]));
+			//clear
 			alloced_gpu = 0;
 			for(int j=0; j<StreamNum; j++)
 				for(int i=0; i<pixel_array[j]; i++)
@@ -302,11 +300,15 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
                                         post_gpu_data[j].other_data.V4[i] = 0;
                                         post_gpu_data[j].other_data.tsize[i] = 0;	
 				}
+			for(int i=0; i<NIFO; i++)
+			{
+				vtd.push_back(tmp);
+				vTD.push_back(tmp);
+			}
 		}
 		// clear
 		etd_ptr = MaxPixel;
-		vtd_ptr = 0;	
-		vTD_ptr = 0;
+		v_ptr = 0;	
 		pixelCount = 0;
 		alloced_V4 = 0;	
 		
@@ -376,14 +378,13 @@ __global__ void kernel_skyloop(float *eTD, short *ml_mm, size_t *V_tsize, float 
 		msk = (msk>0);
 		V4 = V + msk*(4-V%4);
 		
-		pe[0] = eTD + etd_ptr;
-		pe[1] = eTD + V4*tsize + etd_ptr;
-		pe[2] = eTD + 2*V4*tsize + etd_ptr;
-		pe[3] = eTD + 3*V4*tsize + etd_ptr;
-		
-		for(l=tid; l< Lsky; l+=grid_size)		// loop over sky locations
+		for(l=tid; l<Lsky; l+=grid_size)		// loop over sky locations
 		{
 			if(!mm[l])	continue;	// skip delay configurations
+			pe[0] = eTD + etd_ptr;
+			pe[1] = eTD + V4*tsize + etd_ptr;
+			pe[2] = eTD + 2*V4*tsize + etd_ptr;
+			pe[3] = eTD + 3*V4*tsize + etd_ptr;
 			pe[0] = pe[0] + (tsize/2)*V4;
                         pe[1] = pe[1] + (tsize/2)*V4;
                         pe[2] = pe[2] + (tsize/2)*V4;
@@ -392,7 +393,7 @@ __global__ void kernel_skyloop(float *eTD, short *ml_mm, size_t *V_tsize, float 
                         pe[1] = pe[1] + ml[1][l] * (int)V4;
                         pe[2] = pe[2] + ml[2][l] * (int)V4;
                         pe[3] = pe[3] + ml[3][l] * (int)V4;
-		/*	if(k == 4 )
+	/*		if(k == 4 )
 			{
 				gpu_output[l*V4] = pe[0][0];
 				gpu_output[l*V4+1] = pe[1][0];
@@ -524,6 +525,7 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gp
 		else 
 			break;
 	}
+	
 
 /*	while( k!=-1 )
 	{
@@ -543,6 +545,7 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gp
 			break;
 	}
 */
+	fclose(fpt);
 }
 void QuickSort(size_t *V_array, int *k_array, int p, int r)
 {
