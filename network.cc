@@ -554,7 +554,10 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
                 time[i] = 0;
 
 	gROOT->LoadMacro("/home/hpc/cWB/trunk/wat/GPU/main.so");
+	time[0] = clock();
         count = gpu_subNetCut(this, lag, snc, hist, time);
+	time[1] = clock();
+	printf("GPU this time = %f\n", (double)(time[1]-time[0])/CLOCKS_PER_SEC);
 	return count;
 }
 

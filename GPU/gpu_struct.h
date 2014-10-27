@@ -11,6 +11,7 @@ struct other                                    //the variable that not use in G
 	float T_En, T_Es, TH;	// same
 	int le, lag;	// le, lag same
 	int stream;	// indicate which stream
+	size_t nIFO;
 	size_t id[MaxPixel];
 	size_t k[MaxPixel];
 	size_t V[MaxPixel];
