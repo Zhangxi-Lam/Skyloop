@@ -540,6 +540,7 @@ int network::getMRA(float* amp, float* AMP, float Eo, int Mo) {
 long network::subNetCut(int lag, float snc, TH2F* hist)
 {
 	cout<<"GPU Version"<<endl;
+        double time[10];
 	if(!this->wc_List[lag].size())	return 0;
 	size_t nIFO = this->ifoList.size();
 	
@@ -549,7 +550,6 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	}
 	
 	size_t count = 0;
-        double time[CLOCK_SIZE];
         for(int i=0; i<CLOCK_SIZE; i++)
                 time[i] = 0;
 

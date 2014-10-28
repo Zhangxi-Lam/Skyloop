@@ -70,6 +70,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
         int *k_sortArray;
         int kcount = 0;                         // store the k that is not rejected/processed
         int CombineSize;
+	bool CombineFinish = false;		
         int etd_ptr, v_ptr;                          // indicate the eTD's, vtd's and vTD's location
         size_t etddim_array[StreamNum];
         size_t alloced_V4_array[StreamNum];
@@ -220,8 +221,10 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 	etd_ptr = MaxPixel;
 	v_ptr = 0;
 	pixelCount = 0;
-	for(int z=0; z<kcount; z++)			// loop over unskiped clusters
+	for(int z=0; z<kcount;)			// loop over unskiped clusters
 	{
+		while(!CombineFinish && z<kcount)
+		{
 		k = k_sortArray[z];
 		V = V_array[k];
 		V4 = V4_array[k];
@@ -283,16 +286,24 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
                         post_gpu_data[i].other_data.tsize[pixelCount] = tsize;
                         post_gpu_data[i].other_data.id[pixelCount] = id;
                         pixelCount++;
+			z++;
+			//cout<<"z = "<<z<<" kcount = "<<kcount<<endl;
+			if(pixelCount >= MaxPixel)
+				CombineFinish = true;
 		}
-		if( pixelCount<MaxPixel && alloced_V4<CombineSize )	continue;
-//		cout<<"list "<<i<<" gross V4 = "<<alloced_V4<<endl;
-//		for(int z=0; z<pixelCount; z++)
-//                        cout<<"k = "<<pre_gpu_data[i].other_data.eTD[z]-1<<endl;
+		else
+			CombineFinish = true;
+		}
+//		if( pixelCount<MaxPixel && alloced_V4<CombineSize )	continue;
+		//cout<<"list "<<i<<" gross V4 = "<<alloced_V4<<endl;
+		//for(int z=0; z<pixelCount; z++)
+                        //cout<<"k = "<<pre_gpu_data[i].other_data.eTD[z]-1<<endl;
 		post_gpu_data[i].other_data.stream = i;
 		etddim_array[i] = etd_ptr;
 		alloced_V4_array[i] = alloced_V4;
 		pixel_array[i] = pixelCount;
 		alloced_gpu++;
+		CombineFinish = false;
 //++++++++++++++++++++++++++++++++
 // assign the data 
 //++++++++++++++++++++++++++++++++
@@ -327,6 +338,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 	}
 	if(alloced_gpu != 0)
 	{
+		
 		push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, alloced_V4_array, etddim_array, Lsky, pixel_array, StreamNum, stream);
 		for(int i=0; i<StreamNum; i++)
 			CUDA_CHECK(cudaStreamSynchronize(stream[i]));
@@ -628,8 +640,8 @@ void after_skyloop(void *post_gpu_data, int pixelcount, size_t output_ptr)
                         nr.data[j*NIFO+i]=(float)xx[i]/sqrt(rms);       // normalized 1/rms
         }
 	//cout<<"3"<<endl;
-	FILE *fpt = fopen("./debug_files/skyloop_MyCombineMax", "a");
 		
+
 skyloop:
 	for(l=lb; l<=le; l++)
 	{
@@ -717,7 +729,10 @@ skyloop:
                 }
 	}
 	if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
-	fprintf
+//	FILE *fpt = fopen("./debug_files/skyloop_myloopoutput", "a");
+//	fprintf(fpt, "lag = %d k = %d l = %d stat = %f Lm = %f Em = %f Am = %f lm = %d Vm = %d suball = %f EE = %f\n", lag, k, l, stat, Lm, Em, Am, lm, Vm, suball, EE);
+//	fclose(fpt);
+
 
 /*	vint = &(pwc->cList[id-1]);
 	pwc->sCuts[id-1] = -1;
@@ -775,7 +790,6 @@ skyloop:
 			pix->clean();
 	}*/
 	streamCount[stream] += count;
-//	fclose(fpt);
 	//cout<<"4"<<endl;
 	return;
 	
