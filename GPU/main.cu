@@ -4,14 +4,14 @@
 #include <xmmintrin.h>
 #include "/home/hpc/cWB/trunk/wat/GPU/gpu_struct.h"
 
-#define num_blocks 16
-#define num_threads 256
+#define num_blocks 16 
+#define num_threads 256 
 #define shared_memory_usage 0
 
-#define StreamNum 4
-#define BufferNum 4
+#define StreamNum 4 
+#define BufferNum 4 
 #define CONSTANT_SIZE 1500
-#define MaxPixel 10
+#define MaxPixel 10 
 #define CLOCK_SIZE 10
 
 inline int _sse_MRA_ps(network *net, float *amp, float *AMP, float Eo, int K);
@@ -139,7 +139,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
                 if( V4 > V4max )
                         V4max = V4;
         }
-	CombineSize = V4max / 2;
+	CombineSize = V4max;
 //++++++++++++++++++++++++++++++++
 // declare the variables used for gpu calculation 
 //++++++++++++++++++++++++++++++++
@@ -285,9 +285,9 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
                         pixelCount++;
 		}
 		if( pixelCount<MaxPixel && alloced_V4<CombineSize )	continue;
-		//cout<<"list "<<i<<" gross V4 = "<<alloced_V4<<endl;
-		//for(int z=0; z<pixelCount; z++)
-                //        cout<<"k = "<<pre_gpu_data[i].other_data.eTD[z]-1<<endl;
+//		cout<<"list "<<i<<" gross V4 = "<<alloced_V4<<endl;
+//		for(int z=0; z<pixelCount; z++)
+//                        cout<<"k = "<<pre_gpu_data[i].other_data.eTD[z]-1<<endl;
 		post_gpu_data[i].other_data.stream = i;
 		etddim_array[i] = etd_ptr;
 		alloced_V4_array[i] = alloced_V4;
@@ -352,8 +352,8 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
                 kernel_skyloop<<<num_blocks, num_threads, shared_memory_usage, stream[i]>>>(skyloop_other[i].eTD, skyloop_other[0].ml_mm, skyloop_other[0].V_tsize, skyloop_output[i].output, pixel_array[i]);
         for(int i=0; i<work_size; i++)// transfer the data back from GPU to CPU
                 cudaMemcpyAsync(post_gpu_data[i].output.output, skyloop_output[i].output, Lsky * alloced_V4_array[i] * sizeof(float) + Lsky * pixel_array[i] * sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
-//        for(int i=0; i<work_size; i++)
-//                cudaStreamAddCallback(stream[i], MyCallback, (void*)&post_gpu_data[i], 0);
+        for(int i=0; i<work_size; i++)
+                cudaStreamAddCallback(stream[i], MyCallback, (void*)&post_gpu_data[i], 0);
 }
 
 
@@ -521,7 +521,7 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gp
 	
 	while(k != -1)
 	{
-		//cout<<"k = "<<k<<endl;
+	//	cout<<"k = "<<k<<endl;
 		V4 = ((post_data*)post_gpu_data)->other_data.V4[pixelcount];
 
 		after_skyloop(post_gpu_data, pixelcount, output_ptr);
@@ -628,7 +628,8 @@ void after_skyloop(void *post_gpu_data, int pixelcount, size_t output_ptr)
                         nr.data[j*NIFO+i]=(float)xx[i]/sqrt(rms);       // normalized 1/rms
         }
 	//cout<<"3"<<endl;
-
+	FILE *fpt = fopen("./debug_files/skyloop_MyCombineMax", "a");
+		
 skyloop:
 	for(l=lb; l<=le; l++)
 	{
@@ -716,7 +717,8 @@ skyloop:
                 }
 	}
 	if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
-	
+	fprintf
+
 /*	vint = &(pwc->cList[id-1]);
 	pwc->sCuts[id-1] = -1;
 	pwc->cData[id-1].likenet = Lm;

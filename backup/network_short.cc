@@ -536,7 +536,38 @@ int network::getMRA(float* amp, float* AMP, float Eo, int Mo) {
    free(BB);
    return mo;
 }
-
+int Partition(size_t *V_array, int *k_array, int p, int r)
+{
+        int x, i, j;
+        int temp;
+        x = V_array[k_array[r]];
+        i = p-1;
+        for(j = p; j<r; j++)
+        {
+                if(V_array[k_array[j]]<=x)
+                {
+                        i = i + 1;
+                        temp = k_array[i];
+                        k_array[i] = k_array[j];
+                        k_array[j] = temp;
+                }
+        }
+        temp = k_array[i+1];
+        k_array[i+1] = k_array[r];
+        k_array[r] = temp;
+        i++;
+        return i;
+}
+void QuickSort(size_t *V_array, int *k_array, int p, int r)
+{
+        int q;
+        if(p<r)
+        {
+                q = Partition(V_array, k_array, p, r);
+                QuickSort(V_array, k_array, p, q-1);
+                QuickSort(V_array, k_array, q+1, r);
+        }
+}
 
 long network::subNetCut(int lag, float snc, TH2F* hist)
 {
@@ -618,10 +649,58 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 // loop over clusters
 //+++++++++++++++++++++++++++++++++++++++
 
+	size_t *V_array, *tsize_array, *V4_array;
+	int *k_sortArray;
+	int kcount = 0;
+	
+   cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
+   K = cid.size();
+
+	V_array = (size_t*)malloc(sizeof(size_t) * K);
+	V4_array = (size_t*)malloc(sizeof(size_t) * K);
+	tsize_array = (size_t*)malloc(sizeof(size_t) * K);
+	k_sortArray = (int*)malloc(sizeof(int) * K);	
+	
+	for(k=0; k<K; k++)
+	{
+		V_array[k] = 0;
+		tsize_array[k] = 0;
+		id = size_t(cid.data[k]+0.1);
+		if(pwc->sCuts[id-1] != -2) continue;    // skip rejected/processed culster
+			vint = &(pwc->cList[id-1]);             // pixel list
+			V = vint->size();                       // pixel list size
+		if(!V) continue;
+			pI = this->wdmMRA.getXTalk(pwc, id);
+			V = pI.size();                          // number of loaded pixels
+		if(!V) continue;
+			pix = pwc->getPixel(id, pI[0]);
+			tsize = pix->tdAmp[0].size();
+		if(!tsize || tsize&1)                   // tsize%1 = 1/0 = power/amplitude 
+		{
+			cout<<"network::subNetCut() error: wrong pixel TD data\n";
+			exit(1);
+		}
+		
+		tsize /= 2;
+		V4 = V + (V%4 ? 4 - V%4 : 0);
+		V_array[k] = V;
+		V4_array[k] = V4;
+		tsize_array[k] = tsize;
+		k_sortArray[kcount] = k;
+		kcount++;
+	}
+	for(int i=0; i<K; i++)
+		cout<<"K = "<<k_sortArray[i]<<" V = "<<V_array[k_sortArray[i]]<<endl;
+	QuickSort(V_array, k_sortArray, 0, kcount-1);
+	for(int i=0; i<K; i++)
+		cout<<"K = "<<k_sortArray[i]<<" V = "<<V_array[k_sortArray[i]]<<endl;
+		
+	
    cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
    
    K = cid.size();
-   for(k=0; k<K; k++) {                                   // loop over clusters 
+   for(int z=0; z<kcount; z++) {                                   // loop over clusters 
+	k = k_sortArray[z]; 
       id = size_t(cid.data[k]+0.1);
       if(pwc->sCuts[id-1] != -2) continue;                // skip rejected/processed clusters 
       vint = &(pwc->cList[id-1]);                         // pixel list
@@ -734,6 +813,9 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
       double submra=0;
 
       stat=Lm=Em=Am=EE=0.; lm=Vm= -1;    
+		
+		FILE *fpt = fopen("./debug_files/skyloop_Sortaa", "a");
+	
   skyloop:
 
       for(l=lb; l<=le; l++) {	                      // loop over sky locations
@@ -768,14 +850,18 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
          _mm_storeu_ps(vvv,_E_s);
          Ls = vvv[0]+vvv[1]+vvv[2]+vvv[3];             // subnetwork energy
          _mm_storeu_ps(vvv,_M_m);
-	 m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold
+	 		m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold
 
-	 aa = Ls*Ln/(Eo-Ls);
-	}
+	 		aa = Ls*Ln/(Eo-Ls);
+			if((aa-m)/(aa+m)<0.33) continue;
+			fprintf(fpt, "lag = %d k = %d l = %d aa = %f\n", lag, k, l, aa);
+		}
+	fclose(fpt);
 	}	// end of cluster loop
 	Clock[1] = clock();
 	printf("CPU this time = %f\n", (double)(Clock[1] - Clock[0])/CLOCKS_PER_SEC);
 	
+	sleep(10);
    return count;
 }
 

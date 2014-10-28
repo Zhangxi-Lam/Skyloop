@@ -1,4 +1,4 @@
-#define MaxPixel 10
+#define MaxPixel 10 
 struct skyloop_output                           // the output of skyloop
 {
 	float *output;
