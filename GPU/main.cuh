@@ -13,7 +13,7 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 __global__ void kernel_skyloop(float *eTD, short *ml_mm, size_t *V_tsize, float *gpu_output, int pixelcount); 
 __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, float *PE_2, float *PE_3, size_t V, size_t V4, size_t rEDim, float *gpu_output, int l, size_t output_ptr);
 __inline__ __device__ float kernel_minSNE_ps (float pE, float* pe);
-void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data);	
-void after_skyloop(void* post_gpu_data, int pixelcount, size_t output_ptr);
+void CUDART_CB Callback(cudaStream_t stream, cudaError_t status, void* post_gpu_data);	
+void MyCallback(struct post_data *post_gpu_data);
 
 #endif
