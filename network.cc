@@ -543,6 +543,8 @@ void my_test_sse(void)
         float test[4];
         __m128 _zz;
         __m128 _yy;
+	float zz[4];
+	float yy[4];
 
         cout<<"nvcc"<<endl;
         Clock[8] = clock();
@@ -555,9 +557,33 @@ void my_test_sse(void)
                 }
         _mm_storeu_ps(test,_zz);
         Clock[9] = clock();
-        printf("time = %f\n", (double)(Clock[9]-Clock[8])/CLOCKS_PER_SEC);
+        printf("sse_time = %f\n", (double)(Clock[9]-Clock[8])/CLOCKS_PER_SEC);
         cout<<"test = "<<(test[0]+test[1]+test[2]+test[3])<<endl;
 
+	Clock[8] = clock();
+        for(int c=190000; c<Loop; c++)
+                for(int d=0; d<Loop; d++)
+		{
+			zz[0] = 0;
+			zz[1] = 0;
+			zz[2] = 0;
+			zz[3] = 0;
+			yy[0] = 1;
+			yy[1] = 1;
+			yy[2] = 1;
+			yy[3] = 1;
+			zz[0] += yy[0];
+			zz[1] += yy[1];
+			zz[2] += yy[2];
+			zz[3] += yy[3];
+		}	
+	test[0] = zz[0];
+	test[1] = zz[1];
+	test[2] = zz[2];
+	test[3] = zz[3];
+	Clock[9] = clock();
+        printf("serial_time = %f\n", (double)(Clock[9]-Clock[8])/CLOCKS_PER_SEC);
+        cout<<"test = "<<(test[0]+test[1]+test[2]+test[3])<<endl;
 }
 
 long network::subNetCut(int lag, float snc, TH2F* hist)
@@ -582,7 +608,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
         printf("time = %f\n", (double)(Clock[9]-Clock[8])/CLOCKS_PER_SEC);
         cout<<"test = "<<(test[0]+test[1]+test[2]+test[3])<<endl;*/
 
-//	my_test_sse();
+	//my_test_sse();
 	
 	cout<<"GPU Version"<<endl;
         double time[10];
@@ -666,7 +692,7 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
    }
    return k;
 }
-void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, int pixelcount, size_t output_ptr, int Lsky, double *gpu_time)
+void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, int pixelcount, size_t output_ptr, int Lsky, double *gpu_time, int &cc)
 {
 //        FILE *fpt = fopen("./debug_files/skyloop_output", "a");
 // 	debug
@@ -765,16 +791,23 @@ void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pw
 	Clock[1] = clock();
 	gpu_time[1] += (double)(Clock[1]-Clock[0])/CLOCKS_PER_SEC;
 	
+	FILE *fpt = fopen("./debug_files/skyloop_myaa", "a");
 skyloop:
         for(l=lb; l<=le; l++)
         {
                 if(!mm[l] || l<0)       continue;
                 aa = aa_array[l];
+		fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
+	}
+	fclose(fpt);
+/*
                 if(aa == -1)    continue;
                 for(int j=0; j<V; j++)
-                        net->rNRG.data[j] = rE[l*V4+j];
-	
+                        net->rNRG.data[j] = rE[l*V4+j];	
+		cc++;
+		if(cc>=8300729)	continue;
 
+	//	Clock[3] = clock();
                 net->pnt_(v00, pa, ml, (int)l, (int)V4);        // pointers to first pixel 00 data
                 net->pnt_(v90, pA, ml, (int)l, (int)V4);        // pointers to first pixel 90 data
 
@@ -839,8 +872,7 @@ skyloop:
                     _E_s = _sse_like4_ps(_fp+jf,_fx+jf,_bb+jf,_BB+jf);  // std likelihood
                     _E_n = _mm_add_ps(_E_n,_E_s);                       // total likelihood
                 }
-	}
-/*
+		
                 _mm_storeu_ps(vvv,_E_n);
 
 	 	Lo = vvv[0]+vvv[1]+vvv[2]+vvv[3];
@@ -854,10 +886,11 @@ skyloop:
                 {
                         stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
                 }
+	//	Clock[4] = clock();
+	//	gpu_time[4] += (double)(Clock[4] - Clock[3])/CLOCKS_PER_SEC;
         }
         if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components                                                                                                               
-*/
-	
+
 /*	test_sse
  	
  	int Loop = 196608;
@@ -882,6 +915,7 @@ skyloop:
 
 	//cout<<"Test"<<endl;
 	//my_test_sse();*/
+	//my_test_sse();
 	Clock[2] = clock();
 	gpu_time[3] += (double)(Clock[2] - Clock[1])/CLOCKS_PER_SEC;
 	return;

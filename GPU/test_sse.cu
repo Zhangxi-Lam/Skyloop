@@ -52,8 +52,9 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* gpu_b)
 void call_my_test_sse()
 {
 	int out;
+	
 	out=my_test_sse();
-	cout<<out<<endl;
+	cout<<"out = "<<out<<endl;
 	return;
 }
 int my_test_sse()

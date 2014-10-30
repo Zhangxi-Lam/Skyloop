@@ -576,9 +576,11 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 //  snc: sub network threshold, if snc<0 use weak constraint
 // hist: diagnostic histogram
 // return number of processed pixels
-	cout<<"new"<<endl;
+	//debug
 	double Clock[CLOCK_SIZE];
+	int ccc = 0;
 	Clock[0] = clock();
+	//
 
    if(!this->wc_List[lag].size()) return 0;
 
@@ -692,6 +694,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
    cid = pwc->get((char*)"ID",  0,'S',0);                 // get cluster ID
    K = cid.size();
 	
+	double time[2]={0,0};
    for(int z=0; z<kcount; z++) {                                   // loop over clusters 
 		k = k_sortArray[z];
       id = size_t(cid.data[k]+0.1);
@@ -804,13 +807,12 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
       bool mra = false;
       double suball=0;
       double submra=0;
-
       stat=Lm=Em=Am=EE=0.; lm=Vm= -1;    
   skyloop:
 
       for(l=lb; l<=le; l++) {	                      // loop over sky locations
          if(!mm[l] || l<0) continue;                  // skip delay configurations
-            
+//         Clock[2] = clock();
          _sse_point_ps(_pe, pe, ml, int(l), (int)V4); // point _pe to energy vectors
                                     
          __m128 _msk;
@@ -843,8 +845,13 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	 m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold
 
 	 aa = Ls*Ln/(Eo-Ls);
+//	Clock[3] = clock();	
+//	time[0] += (double)(Clock[3] - Clock[2])/CLOCKS_PER_SEC;
          if((aa-m)/(aa+m)<0.33)	continue;
- 
+	ccc++;
+	}
+	}
+/*
          pnt_(v00, pa, ml, (int)l, (int)V4);           // pointers to first pixel 00 data 
          pnt_(v90, pA, ml, (int)l, (int)V4);           // pointers to first pixel 90 data 
          float* pfp = fp.data;                         // set pointer to fp
@@ -853,6 +860,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
          float* p90 = this->a_90.data;                 // set pointer for 90 array
 
          m = 0;
+
          for(j=0; j<V; j++) { 
             int jf = j*f_;                             // source sse pointer increment 
 	    cpp_(p00,v00);  cpp_(p90,v90);             // copy amplitudes with target increment
@@ -893,6 +901,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	    if(ee-em>Es) Ln += ee;                     // network energy above subnet threshold
 	 }
 
+
          size_t m4 = m + (m%4 ? 4 - m%4 : 0);
           _E_n = _mm_setzero_ps();                     // + likelihood
 
@@ -913,13 +922,16 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 
          if(AA>stat && !mra) {
 	    stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
-	 }  
+	 }
+	Clock[4] = clock();
+	time[1] += (double)(Clock[4]-Clock[3])/CLOCKS_PER_SEC;
+  
        }
 
       if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
-	FILE *fpt = fopen("./debug_files/skyloop_loopoutput", "a");
-		fprintf(fpt, "lag = %d k = %d l = %d stat = %f Lm = %f Em = %f Am = %f lm = %d Vm = %d suball = %f EE = %f\n", lag, k, l, stat, Lm, Em, Am, lm, Vm, suball, EE);
-      fclose(fpt);
+//	FILE *fpt = fopen("./debug_files/skyloop_loopoutput", "a");
+//		fprintf(fpt, "lag = %d k = %d l = %d stat = %f Lm = %f Em = %f Am = %f lm = %d Vm = %d suball = %f EE = %f\n", lag, k, l, stat, Lm, Em, Am, lm, Vm, suball, EE);
+//    fclose(fpt);
       pwc->sCuts[id-1] = -1; 
       pwc->cData[id-1].likenet = Lm; 
       pwc->cData[id-1].energy = Em; 
@@ -970,12 +982,15 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
          if(pix->tdAmp.size()) pix->clean(); 
       }
    }                                                 // end of loop over clusters
-	FILE *fpt = fopen("./debug_files/skyloop_loopoutput", "a");
-		fprintf(fpt, "end\n");
-      fclose(fpt);
-	
+//	FILE *fpt = fopen("./debug_files/skyloop_loopoutput", "a");
+//		fprintf(fpt, "end\n");
+//      fclose(fpt);*/
 	Clock[1] = clock();
 	printf("CPU this time = %f\n",(double)(Clock[1]-Clock[0])/CLOCKS_PER_SEC);
+	cout<<"aa = "<<aa<<endl;
+	cout<<"cc = "<<ccc<<endl;
+	printf("Clock before = %f\n", time[0]);
+	printf("Clock after = %f\n", time[1]);
    return count;
 }
 

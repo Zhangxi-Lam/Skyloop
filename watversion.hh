@@ -26,7 +26,7 @@ inline char* watversion(char c='s')
   if(c=='p') 
     return (char*)"x86_64";
   if(c=='t') 
-    return (char*)"Wed Oct 29 07:46:48 UTC 2014 ";
+    return (char*)"Thu Oct 30 08:46:16 UTC 2014 ";
   else         return (char*)"wat-6.0.0";
 }
 
