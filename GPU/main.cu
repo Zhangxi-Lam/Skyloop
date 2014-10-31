@@ -307,7 +307,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 		alloced_V4_array[i] = alloced_V4;
 		pixel_array[i] = pixelCount;
 		alloced_gpu++;
-		CombineFinish = false;
 //++++++++++++++++++++++++++++++++
 // assign the data 
 //++++++++++++++++++++++++++++++++
@@ -316,7 +315,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 			push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, alloced_V4_array, etddim_array, Lsky, pixel_array, StreamNum, stream);
 			for(int i=0; i<StreamNum; i++)
 				CUDA_CHECK(cudaStreamSynchronize(stream[i]));
-			//MyCallback(post_gpu_data);
+			MyCallback(post_gpu_data);
 			//clear
 			alloced_gpu = 0;
 			for(int j=0; j<StreamNum; j++)
@@ -339,6 +338,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 		v_ptr = 0;	
 		pixelCount = 0;
 		alloced_V4 = 0;	
+		CombineFinish = false;
 		
 	}
 	if(alloced_gpu != 0)
@@ -347,7 +347,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 		push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, alloced_V4_array, etddim_array, Lsky, pixel_array, StreamNum, stream);
 		for(int i=0; i<StreamNum; i++)
 			CUDA_CHECK(cudaStreamSynchronize(stream[i]));
-		//MyCallback(post_gpu_data);
+		MyCallback(post_gpu_data);
 		alloced_gpu = 0;
 	}		
 	
@@ -365,6 +365,9 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 	cout<<"my after_loop loop = "<<gpu_time[9]<<endl;
 	cout<<"net = "<<net->rNRG.data[0]<<endl;
 	cout<<"cc = "<<cc<<endl;
+	FILE *fpt = fopen("./debug_files/skyloop_myaa", "a");
+	fprintf(fpt, "end\n");
+	fclose(fpt);
 	cc = 0;
 	return count;
 }
@@ -507,8 +510,8 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
         Mm = Mm * 2 + 0.01;
         aa = Es*En/(Eo-Es);
 
-        //msk = ((aa-Mm)/(aa+Mm)<0.33);
-        //aa = aa*(1-msk) - 1*msk;
+        msk = ((aa-Mm)/(aa+Mm)<0.33);
+        aa = aa*(1-msk) - 1*msk;
         gpu_output[rEDim + l + output_ptr] = aa;
 }
 __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
@@ -705,8 +708,7 @@ void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_
 {
         for(int i = 0; i<BufferNum; i++)
         {
-
-                CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.eTD), NIFO * eTDDim * sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[i].other_data.eTD), NIFO * eTDDim * sizeof(float) + MaxPixel * sizeof(float), cudaHostAllocMapped ) );
         }
         CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[0].other_data.ml_mm), (1 + NIFO) * Lsky * sizeof(short), cudaHostAllocMapped ) );
         CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[0].other_data.V_tsize), K * 2 * sizeof(size_t), cudaHostAllocMapped ) );
@@ -736,7 +738,7 @@ void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skylo
 {
         for(int i = 0; i<StreamNum; i++)
         {
-                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].eTD), NIFO * eTDDim * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].eTD), NIFO * eTDDim * sizeof(float) + MaxPixel * sizeof(float) ) );
                 CUDA_CHECK(cudaMalloc(&(skyloop_output[i].output), Lsky * V4max * sizeof(float) + Lsky * sizeof(float) ) );
         }
         CUDA_CHECK(cudaMalloc(&(skyloop_other[0].ml_mm), (1 + NIFO) * Lsky * sizeof(short) ) );

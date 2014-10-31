@@ -560,55 +560,10 @@ void my_test_sse(void)
         printf("sse_time = %f\n", (double)(Clock[9]-Clock[8])/CLOCKS_PER_SEC);
         cout<<"test = "<<(test[0]+test[1]+test[2]+test[3])<<endl;
 
-	Clock[8] = clock();
-        for(int c=190000; c<Loop; c++)
-                for(int d=0; d<Loop; d++)
-		{
-			zz[0] = 0;
-			zz[1] = 0;
-			zz[2] = 0;
-			zz[3] = 0;
-			yy[0] = 1;
-			yy[1] = 1;
-			yy[2] = 1;
-			yy[3] = 1;
-			zz[0] += yy[0];
-			zz[1] += yy[1];
-			zz[2] += yy[2];
-			zz[3] += yy[3];
-		}	
-	test[0] = zz[0];
-	test[1] = zz[1];
-	test[2] = zz[2];
-	test[3] = zz[3];
-	Clock[9] = clock();
-        printf("serial_time = %f\n", (double)(Clock[9]-Clock[8])/CLOCKS_PER_SEC);
-        cout<<"test = "<<(test[0]+test[1]+test[2]+test[3])<<endl;
 }
 
 long network::subNetCut(int lag, float snc, TH2F* hist)
 {
-/*	double Clock[CLOCK_SIZE];
-	int Loop = 196608;
-        float test[4];
-        __m128 _zz;
-        __m128 _yy;
-
-        cout<<"gcc"<<endl;
-        Clock[8] = clock();
-        for(int c=190000; c<Loop; c++)
-                for(int d=0; d<Loop; d++)
-                {
-                        _zz = _mm_setzero_ps();
-                        _yy = _mm_set1_ps(1.);
-                        _zz = _mm_add_ps(_zz, _yy);
-                }
-        _mm_storeu_ps(test,_zz);
-        Clock[9] = clock();
-        printf("time = %f\n", (double)(Clock[9]-Clock[8])/CLOCKS_PER_SEC);
-        cout<<"test = "<<(test[0]+test[1]+test[2]+test[3])<<endl;*/
-
-	//my_test_sse();
 	
 	cout<<"GPU Version"<<endl;
         double time[10];
@@ -791,23 +746,17 @@ void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pw
 	Clock[1] = clock();
 	gpu_time[1] += (double)(Clock[1]-Clock[0])/CLOCKS_PER_SEC;
 	
-	FILE *fpt = fopen("./debug_files/skyloop_myaa", "a");
+//	FILE *fpt = fopen("./debug_files/skyloop_myaa", "a");
 skyloop:
         for(l=lb; l<=le; l++)
         {
                 if(!mm[l] || l<0)       continue;
                 aa = aa_array[l];
-		fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
-	}
-	fclose(fpt);
-/*
                 if(aa == -1)    continue;
                 for(int j=0; j<V; j++)
                         net->rNRG.data[j] = rE[l*V4+j];	
-		cc++;
-		if(cc>=8300729)	continue;
+				cc++;
 
-	//	Clock[3] = clock();
                 net->pnt_(v00, pa, ml, (int)l, (int)V4);        // pointers to first pixel 00 data
                 net->pnt_(v90, pA, ml, (int)l, (int)V4);        // pointers to first pixel 90 data
 
@@ -875,7 +824,7 @@ skyloop:
 		
                 _mm_storeu_ps(vvv,_E_n);
 
-	 	Lo = vvv[0]+vvv[1]+vvv[2]+vvv[3];
+	 			Lo = vvv[0]+vvv[1]+vvv[2]+vvv[3];
                 AA = aa/(fabs(aa)+fabs(Eo-Lo)+2*m*(Eo-Ln)/Eo);        //  subnet stat with threshold
                 ee = Ls*Eo/(Eo-Ls);
                 em = fabs(Eo-Lo)+2*m;   //  suball NULL
@@ -890,36 +839,11 @@ skyloop:
 	//	gpu_time[4] += (double)(Clock[4] - Clock[3])/CLOCKS_PER_SEC;
         }
         if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components                                                                                                               
-
-/*	test_sse
- 	
- 	int Loop = 196608;
-        float test[4];
-        __m128 _zz;
-        __m128 _yy;
-
-        cout<<"nvcc"<<endl;
-        Clock[8] = clock();
-        for(int c=190000; c<Loop; c++)
-                for(int d=0; d<Loop; d++)
-                {
-                        _zz = _mm_setzero_ps();
-                        _yy = _mm_set1_ps(1.);
-                        _zz = _mm_add_ps(_zz, _yy);
-                }
-        _mm_storeu_ps(test,_zz);
-        Clock[9] = clock();
-        printf("time = %f\n", (double)(Clock[9]-Clock[8])/CLOCKS_PER_SEC);
-        cout<<"test = "<<(test[0]+test[1]+test[2]+test[3])<<endl;
-
-
-	//cout<<"Test"<<endl;
-	//my_test_sse();*/
-	//my_test_sse();
-	Clock[2] = clock();
-	gpu_time[3] += (double)(Clock[2] - Clock[1])/CLOCKS_PER_SEC;
-	return;
+		Clock[2] = clock();
+		gpu_time[3] += (double)(Clock[2] - Clock[1])/CLOCKS_PER_SEC;
+		return;
 }
+
 
 
 long network::likelihood2G(char mode, int lag, int iID, TH2F* hist)
