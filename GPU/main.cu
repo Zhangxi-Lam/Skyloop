@@ -40,7 +40,7 @@ __constant__ size_t constK;
         fprintf(stderr, "Error %s at line %d in file %s\n",             \
                 cudaGetErrorString(_m_cudaStat), __LINE__, __FILE__);   \
         exit(1); }}
-extern void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, int pixelcount, size_t output_ptr, int Lsky, double *gpu_time, int &cc);
+extern void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, int pixelcount, size_t output_ptr, int Lsky, double *gpu_time, size_t *streamCount, int &cc);
 extern void my_test_sse(void);
 long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 {
@@ -351,6 +351,10 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 		alloced_gpu = 0;
 	}		
 	
+	free(V_array);
+	free(V4_array);
+	free(tsize_array);
+	free(k_sortArray);
 	cleanup_cpu_mem(pre_gpu_data, post_gpu_data, stream);
         cleanup_gpu_mem(skyloop_output, skyloop_other, stream);
 	for(i=0; i<StreamNum; i++)
@@ -559,7 +563,7 @@ void MyCallback(struct post_data *post_gpu_data)
 	        	streamNum = post_gpu_data[i].other_data.stream;
 
 			Clock[0] = clock();
-			after_skyloop((void*)&post_gpu_data[i], gpu_net, gpu_hist, pwc, FP, FX, pa[streamNum][pixelcount], pA[streamNum][pixelcount], pixelcount, output_ptr, Lsky, gpu_time, cc);
+			after_skyloop((void*)&post_gpu_data[i], gpu_net, gpu_hist, pwc, FP, FX, pa[streamNum][pixelcount], pA[streamNum][pixelcount], pixelcount, output_ptr, Lsky, gpu_time, streamCount, cc);
 			Clock[1] = clock();
 			gpu_time[9] += (double)(Clock[1]-Clock[0])/CLOCKS_PER_SEC;
 		
@@ -597,7 +601,7 @@ void CUDART_CB Callback(cudaStream_t stream, cudaError_t status, void *post_gpu_
         	streamNum = ((post_data*)post_gpu_data)->other_data.stream;
 
 		Clock[0] = clock();
-		after_skyloop(post_gpu_data, gpu_net, gpu_hist, pwc, FP, FX, pa[streamNum][pixelcount], pA[streamNum][pixelcount], pixelcount, output_ptr, Lsky, gpu_time, cc);
+		after_skyloop(post_gpu_data, gpu_net, gpu_hist, pwc, FP, FX, pa[streamNum][pixelcount], pA[streamNum][pixelcount], pixelcount, output_ptr, Lsky, gpu_time, streamCount, cc);
 		Clock[1] = clock();
 		gpu_time[0] += (double)(Clock[1]-Clock[0])/CLOCKS_PER_SEC;
 		

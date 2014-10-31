@@ -849,9 +849,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 //	time[0] += (double)(Clock[3] - Clock[2])/CLOCKS_PER_SEC;
          if((aa-m)/(aa+m)<0.33)	continue;
 	ccc++;
-	}
-	}
-/*
+
          pnt_(v00, pa, ml, (int)l, (int)V4);           // pointers to first pixel 00 data 
          pnt_(v90, pA, ml, (int)l, (int)V4);           // pointers to first pixel 90 data 
          float* pfp = fp.data;                         // set pointer to fp

@@ -647,7 +647,7 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
    }
    return k;
 }
-void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, int pixelcount, size_t output_ptr, int Lsky, double *gpu_time, int &cc)
+void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, int pixelcount, size_t output_ptr, int Lsky, double *gpu_time, size_t *streamCount, int &cc)
 {
 //        FILE *fpt = fopen("./debug_files/skyloop_output", "a");
 // 	debug
@@ -824,7 +824,7 @@ skyloop:
 		
                 _mm_storeu_ps(vvv,_E_n);
 
-	 			Lo = vvv[0]+vvv[1]+vvv[2]+vvv[3];
+	 	Lo = vvv[0]+vvv[1]+vvv[2]+vvv[3];
                 AA = aa/(fabs(aa)+fabs(Eo-Lo)+2*m*(Eo-Ln)/Eo);        //  subnet stat with threshold
                 ee = Ls*Eo/(Eo-Ls);
                 em = fabs(Eo-Lo)+2*m;   //  suball NULL
@@ -839,9 +839,69 @@ skyloop:
 	//	gpu_time[4] += (double)(Clock[4] - Clock[3])/CLOCKS_PER_SEC;
         }
         if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components                                                                                                               
-		Clock[2] = clock();
-		gpu_time[3] += (double)(Clock[2] - Clock[1])/CLOCKS_PER_SEC;
-		return;
+	vint = &(pwc->cList[id-1]);
+	pwc->sCuts[id-1] = -1;
+    	pwc->cData[id-1].likenet = Lm;                                                         
+    	pwc->cData[id-1].energy = Em;
+    	pwc->cData[id-1].theta = net->nLikelihood.getTheta(lm);
+    	pwc->cData[id-1].phi = net->nLikelihood.getPhi(lm); 
+    	pwc->cData[id-1].skyIndex = lm;
+	rHo = 0.; 
+	if(mra)
+	{
+		submra = Ls*Eo/(Eo-Ls);		// MRA subnet statistic
+		submra /= fabs(submra)+fabs(Eo-Lo)+2*(m+6);	// MRA subnet coefficient
+		To = 0;
+       	 	pwc->p_Ind[id-1].push_back(lm); 
+		for(int j=0; j<vint->size(); j++)
+		{
+			pix = pwc->getPixel(id,j);
+			pix->theta = net->nLikelihood.getTheta(lm);
+            		pix->phi   = net->nLikelihood.getPhi(lm);
+			To += pix->time/pix->rate/pix->layers;
+			if(j==0&&mra) pix->ellipticity = submra;	// subnet MRA propagated to L-stage
+			if(j==0&&mra) pix->polarisation = fabs(Eo-Lo)+2*(m+6);   // submra NULL propagated to L-stage
+			if(j==1&&mra) pix->ellipticity = suball;   // subnet all-sky propagated to L-stage
+			if(j==1&&mra) pix->polarisation = EE;      // suball NULL propagated to L-stage
+         	}   
+			
+		To /= vint->size();
+    		rHo = sqrt(Lo*Lo/(Eo+2*m)/nIFO);	// estimator of coherent amplitude     
+	}
+		
+	if(hist && rHo>net->netRHO)
+		for(int j=0; j<vint->size(); j++)
+			hist->Fill(suball, submra);
+	
+	if(fmin(suball, submra)>TH && rHo>net->netRHO)
+	{
+		count += vint->size();
+		if(hist)
+		{
+			printf("lag|id %3d|%3d rho=%5.2f To=%5.1f stat: %5.3f|%5.3f|%5.3f ",
+                	int(lag),int(id),rHo,To,suball,submra,stat);                 
+            		printf("E: %6.1f|%6.1f L: %6.1f|%6.1f|%6.1f pix: %4d|%4d|%3d|%2d \n",
+                   	Em,Eo,Lm,Lo,Ls,int(vint->size()),int(V),Vm,int(m));           
+        	}
+	}
+	else
+		pwc->sCuts[id-1]=1;
+
+// clean time delay data
+	V = vint->size();
+	for(int j=0; j<V; j++)	// loop over pixels
+	{
+		pix = pwc->getPixel(id,j);
+		pix->core = true;
+		if(pix->tdAmp.size())
+			pix->clean();
+	}
+	//cout<<"6"<<endl;	
+	streamCount[stream] += count;
+
+	Clock[2] = clock();
+	gpu_time[3] += (double)(Clock[2] - Clock[1])/CLOCKS_PER_SEC;
+	return;
 }
 
 
