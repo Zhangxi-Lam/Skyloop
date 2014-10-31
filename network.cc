@@ -755,7 +755,7 @@ skyloop:
                 if(aa == -1)    continue;
                 for(int j=0; j<V; j++)
                         net->rNRG.data[j] = rE[l*V4+j];	
-				cc++;
+		cc++;
 
                 net->pnt_(v00, pa, ml, (int)l, (int)V4);        // pointers to first pixel 00 data
                 net->pnt_(v90, pA, ml, (int)l, (int)V4);        // pointers to first pixel 90 data

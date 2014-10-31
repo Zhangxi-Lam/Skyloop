@@ -55,7 +55,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
         float aa, AA;
         size_t i, j, k, V, V4, id, K;
         int Lsky = int(net->index.size());
-	cout<<"Lsky = "<<Lsky<<endl;
 	gpu_Lsky = Lsky;
         short *mm = net->skyMask.data;
 
@@ -111,7 +110,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
         V4_array = (size_t*)malloc(sizeof(size_t) * K);
         tsize_array = (size_t*)malloc(sizeof(size_t) * K);
         k_sortArray = (int*)malloc(sizeof(int) * K);
-	
+
 	for(k=0; k<K; k++)
 	{
 		V_array[k] = 0;
@@ -198,6 +197,15 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
                 post_gpu_data[i].other_data.lag = lag;
                 post_gpu_data[i].other_data.nIFO = nIFO;
         }
+	for(int j=0; j<StreamNum; j++)
+		for(int i=0; i<MaxPixel; i++)
+		{
+                        post_gpu_data[j].other_data.id[i] = 0;	
+			post_gpu_data[j].other_data.k[i] = 0;
+                        post_gpu_data[j].other_data.V[i] = 0;
+                        post_gpu_data[j].other_data.V4[i] = 0;
+                        post_gpu_data[j].other_data.tsize[i] = 0;	
+		}
 	for(int k=0; k<K; k++)
 	{
 		pre_gpu_data[0].other_data.V_tsize[k] = V_array[k];
@@ -350,7 +358,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 		MyCallback(post_gpu_data);
 		alloced_gpu = 0;
 	}		
-	
 	free(V_array);
 	free(V4_array);
 	free(tsize_array);
@@ -551,14 +558,12 @@ void MyCallback(struct post_data *post_gpu_data)
 	int pixelcount=0;
 	int streamNum;
 	size_t output_ptr = 0;
-	//cout<<"Callback"<<endl;
 	for(int i=0; i<StreamNum; i++)
 	{
 		k = post_gpu_data[i].other_data.k[pixelcount] - 1;
-	
+		
 		while(k != -1)
 		{
-		//	cout<<"k = "<<k<<endl;
 			V4 = post_gpu_data[i].other_data.V4[pixelcount];
 	        	streamNum = post_gpu_data[i].other_data.stream;
 
