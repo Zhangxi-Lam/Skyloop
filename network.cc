@@ -564,7 +564,6 @@ void my_test_sse(void)
 
 long network::subNetCut(int lag, float snc, TH2F* hist)
 {
-	
 	cout<<"GPU Version"<<endl;
         double time[10];
 	if(!this->wc_List[lag].size())	return 0;
@@ -839,6 +838,10 @@ skyloop:
 	//	gpu_time[4] += (double)(Clock[4] - Clock[3])/CLOCKS_PER_SEC;
         }
         if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components                                                                                                               
+	FILE *fpt = fopen("./debug_files/skyloop_myloopoutput", "a");
+		fprintf(fpt, "lag = %d k = %d l = %d stat = %f Lm = %f Em = %f Am = %f lm = %d Vm = %d suball = %f EE = %f\n", lag, k, l, stat, Lm, Em, Am, lm, Vm, suball, EE);
+    	fclose(fpt);
+
 	vint = &(pwc->cList[id-1]);
 	pwc->sCuts[id-1] = -1;
     	pwc->cData[id-1].likenet = Lm;                                                         

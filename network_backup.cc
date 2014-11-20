@@ -580,8 +580,11 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	double Clock[CLOCK_SIZE];
 	int ccc = 0;
 	Clock[0] = clock();
+	double cpu_time[CLOCK_SIZE];
+	for(int i=0; i<CLOCK_SIZE; i++)
+		cpu_time[i] = 0;
 	//
-
+	cout<<"CPU version"<<endl;
    if(!this->wc_List[lag].size()) return 0;
 
    size_t nIFO = this->ifoList.size();
@@ -812,7 +815,6 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 
       for(l=lb; l<=le; l++) {	                      // loop over sky locations
          if(!mm[l] || l<0) continue;                  // skip delay configurations
-//         Clock[2] = clock();
          _sse_point_ps(_pe, pe, ml, int(l), (int)V4); // point _pe to energy vectors
                                     
          __m128 _msk;
@@ -845,8 +847,6 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	 m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold
 
 	 aa = Ls*Ln/(Eo-Ls);
-//	Clock[3] = clock();	
-//	time[0] += (double)(Clock[3] - Clock[2])/CLOCKS_PER_SEC;
          if((aa-m)/(aa+m)<0.33)	continue;
 	ccc++;
 
@@ -899,6 +899,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	    if(ee-em>Es) Ln += ee;                     // network energy above subnet threshold
 	 }
 
+	Clock[2] = clock();
 
          size_t m4 = m + (m%4 ? 4 - m%4 : 0);
           _E_n = _mm_setzero_ps();                     // + likelihood
@@ -921,15 +922,15 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
          if(AA>stat && !mra) {
 	    stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
 	 }
-	Clock[4] = clock();
-	time[1] += (double)(Clock[4]-Clock[3])/CLOCKS_PER_SEC;
+	Clock[3] = clock();
+	cpu_time[0] += (double)(Clock[3] - Clock[2])/CLOCKS_PER_SEC;
   
        }
 
       if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
-//	FILE *fpt = fopen("./debug_files/skyloop_loopoutput", "a");
-//		fprintf(fpt, "lag = %d k = %d l = %d stat = %f Lm = %f Em = %f Am = %f lm = %d Vm = %d suball = %f EE = %f\n", lag, k, l, stat, Lm, Em, Am, lm, Vm, suball, EE);
-//    fclose(fpt);
+	FILE *fpt = fopen("./debug_files/skyloop_loopoutput", "a");
+		fprintf(fpt, "lag = %d k = %d l = %d stat = %f Lm = %f Em = %f Am = %f lm = %d Vm = %d suball = %f EE = %f\n", lag, k, l, stat, Lm, Em, Am, lm, Vm, suball, EE);
+    fclose(fpt);
       pwc->sCuts[id-1] = -1; 
       pwc->cData[id-1].likenet = Lm; 
       pwc->cData[id-1].energy = Em; 
@@ -985,10 +986,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 //      fclose(fpt);*/
 	Clock[1] = clock();
 	printf("CPU this time = %f\n",(double)(Clock[1]-Clock[0])/CLOCKS_PER_SEC);
-	cout<<"aa = "<<aa<<endl;
-	cout<<"cc = "<<ccc<<endl;
-	printf("Clock before = %f\n", time[0]);
-	printf("Clock after = %f\n", time[1]);
+	printf("loop this time = %f\n", cpu_time[0]);
    return count;
 }
 

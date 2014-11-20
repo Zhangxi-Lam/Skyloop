@@ -5,11 +5,8 @@ struct skyloop_output                           // the output of skyloop
 };
 struct other                                    //the variable that not use in GPU
 {
-	float *vtd_vTD_nr;	
 	float *eTD;
-	float *rNRG;
 	short *ml_mm;
-	double *FP_FX;
 	size_t *V_tsize;
 	float T_En, T_Es, TH;	// same
 	int le, lag;	// le, lag same
