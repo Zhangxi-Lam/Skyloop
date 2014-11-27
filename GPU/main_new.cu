@@ -12,7 +12,7 @@
 #define BufferNum 1 
 #define CONSTANT_SIZE 1500
 #define MaxPixel 10 
-#define OutputSize 20
+#define OutputSize 8 
 #define CLOCK_SIZE 10
 #define LOUD 300
 
@@ -366,6 +366,7 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, float *rNRG, doubl
 	const int grid_size = blockDim.x * gridDim.x;
 	int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	
+	struct STAT _stat;
 	float *pe[NIFO];
 	float *pa[NIFO];
 	float *pA[NIFO];
@@ -375,6 +376,7 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, float *rNRG, doubl
 	float *k_array;
 	float *nr;
 	short *mm;
+	float stat;
 	size_t V, V4, tsize;
 	int Lsky = constLsky;
 	int l;
@@ -385,6 +387,8 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, float *rNRG, doubl
 	size_t v_ptr = MaxPixel;
 	size_t rNRG_ptr = 0;
 	
+	_stat.stat = _stat.Lm = _stat.Em = _stat.Am = _stat.suball = _stat.EE = 0.;
+	_stat.lm = _stat.Vm = -1;
 	k_array = vtd_vTD_nr;	
 	ml[0] = ml_mm;
 	ml[1] = ml_mm + Lsky;
@@ -448,16 +452,43 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, float *rNRG, doubl
                         pe[2] = pe[2] + ml[2][l] * (int)V4;
                         pe[3] = pe[3] + ml[3][l] * (int)V4;
 	
-			kernel_skyloop_calculate(ml, rNRG, pa, pA, pe[0], pe[1], pe[2], pe[3], V, V4, V4*Lsky, gpu_output, l, rNRG_ptr);
+			kernel_skyloop_calculate(ml, rNRG, pa, pA, pe[0], pe[1], pe[2], pe[3], V, V4, V4*Lsky, gpu_output, l, rNRG_ptr, &_stat);
 		}
+
+		kernel_store_result_to_tmp(tmp, tid, &_stat);
+		//Wait for all threads to finish calculation
+		__syncthreads();
+		if(tid < 32)
+		{
+			kernel_store_stat(tmp, tid);	
+			__syncthreads();
+		}
+		if(tid == 0)
+		{
+			stat = kernel_store_final_stat(tmp, gpu_output, output_ptr);
+			if(stat > 0)
+			{
+				pe[0] = eTD + (tsize/2)*V4;
+				pe[1] = eTD + vDim + (tsize/2)*V4;
+				pe[2] = eTD + 2*vDim + (tsize/2)*V4;
+				pe[3] = eTD + 3*vDim + (tsize/2)*V4;
+                        	pe[0] = pe[0] + ml[0][l] * (int)V4;
+	                        pe[1] = pe[1] + ml[1][l] * (int)V4;
+        	                pe[2] = pe[2] + ml[2][l] * (int)V4;
+                	        pe[3] = pe[3] + ml[3][l] * (int)V4;
+				size_t v;
+				for(v=0; v<V; v++)
+					gpu_output[output_ptr+OutputSize+v] = PE_0[v] + PE_1[v] + PE_2[v] + PE_3[v];
+			}
+		}
+		output_ptr += (OutputSize + V4); 
+		count++;
 	}
 	
 	return;
 }
-
-__inline__ __device__ void kernel_skyloop_calculate(short **ml, float *rNRG, float **pa, float **pA, float *PE_0, float *PE_1, float *PE_2, float *PE_3, size_t V, size_t V4, size_t rEDim, float *gpu_output,  int l, size_t rNRG_ptr)
+__inline__ __device__ void kernel_skyloop_calculate(short **ml, float *rNRG, float *nr, float *gpu_BB, float *gpu_bb, float *gpu_fp, float *gpu_fx, float *gpu_Fp, float *gpu_Fx, float **pa, float **pA, float *PE_0, float *PE_1, float *PE_2, float *PE_3, size_t V, size_t V4, size_t rEDim, float *gpu_output,  int l, size_t rNRG_ptr, struct STAT *_s)
 {
-	bool m_list[LOUD/4+1];				// indicate if ee<En
         int msk;                                              // mask
         size_t v;                                  // indicate the pixel
 	size_t j;
@@ -491,8 +522,6 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *rNRG, flo
                 pe[2] = PE_2[v];
                 pe[3] = PE_3[v];
                 rE = pe[0] + pe[1] + pe[2] + pe[3];                                                             // get pixel energy
-                //assign the value to the local memory
-                gpu_rNRG[ptr + v] = rE;
 	        // E>En  0/1 mask
                 msk = ( rE>=constEn );                                                                          // E>En  0/1 mask
                 Mm += msk;                                                                                              // count pixels above threshold
@@ -519,6 +548,7 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *rNRG, flo
         msk = ((aa-Mm)/(aa+Mm)<0.33);
 
 	if(msk)	return;
+	float *bb, *BB, *fp, *Fp, *fx, *Fx;
 	// after skyloop
 	v00[0] = pa[0] + ml[0][l] * (int)V4;
 	v00[1] = pa[1] + ml[1][l] * (int)V4;
@@ -528,9 +558,139 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *rNRG, flo
 	v90[1] = pA[1] + ml[1][l] * (int)V4;
 	v90[2] = pA[2] + ml[2][l] * (int)V4;
 	v90[3] = pA[3] + ml[3][l] * (int)V4;
+	// point to the memory
+	bb = gpu_bb + num_blocks*num_threads*NIFO*V4max;	
+	BB = gpu_BB + num_blocks*num_threads*NIFO*V4max;	
+	fp = gpu_fp + num_blocks*num_threads*NIFO*V4max;
+	Fp = gpu_Fp + num_blocks*num_threads*NIFO*V4max;
+	fx = gpu_fx + num_blocks*num_threads*NIFO*V4max;
+	Fx = gpu_Fx + num_blocks*num_threads*NIFO*V4max;
 	
+	for(j=0; j<V; j++)
+	{
+		bb[j*NIFO+0] = v00[0][j];
+		bb[j*NIFO+1] = v00[1][j];
+		bb[j*NIFO+2] = v00[2][j];
+		bb[j*NIFO+3] = v00[3][j];
+		BB[j*NIFO+0] = v90[0][j];
+		BB[j*NIFO+1] = v90[1][j];
+		BB[j*NIFO+2] = v90[2][j];
+		BB[j*NIFO+3] = v90[3][j];
+		
+		kernel_cpf_(fp+j*NIFO, FP, l);
+		kernel_cpf_(fx+j*NIFO, FX, l);
+	}	
 	m = 0; Ls=Ln=Eo=0;
-	for(j=0; j<V4*NIFO; j+=4)
+	for(j=0; j<V; j++)
+	{
+		ee = kernel_sse_abs_ps(bb+NIFO*j, BB+NIFO*j);
+		if(ee<constEn)	continue;
+		kernel_sse_cpf_ps(bb+NIFO*m, bb+NIFO*j);
+		kernel_sse_cpf_ps(BB+NIFO*m, BB+NIFO*j);
+		kernel_sse_cpf_ps(Fp+NIFO*m, fp+NIFO*j);
+		kernel_sse_cpf_ps(Fx+NIFO*m, fx+NIFO*j);
+		kernel_sse_mul_ps(Fp+NIFO*m, nr+NIFO*j);
+		kernel_sse_mul_ps(Fx+NIFO*m, nr+NIFO*j);
+		m++;
+		em = kernel_sse_maxE_ps(bb+j*NIFO, BB+j*NIFO);
+		Ls+= ee-em;	Eo += ee;
+		msk = (ee-em>consEs);
+		Ln += msk*ee;
+	}
+
+	
+	msk = m%4;
+	msk = (msk>0);
+	size_t m4 = m + msk*(4-m%4);
+	_En[0] = _En[1] = _En[2] = _En[3] = 0;
+	
+	for(j=0; j<m4; j+=4)
+	{
+		kernel_sse_dpf4_ps(Fp+j*NIFO, Fx+j*NIFO, fp+j*NIFO, fx+j*NIFO);
+		kernel_sse_like4_ps(fp+j*NIFO, fx+j*NIFO, bb+j*NIFO, BB+j*NIFO, _Es);
+		_En[0] = _En[0] + _Es[0];
+		_En[1] = _En[1] + _Es[1];
+		_En[2] = _En[2] + _Es[2];
+		_En[3] = _En[3] + _Es[3];
+	}
+	
+	Lo = _En[0] + _En[1] + _En[2] + _En[3];
+	AA = aa/(fabs(aa)+fabs(Eo-Lo)+2*m*(Eo-Ln)/Eo);
+	ee = Ls*Eo/(Eo-Ls);
+	em = fabs(Eo-Lo)+2*m;
+	ee = ee/(ee+em);
+	aa = (aa-m)/(aa+m);
+	
+	msk = (AA > _s->stat);
+	_s->stat = _s->stat+AA - _s->stat*msk - AA*(1-msk);
+	_s->Lm = _s->Lm+Lo - _s->Lm*msk - Lo*(1-msk);
+	_s->Em = _s->Em+Eo - _s->Em*msk - Eo*(1-msk);
+	_s->Am = _s->Am+aa - _s->Am*msk - aa*(1-msk);
+	_s->lm = _s->lm+l - _s->lm*msk - l*(1-msk);
+	_s->Vm = _s->Vm+m - _s->Vm*msk - m*(1-msk);
+	_s->suball = _s->suball+e - _s->suball*msk - e*(1-msk);
+	_s->EE = _s->EE+em - _s->EE*msk - em*(1-msk);
+	
+}
+__inline__ __device__ void kernel_store_result_to_tmp(float *tmp, int tid, struct STAT *_s)
+{
+	tmp[tid*OutputSize] = _s->stat;
+	tmp[tid*OutputSize+1] = _s->Lm;
+	tmp[tid*OutputSize+2] = _s->Em;
+	tmp[tid*OutputSize+3] = _s->Am;
+	tmp[tid*OutputSize+4] = _s->suball;
+	tmp[tid*OutputSize+5] = _s->EE;
+	tmp[tid*OutputSize+6] = _s->lm;
+	tmp[tid*OutputSize+7] = _s->Vm;
+	return;
+}
+__device__ void kernel_store_stat(float *tmp, int tid)
+{
+	float max = 0;
+	float temp;
+	size_t l;
+	bool msk;
+	for(int i=0; i<num_blocks*num_threads, i+=32)
+	{
+		temp = tmp[i*OutputSize];
+		msk = (temp>max);
+		max = max+temp - max*msk - (1-msk)*temp; 
+		l = l+i - l*msk - (1-msk)*i; 
+	}
+	tmp[tid*OutputSize] = tmp[l*OutputSize];
+	tmp[tid*OutputSize+1] = tmp[l*OutputSize+1];
+	tmp[tid*OutputSize+2] = tmp[l*OutputSize+2];
+	tmp[tid*OutputSize+3] = tmp[l*OutputSize+3];
+	tmp[tid*OutputSize+4] = tmp[l*OutputSize+4];
+	tmp[tid*OutputSize+5] = tmp[l*OutputSize+5];
+	tmp[tid*OutputSize+6] = tmp[l*OutputSize+6];
+	tmp[tid*OutputSize+7] = tmp[l*OutputSize+7];
+	return;
+}
+__device__ float kernel_store_final_stat(float *tmp, float *gpu_output, size_t output_ptr)
+{
+	float max = 0;
+	float temp;
+	size_t l;
+	bool msk;
+	for(int i=0; i<32; i++)
+	{
+		temp = tmp[i*OutputSize];
+		msk = (temp>max);
+		max = max+temp - max*msk - (1-msk)*temp; 
+		l = l+i - l*msk - (1-msk)*i; 
+	}
+	gpu_output[output_ptr] = tmp[l*OutputSize];
+	gpu_output[output_ptr+1] = tmp[l*OutputSize+1];
+	gpu_output[output_ptr+2] = tmp[l*OutputSize+2];
+	gpu_output[output_ptr+3] = tmp[l*OutputSize+3];
+	gpu_output[output_ptr+4] = tmp[l*OutputSize+4];
+	gpu_output[output_ptr+5] = tmp[l*OutputSize+5];
+	gpu_output[output_ptr+6] = tmp[l*OutputSize+6];
+	gpu_output[output_ptr+7] = tmp[l*OutputSize+7];
+	return max;
+}
+	/*	for(j=0; j<V4*NIFO; j+=4)
 	{
 		ee = kernel_sse_abs_ps(v00, v90, V4, j);	
 		msk = !(ee<constEn);
@@ -541,13 +701,6 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *rNRG, flo
 		msk = (ee-em>Ls);
 		Ln += msk*ee;
 	}
-	
-	msk = m%4;
-	msk = (msk>0);
-	size_t m4 = m + msk*(4-m%4);
-	
-	_En[0] = _En[1] = _En[2] = _En[3] = 0;
-	
 	int I = -1;
 	for(j=0; j<m4*NIFO; j+=16)
 	{
@@ -567,7 +720,7 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *rNRG, flo
 			i[count] = (i[count]*4 - r[count]*V4);		// indicate the location of v00[r] and v90[r]
 		}
 		kernel_sse_dpf4_ps(v00, v90, i, j, r);
-	}
+	}*/
 	
 }
 __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
@@ -593,7 +746,222 @@ __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
         temp = temp + pE - flag*temp - (1-flag)*pE;
         return temp;
 }
-__inline__ __device__ float kernel_sse_abs_ps(float **v00, float **v90, size_t V4, size_t j)
+__inline__ __device__ void kernel_cpf_(float *a, double **p, size_t i)
+{
+	a[0] = p[0][i];
+	a[1] = p[1][i];
+	a[2] = p[2][i];
+	a[3] = p[3][i];
+	return;
+}
+__inline__ __device__ void kernel_sse_cpf_ps(float *a, float *p)
+{
+	a[0] = p[0];
+	a[1] = p[1];
+	a[2] = p[2];
+	a[3] = p[3];
+	return;
+}
+__inline__ __device__ void kernel_sse_mul_ps(float *a, float *b)
+{
+	a[0] = a[0]*b[0];
+	a[1] = a[1]*b[1];
+	a[2] = a[2]*b[2];
+	a[3] = a[3]*b[3];
+	return;
+}
+__inline__ __device__ float kernel_sse_abs_ps(float *bb, float *BB)
+{
+	float out;
+	out = bb[0]*bb[0] + BB[0]*BB[0];
+	out += bb[1]*bb[1] + BB[1]*BB[1];
+	out += bb[2]*bb[2] + BB[2]*BB[2];
+	out += bb[3]*bb[3] + BB[3]*BB[3];
+	return out;
+}
+__inline__ __device__ float kernel_sse_maxE_ps(float *a, float *A)
+{
+	float out;
+	float temp;
+	bool flag;
+	out = a[0]*a[0] + A[0]*A[0];
+	temp = a[1]*a[1] + A[1]*A[1];
+	flag = (temp>out);
+	out = temp+out - (1-flag)*temp - flag*out;
+	temp = a[2]*a[2] + A[2]*A[2];
+	flag = (temp>out);
+	out = temp+out - (1-flag)*temp - flag*out;
+	temp = a[3]*a[3] + A[3]*A[3];
+	flag = (temp>out);
+	out = temp+out - (1-flag)*temp - flag*out;
+	return out;
+}
+__inline__ __device__ void kernel_sse_dpf4_ps(float *Fp, float Fx, float fp, float fx)
+{
+	float _c[NIFO];					// cos
+	float _s[NIFO];					// sin
+	kernel_sse_ort4_ps(Fp, Fx, _s, _c);
+	kernel_sse_rot4p_ps(Fp, _c, Fx, _s, fp);		// get fp = Fp*c+Fx*s
+	kernel_sse_rot4m_ps(Fx, _c, Fp, _s, fx);		// get fx = Fx*c-Fp*s
+} 
+__inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, float *_c)
+{
+	static const float sm[NIFO] = {0.f, 0.f, 0.f, 0.f};	
+	static const float _o[NIFO] = {1.e-24, 1.e-24, 1.e-24, 1.e-24};
+	float _n[NIFO], _m[NIFO], gI[NIFO], gR[NIFO], _p[NIFO], _q[NIFO];	
+	float _out[NIFO];
+	
+	kernel_sse_dot4_ps(u, v, _out);
+	gI[0] = _out[0]*2; gI[1] = _out[1]*2; gI[2] = _out[2]*2; gI[3] = _out[3]*2; 		// ~sin(2*psi) or 2*u*v
+	kernel_sse_dot4_ps(u, u, _out);
+	gR[0] = _out[0]; gR[1] = _out[1]; gR[2] = _out[2]; gR[3] = _out[3]; 
+	kernel_sse_dot4_ps(v, v, _out);
+	gR[0] -= _out[0]; gR[1] -= _out[1]; gR[2] -= _out[2]; gR[3] -= _out[3]; 		// u^2-v^2
+	
+	_p[0] = (gR[0]>0); _p[1] = (gR[1]>0); _p[2] = (gR[2]>0); _p[3] = (gR[3]>0);		// 1 if gR>0. or 0 if gR<0.
+	
+	_q[0] = 1-_p[0]; _q[1] = 1-_p[1]; _q[2] = 1-_p[2]; _q[3] = 1-_p[3]; 			// 0 if gR>0. or 1 if gR<0.
+	
+	_n[0] = sqrt(gI[0]*gI[0] + gR[0]*gR[0]); _n[1] = sqrt(gI[1]*gI[1] + gR[1]*gR[1]); _n[2] = sqrt(gI[2]*gI[2] + gR[2]*gR[2]); _n[3] = sqrt(gI[3]*gI[3] + gR[3]*gR[3]); // go
+
+	gR[0] = !(sm[0]&&gR[0]) + (_n[0]+_o[0]); gR[1] = !(sm[1]&&gR[1]) + (_n[1]+_o[1]); gR[2] = !(sm[2]&&gR[2]) + (_n[2]+_o[2]); gR[3] = !(sm[3]&&gR[3]) + (_n[3]+_o[3]); 
+	
+	_n[0] = _n[0]*2 + _o[0]; _n[1] = _n[1]*2 + _o[1]; _n[2] = _n[2]*2 + _o[2]; _n[3] = _n[3]*2 + _o[3]; 	// 2*go + eps
+	
+	gI[0] = gI[0]/_n[0]; gI[1] = gI[1]/_n[1]; gI[2] = gI[2]/_n[2]; gI[3] = gI[3]/_n[3]; 	// sin(2*psi)
+
+	_n[0] = sqrt(gR[0]-_n[0]); _n[1] = sqrt(gR[1]-_n[1]); _n[2] = sqrt(gR[2]-_n[2]); _n[3] = sqrt(gR[3]-_n[3]);	// sqrt((gc+|gR|)/(2gc+eps)
+
+	_m[0] = (gI[0]>0); _m[1] = (gI[1]>0); _m[2] = (gI[2]>0); _m[3] = (gI[3]>0); 		// if gI>0. or 0 if gI<0.
+	
+	_m[0] = (_m[0]*2-1) * _n[0]; _m[1] = (_m[1]*2-1) * _n[1]; _m[2] = (_m[2]*2-1) * _n[2]; _m[3] = (_m[3]*2-1) * _n[3];	// _n if gI>0 or -_n if gI<
+	// sin(psi)
+	_s[0] = _q[0]*_m[0] + _p[0]*(_gI[0]/_n[0]); 
+	_s[1] = _q[1]*_m[1] + _p[1]*(_gI[1]/_n[1]); 	
+	_s[2] = _q[2]*_m[2] + _p[2]*(_gI[2]/_n[2]); 
+	_s[3] = _q[3]*_m[3] + _p[3]*(_gI[3]/_n[3]); 
+	
+	gI[0] = !(sm[0]&&gI[0]);  gI[1] = !(sm[1]&&gI[1]); gI[2] = !(sm[2]&&gI[2]); gI[3] = !(sm[3]&&gI[3]); 	// |gI|
+	// cos(psi)
+	_c[0] = _p[0]*_n[0] + _q[0]*(gI[0]/_n[0]); 
+	_c[1] = _p[1]*_n[1] + _q[1]*(gI[1]/_n[1]); 
+	_c[2] = _p[2]*_n[2] + _q[2]*(gI[2]/_n[2]); 
+	_c[3] = _p[3]*_n[3] + _q[3]*(gI[3]/_n[3]); 
+	return;
+}
+__inline__ __device__ void kernel_sse_dot4_ps(float *u, float *v, float *out)
+{
+	out[0] = u[0]*v[0];
+	out[0] += u[1]*v[1];
+	out[0] += u[2]*v[2];
+	out[0] += u[3]*v[3];
+
+	out[1] = u[4]*v[4];
+	out[1] += u[5]*v[5];
+	out[1] += u[6]*v[6];
+	out[1] += u[7]*v[7];
+
+	out[2] = u[8]*v[8];
+	out[2] = u[9]*v[9];
+	out[2] += u[10]*v[10];
+	out[2] += u[11]*v[11];
+
+	out[3] += u[12]*v[12];
+	out[3] += u[13]*v[13];
+	out[3] += u[14]*v[14];
+	out[3] += u[15]*v[15];
+	return;
+}
+__inline__ __device__ void kernel_sse_rot4p_ps(float *Fp, float *_c float *Fx, float *_s, float *fp)
+{
+	fp[0] = Fp[0]*_c[0] + Fx[0]*_s[0];	
+	fp[1] = Fp[1]*_c[0] + Fx[1]*_s[0];	
+	fp[2] = Fp[2]*_c[0] + Fx[2]*_s[0];	
+	fp[3] = Fp[3]*_c[0] + Fx[3]*_s[0];	
+	
+	fp[4] = Fp[4]*_c[1] + Fx[4]*_s[1];	
+	fp[5] = Fp[5]*_c[1] + Fx[5]*_s[1];	
+	fp[6] = Fp[6]*_c[1] + Fx[6]*_s[1];	
+	fp[7] = Fp[7]*_c[1] + Fx[7]*_s[1];	
+
+	fp[8] = Fp[8]*_c[2] + Fx[8]*_s[2];	
+	fp[9] = Fp[9]*_c[2] + Fx[9]*_s[2];	
+	fp[10] = Fp[10]*_c[2] + Fx[10]*_s[2];	
+	fp[11] = Fp[11]*_c[2] + Fx[11]*_s[2];	
+
+	fp[12] = Fp[12]*_c[3] + Fx[12]*_s[3];	
+	fp[13] = Fp[13]*_c[3] + Fx[13]*_s[3];	
+	fp[14] = Fp[14]*_c[3] + Fx[14]*_s[3];	
+	fp[15] = Fp[15]*_c[3] + Fx[15]*_s[3];	
+	return;
+}
+__inline__ __device__ void kernel_sse_rot4m_ps(float *Fx, float *_c, float *Fp, float *_s, float *fx)
+{
+	fx[0] = Fx[0]*_c[0] - Fp[0]*_s[0];	
+	fx[1] = Fx[1]*_c[0] - Fp[1]*_s[0];	
+	fx[2] = Fx[2]*_c[0] - Fp[2]*_s[0];	
+	fx[3] = Fx[3]*_c[0] - Fp[3]*_s[0];	
+	
+	fx[4] = Fx[4]*_c[1] - Fp[4]*_s[1];	
+	fx[5] = Fx[5]*_c[1] - Fp[5]*_s[1];	
+	fx[6] = Fx[6]*_c[1] - Fp[6]*_s[1];	
+	fx[7] = Fx[7]*_c[1] - Fp[7]*_s[1];	
+
+	fx[8] = Fx[8]*_c[2] - Fp[8]*_s[2];	
+	fx[9] = Fx[9]*_c[2] - Fp[9]*_s[2];	
+	fx[10] = Fx[10]*_c[2] - Fp[10]*_s[2];	
+	fx[11] = Fx[11]*_c[2] - Fp[11]*_s[2];	
+
+	fx[12] = Fx[12]*_c[3] - Fp[12]*_s[3];	
+	fx[13] = Fx[13]*_c[3] - Fp[13]*_s[3];	
+	fx[14] = Fx[14]*_c[3] - Fp[14]*_s[3];	
+	fx[15] = Fx[15]*_c[3] - Fp[15]*_s[3];	
+	return;
+}
+__inline__ __device__ void kernel_sse_like4_ps(float *fp, float *fx, float *bb, float *BB, float *_Es)
+{
+	float xp[NIFO];
+	float XP[NIFO];
+	float xx[NIFO];
+	float XX[NIFO];
+	float gp[NIFO];
+	float gx[NIFO];
+	float tmp[NIFO];
+
+	kernel_sse_dot4_ps(fp, bb, xp);
+	kernel_sse_dot4_ps(fp, BB, XP);
+	kernel_sse_dot4_ps(fx, bb, xx);
+	kernel_sse_dot4_ps(fx, BB, XX);
+
+	kernel_sse_dot4_ps(fp, fp, tmp);
+	gp[0] = tmp[0] + 1.e-12;
+	gp[1] = tmp[1] + 1.e-12;	
+	gp[2] = tmp[2] + 1.e-12;	
+	gp[3] = tmp[3] + 1.e-12;	
+
+	kernel_sse_dot4_ps(fx, fx, tmp);
+	gx[0] = tmp[0] + 1.e-12;
+	gx[1] = tmp[1] + 1.e-12;	
+	gx[2] = tmp[2] + 1.e-12;	
+	gx[3] = tmp[3] + 1.e-12;	
+	
+	xp[0] = xp[0]*xp[0] + XP[0]*XP[0];
+	xp[1] = xp[1]*xp[1] + XP[1]*XP[1];
+	xp[2] = xp[2]*xp[2] + XP[2]*XP[2];
+	xp[3] = xp[3]*xp[3] + XP[3]*XP[3];
+	
+	xx[0] = xx[0]*xx[0] + XX[0]*XX[0];
+	xx[1] = xx[1]*xx[1] + XX[1]*XX[1];
+	xx[2] = xx[2]*xx[2] + XX[2]*XX[2];
+	xx[3] = xx[3]*xx[3] + XX[3]*XX[3];
+	
+	_Es[0] = xp[0]/gp[0] + xx[0]/gx[0];
+	_Es[1] = xp[1]/gp[1] + xx[1]/gx[1];
+	_Es[2] = xp[2]/gp[2] + xx[2]/gx[2];
+	_Es[3] = xp[3]/gp[3] + xx[3]/gx[3];
+	return;
+}
+/*__inline__ __device__ float kernel_sse_abs_ps(float **v00, float **v90, size_t V4, size_t j)
 {
 	float out;
 	int i;
@@ -603,8 +971,8 @@ __inline__ __device__ float kernel_sse_abs_ps(float **v00, float **v90, size_t V
 	out += v00[i][4*j+2]*v00[i][4*j+2] + v90[i][4*j+2]*v90[i][4*j+2];
 	out += v00[i][4*j+3]*v00[i][4*j+3] + v90[i][4*j+3]*v90[i][4*j+3];
 	return out;
-}
-__inline__ __device__ float kernel_sse_maxE_ps(float **v00, float **v90, size_t V4, size_t j)
+}*/
+/*__inline__ __device__ float kernel_sse_maxE_ps(float **v00, float **v90, size_t V4, size_t j)
 {
 	float out;
 	float temp;
@@ -622,8 +990,8 @@ __inline__ __device__ float kernel_sse_maxE_ps(float **v00, float **v90, size_t 
 	flag = (temp>out);
 	out = temp+out - (1-flag)*temp - flag*out;
 	return out;
-}
-__inline__ __device__ void kernel_sse_dpf4_ps(float **v00, float **v90, int *i, int j, int *r)
+}*/
+/*__inline__ __device__ void kernel_sse_dpf4_ps(float **v00, float **v90, int *i, int j, int *r)
 {
 //	transformation to DPF for 4 consecutive pixels
 //	rotate vectors Fp and Fx into DPF: fp and fx
@@ -632,8 +1000,8 @@ __inline__ __device__ void kernel_sse_dpf4_ps(float **v00, float **v90, int *i, 
 	kernel_sse_ort4_ps(v00, v90, _s, _c, i, r);
 	kernel_sse_rot4p_ps(v00, _c, v90, _s, i, j, r);
 	
-}
-__inline__ __device__ void kernel_sse_ort4_ps(float **v00, float **v90, float *_s, float *_c, int *i, int *r)
+}*/
+/*__inline__ __device__ void kernel_sse_ort4_ps(float **v00, float **v90, float *_s, float *_c, int *i, int *r)
 {
 	static const float sm[NIFO] = {0.f, 0.f, 0.f, 0.f};	
 	static const float _o[NIFO] = {1.e-24, 1.e-24, 1.e-24, 1.e-24};
@@ -679,12 +1047,8 @@ __inline__ __device__ void kernel_sse_ort4_ps(float **v00, float **v90, float *_
 	_c[3] = _p[3]*_n[3] + _q[3]*(gI[3]/_n[3]); 
 
 	return;
-}
-__inline__ __device__ void kernel_sse_rot4p_ps(float **v00, float *_c, float **v90, float *s, int *i, int j, int *r)
-{
-	
-}
-__inline__ __device__ void kernel_sse_dot4_ps(float **v00, float **v90, int *i, int *r, float *_out)
+}*/
+/*__inline__ __device__ void kernel_sse_dot4_ps(float **v00, float **v90, int *i, int *r, float *_out)
 {
 	int row, col;
 	row = r[0];
@@ -712,7 +1076,7 @@ __inline__ __device__ void kernel_sse_dot4_ps(float **v00, float **v90, int *i, 
 	_out[3] += v00[row][col+2]*v00[row][col+2] + v90[row][col+2]*v90[row][col+2];
 	_out[3] += v00[row][col+3]*v00[row][col+3] + v90[row][col+3]*v90[row][col+3];
  
-}
+}*/
 void MyCallback(struct post_data *post_gpu_data)
 {
 	double Clock[CLOCK_SIZE];
@@ -889,7 +1253,7 @@ void allocate_cpu_mem(struct pre_data *pre_gpu_data, struct post_data *post_gpu_
         CUDA_CHECK(cudaHostAlloc(&(pre_gpu_data[0].other_data.V_tsize), K * 2 * sizeof(size_t), cudaHostAllocMapped ) );
         for(int i = 0; i<StreamNum; i++)
         {
-                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.output), OutputSize * sizeof(float), cudaHostAllocMapped ) );
+                CUDA_CHECK(cudaHostAlloc(&(post_gpu_data[i].output.output), OutputSize*sizeof(float), cudaHostAllocMapped ) );
                 post_gpu_data[i].other_data.ml_mm = (short*)malloc(sizeof(size_t) * (1 + NIFO) * Lsky);
         }
         return;
@@ -916,8 +1280,14 @@ void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skylo
         {
                 CUDA_CHECK(cudaMalloc(&(skyloop_other[i].vtd_vTD_nr), 2*NIFO*vDim*sizeof(float) + NIFO*V4max*sizeof(float) + MaxPixel*sizeof(float) ) );
                 CUDA_CHECK(cudaMalloc(&(skyloop_other[i].eTD), NIFO * vDim * sizeof(float) ) );
-                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].rNRG), V4max * Lsky * sizeof(float) ) );
-                CUDA_CHECK(cudaMalloc(&(skyloop_output[i].output), OutputSize * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].BB), num_blocks * num_threads * V4max * NIFO * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].bb), num_blocks * num_threads * V4max * NIFO * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].fp), num_blocks * num_threads * V4max * NIFO * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].fx), num_blocks * num_threads * V4max * NIFO * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].Fp), num_blocks * num_threads * V4max * NIFO * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].Fx), num_blocks * num_threads * V4max * NIFO * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_output[i].output), OutputSize*sizeof(float) + V4max*sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].tmp), num_blocks*num_threads*OutputSize*sizeof(float) ) );
         }
         CUDA_CHECK(cudaMalloc(&(skyloop_other[0].FP_FX), 2 * NIFO * Lsky * sizeof(double) ) );
         CUDA_CHECK(cudaMalloc(&(skyloop_other[0].ml_mm), (1 + NIFO) * Lsky * sizeof(short) ) );

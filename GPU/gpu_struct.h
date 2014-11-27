@@ -3,6 +3,11 @@ struct skyloop_output                           // the output of skyloop
 {
 	float *output;
 };
+struct STAT
+{
+	float stat, Lm, Em, Am, suball, EE;
+	int lm, Vm;
+}
 struct other                                    //the variable that not use in GPU
 {
 	float *eTD;
