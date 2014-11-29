@@ -46,7 +46,6 @@ __inline__ __device__ void kernel_sse_rot4m_ps(float *Fx, float *_c, float *Fp, 
 __inline__ __device__ void kernel_sse_like4_ps(float *fp, float *fx, float *bb, float *BB, float *_Es);
 
 
-void CUDART_CB Callback(cudaStream_t stream, cudaError_t status, void* post_gpu_data);	
-void MyCallback(struct post_data *post_gpu_data);
+void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data);	
 
 #endif

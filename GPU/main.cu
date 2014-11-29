@@ -291,6 +291,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
                         post_gpu_data[i].other_data.id[pixelCount] = id;
                         pixelCount++;
 			z++;
+			cout<<"input k = "<<k<<" V4 = "<<V4<<endl;
 			//cout<<"z = "<<z<<" kcount = "<<kcount<<endl;
 			if(pixelCount >= MaxPixel)
 				CombineFinish = true;
@@ -366,6 +367,8 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
                 kernel_skyloop<<<num_blocks, num_threads, shared_memory_usage, stream[i]>>>(skyloop_other[i].eTD, skyloop_other[i].vtd_vTD_nr,  skyloop_other[0].FP_FX, skyloop_other[0].ml_mm, skyloop_other[0].V_tsize, skyloop_other[i].BB, skyloop_other[i].bb, skyloop_other[i].fp, skyloop_other[i].fx, skyloop_other[i].Fp, skyloop_other[i].Fx, skyloop_other[i].tmp, skyloop_output[i].output, pixel_array[i]);
         for(int i=0; i<work_size; i++)// transfer the data back from GPU to CPU
                 cudaMemcpyAsync(post_gpu_data[i].output.output, skyloop_output[i].output, OutputSize*pixel_array[i]*sizeof(float) + alloced_V4_array[i]*sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
+	for(int i=0; i<work_size; i++)
+		cudaStreamAddCallback(stream[i], MyCallback, (void*)&post_gpu_data[i], 0);
 }
 
 __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, short *ml_mm, size_t *V_tsize, float *gpu_BB, float *gpu_bb, float *gpu_fp, float *gpu_fx, float *gpu_Fp, float *gpu_Fx, float *gpu_tmp, float *gpu_output, int pixelcount)
@@ -468,14 +471,17 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, sho
                         pe[1] = pe[1] + ml[1][l] * (int)V4;
                         pe[2] = pe[2] + ml[2][l] * (int)V4;
                         pe[3] = pe[3] + ml[3][l] * (int)V4;
-	
-			kernel_skyloop_calculate(ml, nr, FP, FX, gpu_BB, gpu_bb, gpu_fp, gpu_fx, gpu_Fp, gpu_Fx, pa, pA, pe[0], pe[1], pe[2], pe[3], V, V4, gpu_output, l, &_stat);
+			
+			if(k == 4)
+				if(tid < OutputSize)
+					gpu_output[tid] = pe[0][tid];
+			//kernel_skyloop_calculate(ml, nr, FP, FX, gpu_BB, gpu_bb, gpu_fp, gpu_fx, gpu_Fp, gpu_Fx, pa, pA, pe[0], pe[1], pe[2], pe[3], V, V4, gpu_output, l, &_stat);
 		}
 
-		kernel_store_result_to_tmp(gpu_tmp, tid, &_stat);
+//		kernel_store_result_to_tmp(gpu_tmp, tid, &_stat);
 		//Wait for all threads to finish calculation
-		__syncthreads();
-		if(tid < 32)
+//		__syncthreads();
+/*		if(tid < 32)
 		{
 			kernel_store_stat(gpu_tmp, tid);	
 			__syncthreads();
@@ -498,11 +504,10 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, sho
 				for(v=0; v<V; v++)
 					gpu_output[output_ptr+OutputSize+v] = pe[0][v] + pe[1][v] + pe[2][v] + pe[3][v];
 			}
-		}
+		}*/
 		output_ptr += (OutputSize + V4); 
 		v_ptr += vDim*NIFO*2 + NIFO*V4;
 		count++;
-		
 	}
 	
 	return;
@@ -565,7 +570,8 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 
         msk = ((aa-m)/(aa+m)<0.33);
 
-	if(msk)	return;
+/*	if(msk)	return;
+
 	float *bb, *BB, *fp, *Fp, *fx, *Fx;
 	// after skyloop
 	v00[0] = pa[0] + ml[0][l] * (int)V4;
@@ -648,7 +654,7 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 	_s->Vm = _s->Vm+m - _s->Vm*msk - m*(1-msk);
 	_s->suball = _s->suball+ee - _s->suball*msk - ee*(1-msk);
 	_s->EE = _s->EE+em - _s->EE*msk - em*(1-msk);
-	
+	*/
 }
 __inline__ __device__ void kernel_store_result_to_tmp(float *tmp, int tid, struct STAT *_s)
 {
@@ -661,6 +667,7 @@ __inline__ __device__ void kernel_store_result_to_tmp(float *tmp, int tid, struc
 	tmp[tid*OutputSize+6] = _s->lm;
 	tmp[tid*OutputSize+7] = _s->Vm;
 	return;
+
 }
 __device__ void kernel_store_stat(float *tmp, int tid)
 {
@@ -1094,9 +1101,45 @@ __inline__ __device__ void kernel_sse_like4_ps(float *fp, float *fx, float *bb, 
 	_out[3] += v00[row][col+3]*v00[row][col+3] + v90[row][col+3]*v90[row][col+3];
  
 }*/
-void MyCallback(struct post_data *post_gpu_data)
+void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gpu_data)
 {
-	double Clock[CLOCK_SIZE];
+	FILE *fpt = fopen("./new_debug/my_k4etd", "a");
+//
+	int Lsky = gpu_Lsky;
+	int k;
+	size_t V4;
+	int pixelcount=0;
+	int streamNum;
+	size_t output_ptr = 0;
+	for(int i=0; i<StreamNum; i++)
+	{
+		k = ((post_data*)post_gpu_data)->other_data.k[pixelcount] - 1;
+		
+		while(k != -1)
+		{
+			V4 = ((post_data*)post_gpu_data)->other_data.V4[pixelcount];
+
+			//after_skyloop((void*)&post_gpu_data[i], gpu_net, gpu_hist, pwc, FP, FX, pa[streamNum][pixelcount], pA[streamNum][pixelcount], pixelcount, output_ptr, Lsky, gpu_time, streamCount);
+			cout<<"k = "<<k<<" V4 = "<<V4<<endl;
+			if(k == 4)
+				for(int l=0; l<OutputSize; l++)
+					fprintf(fpt, "%f\n", ((post_data*)post_gpu_data)->output.output[l]); 
+			
+			output_ptr = output_ptr + V4*Lsky + Lsky;
+			pixelcount++;
+			if(pixelcount<MaxPixel)
+				k = ((post_data*)post_gpu_data)->other_data.k[pixelcount] - 1;
+			else 
+				break;
+		}
+	}
+//	fclose(fpt);
+
+	
+}
+/*void MyCallback(struct post_data *post_gpu_data)
+{
+	FILE *fpt = fopen("/home/hpc/cWB/Big_input_file/my_k4etd", "a");
 //
 	int Lsky = gpu_Lsky;
 	int k;
@@ -1113,11 +1156,12 @@ void MyCallback(struct post_data *post_gpu_data)
 			V4 = post_gpu_data[i].other_data.V4[pixelcount];
 	        	streamNum = post_gpu_data[i].other_data.stream;
 
-			Clock[0] = clock();
-			after_skyloop((void*)&post_gpu_data[i], gpu_net, gpu_hist, pwc, FP, FX, pa[streamNum][pixelcount], pA[streamNum][pixelcount], pixelcount, output_ptr, Lsky, gpu_time, streamCount);
-			Clock[1] = clock();
-			gpu_time[9] += (double)(Clock[1]-Clock[0])/CLOCKS_PER_SEC;
-		
+			//after_skyloop((void*)&post_gpu_data[i], gpu_net, gpu_hist, pwc, FP, FX, pa[streamNum][pixelcount], pA[streamNum][pixelcount], pixelcount, output_ptr, Lsky, gpu_time, streamCount);
+			cout<<"k = "<<k<<" V4 = "<<V4<<endl;
+			if(k == 4)
+				for(int l=0; l<V4MAX+OutputSize; l++)
+					fprintf(fpt, "%f\n", post_gpu_data[i].output.output[l]); 
+			
 			output_ptr = output_ptr + V4*Lsky + Lsky;
 			pixelcount++;
 			if(pixelcount<MaxPixel)
@@ -1127,106 +1171,8 @@ void MyCallback(struct post_data *post_gpu_data)
 		}
 	}
 //	fclose(fpt);
-}
-	
-
-void CUDART_CB Callback(cudaStream_t stream, cudaError_t status, void *post_gpu_data)
-{
-//	FILE *fpt = fopen("./debug_files/skyloop_output", "a");
-//debug
-	double Clock[CLOCK_SIZE];
-//
-	int Lsky = gpu_Lsky;
-	int k;
-	size_t V4;
-	int pixelcount=0;
-	int streamNum;
-	size_t output_ptr = 0;
-	//cout<<"Callback"<<endl;
-	k = ((post_data*)post_gpu_data)->other_data.k[pixelcount] - 1;
-	
-	while(k != -1)
-	{
-	//	cout<<"k = "<<k<<endl;
-		V4 = ((post_data*)post_gpu_data)->other_data.V4[pixelcount];
-        	streamNum = ((post_data*)post_gpu_data)->other_data.stream;
-
-		Clock[0] = clock();
-		after_skyloop(post_gpu_data, gpu_net, gpu_hist, pwc, FP, FX, pa[streamNum][pixelcount], pA[streamNum][pixelcount], pixelcount, output_ptr, Lsky, gpu_time, streamCount);
-		Clock[1] = clock();
-		gpu_time[0] += (double)(Clock[1]-Clock[0])/CLOCKS_PER_SEC;
-		
-		output_ptr = output_ptr + V4*Lsky + Lsky;
-		pixelcount++;
-		if(pixelcount<MaxPixel)
-			k = ((post_data*)post_gpu_data)->other_data.k[pixelcount] - 1;
-		else 
-			break;
-	}
-//	fclose(fpt);
-}
-/*	after_skyloop:
-	vint = &(pwc->cList[id-1]);
-	pwc->sCuts[id-1] = -1;
-	pwc->cData[id-1].likenet = Lm;
-	pwc->cData[id-1].energy = Em;
-	pwc->cData[id-1].theta = gpu_net->nLikelihood.getTheta(lm);
-	pwc->cData[id-1].phi = gpu_net->nLikelihood.getPhi(lm);
-	pwc->cData[id-1].skyIndex = lm;
-	rHo = 0.;
-	if(mra)
-	{
-		submra = Ls*Eo/(Eo-Ls);				// MRA subnet statistic
-		submra /= fabs(submra) + fabs(Eo-Lo) + 2*(m+6);		// MRA subnet coefficient	
-		To = 0;
-		pwc->p_Ind[id-1].push_back(lm);
-		for(int j=0; j<vint->size(); j++)
-		{
-			pix = pwc->getPixel(id,j);
-                        pix->theta = gpu_net->nLikelihood.getTheta(lm);
-			pix->phi   = gpu_net->nLikelihood.getPhi(lm);
-			To += pix->time/pix->rate/pix->layers;
-			if(j==0&&mra) pix->ellipticity = submra;    // subnet MRA propagated to L-stage
-			if(j==0&&mra) pix->polarisation = fabs(Eo-Lo)+2*(m+6);	// submra NULL propagated to L-stage
-			if(j==1&&mra) pix->ellipticity = suball;   // subnet all-sky propagated to L-stage
-			if(j==1&&mra) pix->polarisation = EE;      // suball NULL propagated to L-stage
-		}
-		To /= vint->size();
-		rHo = sqrt(Lo*Lo/(Eo+2*m)/nIFO);	// estimator of coherent amplitude
-	}
-	
-	if(gpu_hist && rHo>gpu_net->netRHO)
-		for(int j=0; j<vint->size(); j++)
-			gpu_hist->Fill(suball, submra);
-	
-	if(fmin(suball, submra)>TH && rHo>gpu_net->netRHO)
-        {
-                count += vint->size();
-                if(gpu_hist)
-                {
-                	printf("lag|id %3d|%3d rho=%5.2f To=%5.1f stat: %5.3f|%5.3f|%5.3f ",
-                	int(lag),int(id),rHo,To,suball,submra,stat);
-            		printf("E: %6.1f|%6.1f L: %6.1f|%6.1f|%6.1f pix: %4d|%4d|%3d|%2d \n",
-                   	Em,Eo,Lm,Lo,Ls,int(vint->size()),int(V),Vm,int(m));
-                }
-        }
-	else
-		pwc->sCuts[id-1] = 1;
-// clean time delay data
-	V = vint->size();
-	for(int j=0; j<V; j++)
-	{
-		pix = pwc->getPixel(id,j);
-		pix->core = true;
-		if(pix->tdAmp.size())
-			pix->clean();
-	}
-	streamCount[stream] += count;
-	//cout<<"4"<<endl;
-	return;
-	
 }*/
-
+	
 void QuickSort(size_t *V_array, int *k_array, int p, int r)
 {
         int q;

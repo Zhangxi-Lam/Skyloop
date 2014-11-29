@@ -267,7 +267,7 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gp
 	k = ((post_data*)post_gpu_data)->other_data.k[count] - 1;
 	while(k!=-1)
 	{
-		cout<<"callback k = "<<k<<endl;
+		//cout<<"callback k = "<<k<<endl;
 		V4 = ((post_data*)post_gpu_data)->other_data.V4[count];
 		ptr = ptr + 3072*V4;
 		for(l=lb; l<=le; l++)
@@ -402,13 +402,17 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
 	while( v<V )					// loop over selected pixels	
 	{
 		// *_rE = _sse_sum_ps(_pe);
-		pe[0] = PE_0[v];
+		/*pe[0] = PE_0[v];
 		pe[1] = PE_1[v];
 		pe[2] = PE_2[v];
-		pe[3] = PE_3[v];
+		pe[3] = PE_3[v];*/
+		pe[0] = 0;
+		pe[1] = 1;
+		pe[2] = 2;
+		pe[3] = 3;
 		rE = pe[0] + pe[1] + pe[2] + pe[3];								// get pixel energy
 		//assign the value to the local memory
-		gpu_output[ptr+v] = rE;
+		//gpu_output[ptr+v] = rE;
 		msk = ( rE>=constEn );										// E>En  0/1 mask
 		Mm += msk;												// count pixels above threshold
 		///*new
