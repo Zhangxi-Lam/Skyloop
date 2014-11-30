@@ -376,6 +376,9 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 	cout<<"my after_loop loop = "<<gpu_time[9]<<endl;
 	cout<<"net = "<<net->rNRG.data[0]<<endl;
 	cout<<"cc = "<<cc<<endl;
+	FILE *fpt = fopen("./debug_files/skyloop_myaa", "a");
+	fprintf(fpt, "end\n");
+	fclose(fpt);
 	cc = 0;
 	return count;
 }
@@ -519,11 +522,8 @@ __inline__ __device__ void kernel_skyloop_calculate(float *PE_0, float *PE_1, fl
         aa = Es*En/(Eo-Es);
 
         msk = ((aa-Mm)/(aa+Mm)<0.33);
-        //aa = aa*(1-msk) - 1*msk;
-        //gpu_output[rEDim + l + output_ptr] = aa;
-
-	if(msk)	return;
-	
+        aa = aa*(1-msk) - 1*msk;
+        gpu_output[rEDim + l + output_ptr] = aa;
 }
 __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
 {

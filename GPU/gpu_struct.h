@@ -3,9 +3,23 @@ struct skyloop_output                           // the output of skyloop
 {
 	float *output;
 };
+struct STAT
+{
+	float stat, Lm, Em, Am, suball, EE;
+	int lm, Vm;
+};
 struct other                                    //the variable that not use in GPU
 {
+	float *vtd_vTD_nr;
 	float *eTD;
+	float *BB;
+	float *bb;
+	float *fp;
+	float *fx;
+	float *Fp;
+	float *Fx;
+	float *tmp;
+	double *FP_FX;
 	short *ml_mm;
 	size_t *V_tsize;
 	float T_En, T_Es, TH;	// same
