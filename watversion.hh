@@ -12,7 +12,7 @@ inline char* watversion(char c='s')
   if(c=='r') 
     return (char*)"3600M";
   if(c=='x') 
-    return (char*)"Last Changed Date: 2014-08-04 04:43:38 +0800 (一, 04 8月 2014)";
+    return (char*)"Last Changed Date: 2014-08-04 04:43:38 +0800 (Mon, 04 Aug 2014)";
   if(c=='k') 
     return (char*)"Linux";
   if(c=='n') 
@@ -26,7 +26,7 @@ inline char* watversion(char c='s')
   if(c=='p') 
     return (char*)"x86_64";
   if(c=='t') 
-    return (char*)"2014年 11月 28日 星期五 13:23:52 UTC ";
+    return (char*)"Sun Nov 30 07:21:17 UTC 2014 ";
   else         return (char*)"wat-6.0.0";
 }
 

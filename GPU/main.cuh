@@ -13,7 +13,7 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 
 __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, short *ml_mm, size_t *V_tsize, float *gpu_BB, float *gpu_bb, float *gpu_fp, float *gpu_fx, float *gpu_Fp, float *gpu_Fx, float *gpu_tmp, float *gpu_output, int pixelcount);
 
-__inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, double **FP, double **FX, float *gpu_BB, float *gpu_bb, float *gpu_fp, float *gpu_fx, float *gpu_Fp, float *gpu_Fx, float **pa, float **pA, float *PE_0, float *PE_1, float *PE_2, float *PE_3, size_t V, size_t V4, float *gpu_output,  int l, struct STAT *_s);
+__inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, double **FP, double **FX, float *gpu_BB, float *gpu_bb, float *gpu_fp, float *gpu_fx, float *gpu_Fp, float *gpu_Fx, float **pa, float **pA, float *PE_0, float *PE_1, float *PE_2, float *PE_3, size_t V, float *gpu_output,  int k, struct STAT *_s);
 
 __inline__ __device__ void kernel_store_result_to_tmp(float *tmp, int tid, struct STAT *_s);
 
