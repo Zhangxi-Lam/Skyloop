@@ -832,10 +832,10 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 		_mm_storeu_ps(tmp, *_pe[0]);
 		temp[0] = tmp[0];
 		_mm_storeu_ps(tmp, *_pe[1]);
-		temp[1] = tmp[1];
+		temp[1] = tmp[0];
 		_mm_storeu_ps(tmp, *_pe[2]);
-		temp[2] = tmp[2];
-		
+		temp[2] = tmp[0];
+	
 		fprintf(fpt, "l = %d %f %f %f\n", l, temp[0], temp[1], temp[2]);
 	}
 

@@ -442,10 +442,10 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, sho
                         pe[1] = pe[1] + ml[1][l] * (int)V;
                         pe[2] = pe[2] + ml[2][l] * (int)V;
 			
-			if(k == 4)
-				if(l < 10*OutputSize)
-					gpu_output[l] = pe[1][l];
-			//kernel_skyloop_calculate(ml, nr, FP, FX, gpu_BB, gpu_bb, gpu_fp, gpu_fx, gpu_Fp, gpu_Fx, pa, pA, pe[0], pe[1], pe[2], pe[3], V, gpu_output, k, &_stat);
+		//	if(k == 4)
+		//		if(l< 10*OutputSize)
+		//			gpu_output[l] = pe[1][0];
+			kernel_skyloop_calculate(ml, nr, FP, FX, gpu_BB, gpu_bb, gpu_fp, gpu_fx, gpu_Fp, gpu_Fx, pa, pA, pe[0], pe[1], pe[2], V, gpu_output, l, &_stat, k);
 		}
 	
 //		kernel_store_result_to_tmp(gpu_tmp, tid, &_stat);
@@ -482,7 +482,7 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, sho
 	
 	return;
 }
-__inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, double **FP, double **FX, float *gpu_BB, float *gpu_bb, float *gpu_fp, float *gpu_fx, float *gpu_Fp, float *gpu_Fx, float **pa, float **pA, float *PE_0, float *PE_1, float *PE_2, float *PE_3, size_t V, float *gpu_output,  int k, struct STAT *_s)
+__inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, double **FP, double **FX, float *gpu_BB, float *gpu_bb, float *gpu_fp, float *gpu_fx, float *gpu_Fp, float *gpu_Fx, float **pa, float **pA, float *PE_0, float *PE_1, float *PE_2, size_t V, float *gpu_output,  int l, struct STAT *_s, int k)
 {
         int msk;                                              // mask
         size_t v;                                  // indicate the pixel
@@ -513,6 +513,9 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
                 pe[0] = PE_0[v];
                 pe[1] = PE_1[v];
                 pe[2] = PE_2[v];
+       //         pe[0] = 0;
+       //         pe[1] = 1;
+       //         pe[2] = 2;
                 rE = pe[0] + pe[1] + pe[2];                                                             // get pixel energy
 	        // E>En  0/1 mask
                 msk = ( rE>=constEn );                                                                          // E>En  0/1 mask
@@ -539,13 +542,14 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 
         msk = ((aa-m)/(aa+m)<0.33);
 	if(k==4)
-		for(int l=0; l<8; l++)
-			gpu_output[l] = PE_0[0] + PE_1[0] + PE_2[0];
-//			gpu_output[l] = aa*msk - 1*(1-msk);
-
-/*	if(msk)	return;
+		//for(int l=0; l<80; l++)
+		//	gpu_output[l] = PE_0[0] + PE_1[0] + PE_2[0];
+		if(l<80)
+			gpu_output[l] = aa*msk - 1*(1-msk);
 
 	float *bb, *BB, *fp, *Fp, *fx, *Fx;
+/*	if(msk)	return;
+
 	// after skyloop
 	v00[0] = pa[0] + ml[0][l] * (int)V;
 	v00[1] = pa[1] + ml[1][l] * (int)V;
@@ -1092,7 +1096,7 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gp
 			//after_skyloop((void*)&post_gpu_data[i], gpu_net, gpu_hist, pwc, FP, FX, pa[streamNum][pixelcount], pA[streamNum][pixelcount], pixelcount, output_ptr, Lsky, gpu_time, streamCount);
 			//cout<<"k = "<<k<<" V = "<<V<<endl;
 			if(k == 4)
-				for(int l=0; l<OutputSize; l++)
+				for(int l=0; l<10*OutputSize; l++)
 					fprintf(fpt, "%f\n", ((post_data*)post_gpu_data)->output.output[l]); 
 			
 			output_ptr = output_ptr + V*Lsky + Lsky;
