@@ -434,7 +434,6 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, sho
 		pA[1] = vTD[1] + (tsize/2)*V;
 		pA[2] = vTD[2] + (tsize/2)*V;
 	
-		
 		for(l=tid; l<Lsky; l+=grid_size)
 		{
 			if(!mm[l])	continue;
@@ -513,9 +512,6 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
                 pe[0] = PE_0[v];
                 pe[1] = PE_1[v];
                 pe[2] = PE_2[v];
-       //         pe[0] = 0;
-       //         pe[1] = 1;
-       //         pe[2] = 2;
                 rE = pe[0] + pe[1] + pe[2];                                                             // get pixel energy
 	        // E>En  0/1 mask
                 msk = ( rE>=constEn );                                                                          // E>En  0/1 mask
@@ -545,7 +541,7 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 		//for(int l=0; l<80; l++)
 		//	gpu_output[l] = PE_0[0] + PE_1[0] + PE_2[0];
 		if(l<80)
-			gpu_output[l] = aa*msk - 1*(1-msk);
+			gpu_output[l] = aa*(1-msk) - 1*msk;
 
 	float *bb, *BB, *fp, *Fp, *fx, *Fx;
 /*	if(msk)	return;
