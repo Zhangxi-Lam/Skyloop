@@ -799,15 +799,39 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
             }
          }
       }
-	FILE *fpt = fopen("./new_debug/k4_eTD", "a");
-	/*
+/*	FILE *fpt = fopen("./new_debug/k4_vtd", "a");
+	FILE *fpt1 = fopen("./new_debug/k4_vTD", "a");
+	
 	if (k == 4)
 	{
-		for(int l = 0; l<8; l++)
-			fprintf(fpt, "%f %f %f %f\n", pe[0][l], pe[1][l], pe[2][l], pe[3][l]);
+		for(int l=0; l<tsize; l++)
+		{
+			fprintf(fpt, "l = %d vtd[0] = %f vtd[1] = %f vtd[2] = %f\n", l, vtd[0].data[l*V4], vtd[1].data[l*V4], vtd[2].data[l*V4]);
+			fprintf(fpt, "l = %d vtd[0] = %f vtd[1] = %f vtd[2] = %f\n", l, vtd[0].data[l*V4+1], vtd[1].data[l*V4+1], vtd[2].data[l*V4+1]);
+			fprintf(fpt, "l = %d vtd[0] = %f vtd[1] = %f vtd[2] = %f\n", l, vtd[0].data[l*V4+2], vtd[1].data[l*V4+2], vtd[2].data[l*V4+2]);
+		}
+		for(int l=0; l<tsize; l++)
+		{
+			fprintf(fpt1, "l = %d vTD[0] = %f vTD[1] = %f vTD[2] = %f\n", l, vTD[0].data[l*V4], vTD[1].data[l*V4], vTD[2].data[l*V4]);
+			fprintf(fpt1, "l = %d vTD[0] = %f vTD[1] = %f vTD[2] = %f\n", l, vTD[0].data[l*V4+1], vTD[1].data[l*V4+1], vTD[2].data[l*V4+1]);
+			fprintf(fpt1, "l = %d vTD[0] = %f vTD[1] = %f vTD[2] = %f\n", l, vTD[0].data[l*V4+2], vTD[1].data[l*V4+2], vTD[2].data[l*V4+2]);
+		}
 		cout<<"finish"<<endl;
 	}*/
-	
+	FILE *fpt = fopen("./new_debug/k151_vtd", "a");
+	FILE *fpt1 = fopen("./new_debug/k151_vTD", "a");
+	if(k==151)
+	{
+		int v = 0;
+		int count = 0;
+		for(int l=0; l<tsize*V4; l++)
+		{
+			fprintf(fpt, "l = %d vtd[0] = %f vtd[1] = %f vtd[2] = %f\n", l, vtd[0].data[l], vtd[1].data[l], vtd[2].data[l]);
+			fprintf(fpt1, "l = %d vTD[0] = %f vTD[1] = %f vTD[2] = %f\n", l, vTD[0].data[l], vTD[1].data[l], vTD[2].data[l]);
+		}
+		cout<<"finish"<<endl;
+		cout<<"k = "<<k<<" V = "<<V<<" V4 = "<<V4<<endl;
+	}		
 	
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -820,6 +844,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
       double suball=0;
       double submra=0;
       stat=Lm=Em=Am=EE=0.; lm=Vm= -1;    
+	//FILE *fpt = fopen("./new_debug/k151_etd", "a");
   skyloop:
 
       for(l=lb; l<=le; l++) {	                      // loop over sky locations
@@ -827,7 +852,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
          _sse_point_ps(_pe, pe, ml, int(l), (int)V4); // point _pe to energy vectors
 	float tmp[NIFO];
 	float temp[NIFO];
-	if(k == 4)
+	/*if(k == 151)
 	{
 		_mm_storeu_ps(tmp, *_pe[0]);
 		temp[0] = tmp[0];
@@ -836,8 +861,8 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 		_mm_storeu_ps(tmp, *_pe[2]);
 		temp[2] = tmp[0];
 	
-		fprintf(fpt, "l = %d %f %f %f\n", l, temp[0], temp[1], temp[2]);
-	}
+		fprintf(fpt, "l = %d pe[0] = %f pe[1] = %f pe[2] = %f ", l, temp[0], temp[1], temp[2]);
+	}*/
 
          __m128 _msk;
          __m128 _E_o = _mm_setzero_ps();              // total network energy
@@ -869,6 +894,8 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	 m = 2*(vvv[0]+vvv[1]+vvv[2]+vvv[3])+0.01;     // pixels above threshold
 
 	 aa = Ls*Ln/(Eo-Ls);
+	//if(k == 151)
+	//	fprintf(fpt, "aa = %f\n", aa);
          if((aa-m)/(aa+m)<0.33)	continue;
 	ccc++;
 
@@ -949,7 +976,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	//FILE *fpt = fopen("./debug_files/skyloop_loopoutput", "a");
 	//	fprintf(fpt, "lag = %d k = %d l = %d stat = %f Lm = %f Em = %f Am = %f lm = %d Vm = %d suball = %f EE = %f\n", lag, k, l, stat, Lm, Em, Am, lm, Vm, suball, EE);
 //    fclose(fpt);
-	if (k==4)
+	if (k==151)
 		cout<<"finish"<<endl;
 	
       pwc->sCuts[id-1] = -1; 
@@ -1008,6 +1035,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	Clock[1] = clock();
 	printf("CPU this time = %f\n",(double)(Clock[1]-Clock[0])/CLOCKS_PER_SEC);
 	printf("loop this time = %f\n", cpu_time[0]);
+	cout<<"ccc = "<<ccc<<endl;
    return count;
 }
 

@@ -8,12 +8,12 @@ void cleanup_gpu_mem(struct skyloop_output *skyloop_output, struct other *skyloo
 void QuickSort(size_t *V_array, int *k_array, int p, int r);
 int Partition(size_t *V_array, int *k_array, int p, int r);
 
-__host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *post_gpu_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, size_t *vtddim_array, size_t *alloced_V4_array, int Lsky, int *pixel_array, int work_size, cudaStream_t *stream);
+__host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *post_gpu_data, struct skyloop_output *skyloop_output, struct other *skyloop_other, size_t *vtddim_array, size_t *etddim_array, size_t *alloced_V4_array, int Lsky, int *pixel_array, int work_size, cudaStream_t *stream);
 
 
 __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, short *ml_mm, size_t *V_tsize, float *gpu_BB, float *gpu_bb, float *gpu_fp, float *gpu_fx, float *gpu_Fp, float *gpu_Fx, float *gpu_tmp, float *gpu_output, int pixelcount);
 
-__inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, double **FP, double **FX, float *gpu_BB, float *gpu_bb, float *gpu_fp, float *gpu_fx, float *gpu_Fp, float *gpu_Fx, float **pa, float **pA, float *PE_0, float *PE_1, float *PE_2, size_t V, float *gpu_output,  int l, struct STAT *_s, int k);
+__inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, double **FP, double **FX, float *gpu_BB, float *gpu_bb, float *gpu_fp, float *gpu_fx, float *gpu_Fp, float *gpu_Fx, float **pa, float **pA, float *PE_0, float *PE_1, float *PE_2, size_t V, float *gpu_output,  int l, struct STAT *_s, int tid, int k, int output_ptr);
 
 __inline__ __device__ void kernel_store_result_to_tmp(float *tmp, int tid, struct STAT *_s);
 
@@ -39,7 +39,7 @@ __inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, flo
 
 __inline__ __device__ void kernel_sse_dot4_ps(float *u, float *v, float *out);
 
-__inline__ __device__ void kernel_sse_rot4p_ps(float *Fp, float *_c, float *Fx, float *_s, float *fp);
+__inline__ __device__ void kernel_sse_rot4p_m_ps(float *Fp, float *_c, float *Fx, float *_s, float *fp, float *fx);
 
 __inline__ __device__ void kernel_sse_rot4m_ps(float *Fx, float *_c, float *Fp, float *_s, float *fx);
 
