@@ -540,6 +540,117 @@ static inline float _sse_maxE_ps(__m128* _a, __m128* _A) {
    return out;
 }
 
+static inline void _sse_ort4_ps(__m128* _u, __m128* _v, __m128* _s, __m128* _c, int k, int l, FILE **fpt) {			// used for debugging
+// orthogonalize vectors _u and _v: take vectors u and v, 
+// make them orthogonal, calculate rotation phase
+// fill in sin and cos in _s and _c respectively 
+   static const __m128 sm = _mm_set1_ps(-0.f);                           // -0.f = 1 << 31
+   static const __m128 _o = _mm_set1_ps(1.e-24); 
+   static const __m128 _0 = _mm_set1_ps(0.); 
+   static const __m128 _1 = _mm_set1_ps(1.); 
+   static const __m128 _2 = _mm_set1_ps(2.); 
+   __m128 _n,_m,gI,gR,_p,_q;
+   gI = _mm_mul_ps(_sse_dot4_ps(_u,_v),_2);                              // ~sin(2*psi) or 2*u*v
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, gI);
+		fprintf(fpt[0], "k = %d l = %d gI[0] = %f gI[1] = %f gI[2] = %f gI[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+
+   gR = _mm_sub_ps(_sse_dot4_ps(_u,_u),_sse_dot4_ps(_v,_v));             // u^2-v^2
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, gR);
+		fprintf(fpt[1], "k = %d l = %d gR[0] = %f gR[1] = %f gR[2] = %f gR[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+   _p = _mm_and_ps(_mm_cmpge_ps(gR,_0),_1);                              // 1 if gR>0. or 0 if gR<0.  
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, _p);
+		fprintf(fpt[2], "k = %d l = %d _p[0] = %f _p[1] = %f _p[2] = %f _p[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+   _q = _mm_sub_ps(_1,_p);                                               // 0 if gR>0. or 1 if gR<0.  
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, _q);
+		fprintf(fpt[3], "k = %d l = %d _q[0] = %f _q[1] = %f _q[2] = %f _q[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+   _n = _mm_sqrt_ps(_mm_add_ps(_mm_mul_ps(gI,gI),_mm_mul_ps(gR,gR)));    // gc
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, _n);
+		fprintf(fpt[4], "k = %d l = %d _n[0] = %f _n[1] = %f _n[2] = %f _n[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+   gR = _mm_add_ps(_mm_andnot_ps(sm,gR),_mm_add_ps(_n,_o));              // gc+|gR|+eps
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, gR);
+		fprintf(fpt[5], "k = %d l = %d gR[0] = %f gR[1] = %f gR[2] = %f gR[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+   _n = _mm_add_ps(_mm_mul_ps(_2,_n),_o);                                // 2*gc + eps
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, _n);
+		fprintf(fpt[6], "k = %d l = %d _n[0] = %f _n[1] = %f _n[2] = %f _n[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+   gI = _mm_div_ps(gI,_n);                                               // sin(2*psi)
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, gI);
+		fprintf(fpt[7], "k = %d l = %d gI[0] = %f gI[1] = %f gI[2] = %f gI[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+   _n = _mm_sqrt_ps(_mm_div_ps(gR,_n));                                  // sqrt((gc+|gR|)/(2gc+eps))
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, _n);
+		fprintf(fpt[8], "k = %d l = %d _n[0] = %f _n[1] = %f _n[2] = %f _n[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+   _m = _mm_and_ps(_mm_cmpge_ps(gI,_0),_1);                              // 1 if gI>0. or 0 if gI<0.  
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, _m);
+		fprintf(fpt[9], "k = %d l = %d _m[0] = %f _m[1] = %f _m[2] = %f _m[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+   _m = _mm_mul_ps(_mm_sub_ps(_mm_mul_ps(_m,_2),_1),_n);                 // _n if gI>0 or -_n if gI<0   
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, _m);
+		fprintf(fpt[10], "k = %d l = %d _m[0] = %f _m[1] = %f _m[2] = %f _m[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+  *_s = _mm_add_ps(_mm_mul_ps(_q,_m),_mm_mul_ps(_p,_mm_div_ps(gI,_n)));  // sin(psi)
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, *_s);
+		fprintf(fpt[11], "k = %d l = %d _s[0] = %f _s[1] = %f _s[2] = %f _s[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+   gI = _mm_andnot_ps(sm,gI);                                            // |gI|
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, gI);
+		fprintf(fpt[12], "k = %d l = %d gI[0] = %f gI[1] = %f gI[2] = %f gI[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+  *_c = _mm_add_ps(_mm_mul_ps(_p,_n),_mm_mul_ps(_q,_mm_div_ps(gI,_n)));  // cos(psi)
+	if(k==4)
+	{
+		float tmp[4];
+		_mm_storeu_ps(tmp, *_c);
+		fprintf(fpt[13], "k = %d l = %d _c[0] = %f _c[1] = %f _c[2] = %f _c[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+   return;
+}
 static inline void _sse_ort4_ps(__m128* _u, __m128* _v, __m128* _s, __m128* _c) {
 // orthogonalize vectors _u and _v: take vectors u and v, 
 // make them orthogonal, calculate rotation phase
@@ -567,20 +678,20 @@ static inline void _sse_ort4_ps(__m128* _u, __m128* _v, __m128* _s, __m128* _c) 
    return;
 }
 
-static inline void _sse_dpf4_ps(__m128* _Fp, __m128* _Fx, __m128* _fp, __m128* _fx, int k, int l, FILE *fpt) {		// used for debugging
+static inline void _sse_dpf4_ps(__m128* _Fp, __m128* _Fx, __m128* _fp, __m128* _fx, int k, int l, FILE **fpt) {		// used for debugging
 // transformation to DPF for 4 consecutive pixels.
 // rotate vectors Fp and Fx into DPF: fp and fx
    __m128 _c, _s;
 	float tmp[4];
-   _sse_ort4_ps(_Fp,_Fx,&_s,&_c);                                        // get sin and cos
-	if(k == 4)
+   _sse_ort4_ps(_Fp,_Fx,&_s,&_c, k, l, fpt);                                        // get sin and cos
+/*	if(k == 4)
 	{
 //		FILE *fpt = fopen("/home/hpc/cWB/TEST/S6B_BKG_LF_L1H1_2G_SUPERCLUSTER_run2a/new_debug/k4_cs", "a");
 		_mm_storeu_ps(tmp,*_Fx);
 		fprintf(fpt, "k = %d l = %d Fx[0] = %f Fx[1] = %f Fx[2] = %f Fx[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
 //		_mm_storeu_ps(tmp, _c);
 //		fprintf(fpt, "k = %d l = %d c[0] = %f c[1] = %f c[2] = %f c[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
-	}
+	}*/
    _sse_rot4p_ps(_Fp,&_c,_Fx,&_s,_fp);                                   // get fp=Fp*c+Fx*s  
    _sse_rot4m_ps(_Fx,&_c,_Fp,&_s,_fx);                                   // get fx=Fx*c-Fp*s 
    return;

@@ -759,16 +759,16 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 		kernel_sse_cpf_ps(gpu_BB+tid+m*NIFO*GRID_SIZE, gpu_BB+tid+j*NIFO*GRID_SIZE);
 		kernel_sse_cpf_ps(gpu_Fx+tid+m*NIFO*GRID_SIZE, gpu_fx+tid+j*NIFO*GRID_SIZE);
 		kernel_sse_cpf_ps(gpu_Fp+tid+m*NIFO*GRID_SIZE, gpu_fp+tid+j*NIFO*GRID_SIZE);
-		kernel_sse_mul_ps(gpu_Fp+tid+m*NIFO*GRID_SIZE, nr+j*NIFO);
-		kernel_sse_mul_ps(gpu_Fx+tid+m*NIFO*GRID_SIZE, nr+j*NIFO);
+		kernel_sse_mul_ps(gpu_Fp+tid+m*NIFO*GRID_SIZE, nr+j*gpu_nIFO);
+		kernel_sse_mul_ps(gpu_Fx+tid+m*NIFO*GRID_SIZE, nr+j*gpu_nIFO);
 		m++;
 		em = kernel_sse_maxE_ps(gpu_bb+tid+j*NIFO*GRID_SIZE, gpu_BB+tid+j*NIFO*GRID_SIZE);
-		Ls+= ee-em;	Eo += ee;
-		msk = (ee-em>constEs);
+		Ls += ee-em;	Eo += ee;
+		msk = ( (ee-em)>constEs );
 		Ln += msk*ee;
 	}
-/*	
-	if(k==4)
+
+	/*if(k==4)
 	{
 		int Lsky = 196608;
 		gpu_output[l] = ee;
@@ -807,20 +807,46 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 	size_t m4 = m + msk*(4-m%4);
 	_En[0] = _En[1] = _En[2] = _En[3] = 0;
 	
+	gpu_output[l+9*196608] = m;
+	
+	for(j=m; j<m4; j++)
+	{
+		gpu_Fp[tid+j*NIFO*GRID_SIZE] = 0.;
+		gpu_Fp[tid+GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_Fp[tid+2*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_Fp[tid+3*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_Fx[tid+j*NIFO*GRID_SIZE] = 0.;
+		gpu_Fx[tid+GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_Fx[tid+2*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_Fx[tid+3*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+	}
+/*	if(k==4)
+	{
+		int Lsky = 196608;
+		gpu_output[l] = *(gpu_Fp+tid+3*NIFO*GRID_SIZE);
+		gpu_output[l+Lsky] = *(gpu_Fp+tid+GRID_SIZE+3*NIFO*GRID_SIZE);
+ 		gpu_output[l+2*Lsky] = *(gpu_Fp+tid+2*GRID_SIZE+3*NIFO*GRID_SIZE);
+		gpu_output[l+3*Lsky] = *(gpu_Fp+tid+3*GRID_SIZE+3*NIFO*GRID_SIZE);
+		gpu_output[l+4*Lsky] = *(gpu_fp+tid+3*NIFO*GRID_SIZE);
+		gpu_output[l+5*Lsky] = *(gpu_fp+tid+GRID_SIZE+3*NIFO*GRID_SIZE);
+		gpu_output[l+6*Lsky] = *(gpu_fp+tid+2*GRID_SIZE+3*NIFO*GRID_SIZE);
+		gpu_output[l+7*Lsky] = *(gpu_fp+tid+3*GRID_SIZE+3*NIFO*GRID_SIZE);
+	}*/
+
 	for(j=0; j<m4; j+=4)
 	{
-		if(k==4)
+		/*if(k==4)
 		{
 			int Lsky = 196608;
-			gpu_output[l] = *(gpu_Fp+tid);
-			gpu_output[l+Lsky] = *(gpu_Fp+tid+GRID_SIZE);
-			gpu_output[l+2*Lsky] = *(gpu_Fp+tid+2*GRID_SIZE);
-			gpu_output[l+3*Lsky] = *(gpu_Fp+tid+3*GRID_SIZE);
-			gpu_output[l+4*Lsky] = *(gpu_Fx+tid);
-			gpu_output[l+5*Lsky] = *(gpu_Fx+tid+GRID_SIZE);
-			gpu_output[l+6*Lsky] = *(gpu_Fx+tid+2*GRID_SIZE);
-			gpu_output[l+7*Lsky] = *(gpu_Fx+tid+3*GRID_SIZE);
-		}
+			gpu_output[l] = *(gpu_Fp+tid+NIFO*GRID_SIZE);
+			gpu_output[l+Lsky] = *(gpu_Fp+tid+GRID_SIZE+NIFO*GRID_SIZE);
+			gpu_output[l+2*Lsky] = *(gpu_Fp+tid+2*GRID_SIZE+NIFO*GRID_SIZE);
+			gpu_output[l+3*Lsky] = *(gpu_Fp+tid+3*GRID_SIZE+NIFO*GRID_SIZE);
+			gpu_output[l+4*Lsky] = *(gpu_Fx+tid+NIFO*GRID_SIZE);
+			gpu_output[l+5*Lsky] = *(gpu_Fx+tid+GRID_SIZE+NIFO*GRID_SIZE);
+			gpu_output[l+6*Lsky] = *(gpu_Fx+tid+2*GRID_SIZE+NIFO*GRID_SIZE);
+			gpu_output[l+7*Lsky] = *(gpu_Fx+tid+3*GRID_SIZE+NIFO*GRID_SIZE);
+		}*/
 		kernel_sse_dpf4_ps(gpu_Fp+tid+j*NIFO*GRID_SIZE, gpu_Fx+tid+j*NIFO*GRID_SIZE, gpu_fp+tid+j*NIFO*GRID_SIZE, gpu_fx+tid+j*NIFO*GRID_SIZE, k, l, gpu_output);
 		kernel_sse_like4_ps(gpu_fp+tid+j*gpu_nIFO*GRID_SIZE, gpu_fx+tid+j*gpu_nIFO*GRID_SIZE, gpu_bb+tid+j*gpu_nIFO*GRID_SIZE, gpu_BB+tid+j*gpu_nIFO*GRID_SIZE, _Es);
 		_En[0] = _En[0] + _Es[0];
@@ -1053,16 +1079,67 @@ __inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, flo
 	}*/
 	kernel_sse_dot4_ps(u, u, _out);
 	gR[0] = _out[0]; gR[1] = _out[1]; gR[2] = _out[2]; gR[3] = _out[3]; 
+/*	if(k==4)
+	{
+		int Lsky = 196608;
+		gpu_output[l+4*Lsky] = gR[0];
+		gpu_output[l+5*Lsky] = gR[1];
+		gpu_output[l+6*Lsky] = gR[2];
+		gpu_output[l+7*Lsky] = gR[3];
+	}*/
+	
 	kernel_sse_dot4_ps(v, v, _out);
 	gR[0] -= _out[0]; gR[1] -= _out[1]; gR[2] -= _out[2]; gR[3] -= _out[3]; 		// u^2-v^2
+/*	if(k == 4)
+	{
+		int Lsky = 196608;
+		gpu_output[l] = gR[0];
+		gpu_output[l+Lsky] = gR[1];
+		gpu_output[l+2*Lsky] = gR[2];
+		gpu_output[l+3*Lsky] = gR[3];
+	}*/
 	
-	_p[0] = (gR[0]>0); _p[1] = (gR[1]>0); _p[2] = (gR[2]>0); _p[3] = (gR[3]>0);		// 1 if gR>0. or 0 if gR<0.
-	
+	_p[0] = (gR[0]>=0); _p[1] = (gR[1]>=0); _p[2] = (gR[2]>=0); _p[3] = (gR[3]>=0);		// 1 if gR>0. or 0 if gR<0.
+/*	if(k == 4)
+	{
+		int Lsky = 196608;
+		gpu_output[l] = _p[0];
+		gpu_output[l+Lsky] = _p[1];
+		gpu_output[l+2*Lsky] = _p[2];
+		gpu_output[l+3*Lsky] = _p[3];
+	}*/
 	_q[0] = 1-_p[0]; _q[1] = 1-_p[1]; _q[2] = 1-_p[2]; _q[3] = 1-_p[3]; 			// 0 if gR>0. or 1 if gR<0.
+/*	if(k == 4)
+	{
+		int Lsky = 196608;
+		gpu_output[l+4*Lsky] = _q[0];
+		gpu_output[l+5*Lsky] = _q[1];
+		gpu_output[l+6*Lsky] = _q[2];
+		gpu_output[l+7*Lsky] = _q[3];
+	}	*/
 	
 	_n[0] = sqrt(gI[0]*gI[0] + gR[0]*gR[0]); _n[1] = sqrt(gI[1]*gI[1] + gR[1]*gR[1]); _n[2] = sqrt(gI[2]*gI[2] + gR[2]*gR[2]); _n[3] = sqrt(gI[3]*gI[3] + gR[3]*gR[3]); // go
+/*	if(k == 4)
+	{
+		float a = 0.225992;
+		float b = -0.449986;
+		int Lsky = 196608;
+		gpu_output[l] = _n[0];
+		gpu_output[l+Lsky] = _n[1];
+		gpu_output[l+2*Lsky] = _n[2];
+//		gpu_output[l+3*Lsky] = sqrt(a*a + b*b);
+		gpu_output[l+3*Lsky] = _n[3];
+	}*/
 
-	gR[0] = !(sm[0]&&gR[0]) + (_n[0]+_o[0]); gR[1] = !(sm[1]&&gR[1]) + (_n[1]+_o[1]); gR[2] = !(sm[2]&&gR[2]) + (_n[2]+_o[2]); gR[3] = !(sm[3]&&gR[3]) + (_n[3]+_o[3]); 
+	gR[0] = abs(gR[0]) + (_n[0]+_o[0]); gR[1] = abs(gR[1]) + (_n[1]+_o[1]); gR[2] = abs(gR[2]) + (_n[2]+_o[2]); gR[3] = abs(gR[3]) + (_n[3]+_o[3]); 
+	if(k == 4)
+	{
+		int Lsky = 196608;
+		gpu_output[l] = gR[0];
+		gpu_output[l+Lsky] = gR[1];
+		gpu_output[l+2*Lsky] = gR[2];
+		gpu_output[l+3*Lsky] = gR[3];
+	}
 	
 	_n[0] = _n[0]*2. + _o[0]; _n[1] = _n[1]*2. + _o[1]; _n[2] = _n[2]*2. + _o[2]; _n[3] = _n[3]*2. + _o[3]; 	// 2*go + eps
 	
@@ -1070,7 +1147,15 @@ __inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, flo
 
 	_n[0] = sqrt(gR[0]-_n[0]); _n[1] = sqrt(gR[1]-_n[1]); _n[2] = sqrt(gR[2]-_n[2]); _n[3] = sqrt(gR[3]-_n[3]);	// sqrt((gc+|gR|)/(2gc+eps)
 
-	_m[0] = (gI[0]>0); _m[1] = (gI[1]>0); _m[2] = (gI[2]>0); _m[3] = (gI[3]>0); 		// if gI>0. or 0 if gI<0.
+	_m[0] = (gI[0]>=0); _m[1] = (gI[1]>=0); _m[2] = (gI[2]>=0); _m[3] = (gI[3]>=0); 		// if gI>0. or 0 if gI<0.
+	if(k == 4)
+	{
+		int Lsky = 196608;
+		gpu_output[l+4*Lsky] = _m[0];
+		gpu_output[l+5*Lsky] = _m[1];
+		gpu_output[l+6*Lsky] = _m[2];
+		gpu_output[l+7*Lsky] = _m[3];
+	}
 	
 	_m[0] = (_m[0]*2.-1) * _n[0]; _m[1] = (_m[1]*2.-1) * _n[1]; _m[2] = (_m[2]*2.-1) * _n[2]; _m[3] = (_m[3]*2.-1) * _n[3];	// _n if gI>0 or -_n if gI<
 	// sin(psi)
@@ -1079,7 +1164,8 @@ __inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, flo
 	_s[2] = _q[2]*_m[2] + _p[2]*(gI[2]/_n[2]); 
 	_s[3] = _q[3]*_m[3] + _p[3]*(gI[3]/_n[3]); 
 	
-	gI[0] = !(sm[0]&&gI[0]);  gI[1] = !(sm[1]&&gI[1]); gI[2] = !(sm[2]&&gI[2]); gI[3] = !(sm[3]&&gI[3]); 	// |gI|
+	gI[0] = abs(gI[0]);  gI[1] = abs(gI[1]); gI[2] = abs(gI[2]); gI[3] = abs(gI[3]); 	// |gI|
+	
 	// cos(psi)
 	_c[0] = _p[0]*_n[0] + _q[0]*(gI[0]/_n[0]); 
 	_c[1] = _p[1]*_n[1] + _q[1]*(gI[1]/_n[1]); 
@@ -1324,8 +1410,8 @@ __inline__ __device__ void kernel_sse_like4_ps(float *fp, float *fx, float *bb, 
 }*/
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gpu_data)
 {
-	FILE *fpt = fopen("./new_debug/myk4_Fp", "a");
-	FILE *fpt1 = fopen("./new_debug/myk4_Fx", "a");
+	FILE *fpt = fopen("./new_debug/myk4_fptone", "a");
+	FILE *fpt1 = fopen("./new_debug/myk4_fpttwo", "a");
 //
 	int Lsky = gpu_Lsky;
 	int k;
@@ -1345,7 +1431,7 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gp
 			/*for(int l=0; l<Lsky; l++)
 			{	
 				aa = ((post_data*)post_gpu_data)->output.output[l+output_ptr];
-				if(aa != -1)
+				sif(aa != -1)
 				{
 					fprintf(fpt, "k = %d l = %d aa = %f\n", k, l, aa);
 					cc++;
@@ -1368,10 +1454,13 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gp
 				float z = 0.0;
 				for(int l=0; l<Lsky; l++)
 				{
-					fprintf(fpt, "k = %d l = %d Fp[0] = %f Fp[1] = %f Fp[2] = %f Fp[3] = %f\n", k, l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky]);
-					fprintf(fpt1, "k = %d l = %d Fx[0] = %f Fx[1] = %f Fx[2] = %f Fx[3] = %f\n", k, l, aa[l+4*Lsky], aa[l+5*Lsky], aa[l+6*Lsky], aa[l+7*Lsky]);
-				//	fprintf(fpt, "k = %d l = %d c[0] = %f c[1] = %f c[2] = %f c[3] = %f\n", k, l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky]);
-				//	fprintf(fpt1, "k = %d l = %d s[0] = %f s[1] = %f s[2] = %f s[3] = %f\n", k, l, aa[l+4*Lsky], aa[l+5*Lsky], aa[l+6*Lsky], aa[l+7*Lsky]);
+		//			fprintf(fpt, "k = %d l = %d ee = %f em = %f Ls = %f Eo = %f Ln = %f m = %f\n", k, l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky], aa[l+4*Lsky], aa[l+5*Lsky]);
+				//	fprintf(fpt, "k = %d l = %d gI[0] = %f gI[1] = %f gI[2] = %f gI[3] = %f\n", k, l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky]);
+				//	fprintf(fpt1, "k = %d l = %d gR[0] = %f gR[1] = %f gR[2] = %f gR[3] = %f\n", k, l, aa[l+4*Lsky], aa[l+5*Lsky], aa[l+6*Lsky], aa[l+7*Lsky]);
+			//		fprintf(fpt, "k = %d l = %d Fp[0] = %f Fp[1] = %f Fp[2] = %f Fp[3] = %f\n", k, l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky]);
+//					fprintf(fpt1, "k = %d l = %d m = %d Fx[0] = %f Fx[1] = %f Fx[2] = %f Fx[3] = %f\n", k, l, aa[l+9*Lsky], aa[l+4*Lsky], aa[l+5*Lsky], aa[l+6*Lsky], aa[l+7*Lsky]);
+					fprintf(fpt, "k = %d l = %d gR[0] = %f gR[1] = %f gR[2] = %f gR[3] = %f\n", k, l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky]);
+					fprintf(fpt1, "k = %d l = %d _m[0] = %f _m[1] = %f _m[2] = %f _m[3] = %f\n", k, l, aa[l+4*Lsky], aa[l+5*Lsky], aa[l+6*Lsky], aa[l+7*Lsky]);
 				}
 				cout<<"finish"<<endl;
 			}
