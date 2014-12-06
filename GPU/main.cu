@@ -1132,30 +1132,53 @@ __inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, flo
 	}*/
 
 	gR[0] = abs(gR[0]) + (_n[0]+_o[0]); gR[1] = abs(gR[1]) + (_n[1]+_o[1]); gR[2] = abs(gR[2]) + (_n[2]+_o[2]); gR[3] = abs(gR[3]) + (_n[3]+_o[3]); 
-	if(k == 4)
+	/*if(k == 4)
 	{
 		int Lsky = 196608;
 		gpu_output[l] = gR[0];
 		gpu_output[l+Lsky] = gR[1];
 		gpu_output[l+2*Lsky] = gR[2];
 		gpu_output[l+3*Lsky] = gR[3];
-	}
+	}*/
 	
 	_n[0] = _n[0]*2. + _o[0]; _n[1] = _n[1]*2. + _o[1]; _n[2] = _n[2]*2. + _o[2]; _n[3] = _n[3]*2. + _o[3]; 	// 2*go + eps
-	
+/*	if(k == 4)
+	{
+		int Lsky = 196608;
+		gpu_output[l] = _n[0];
+		gpu_output[l+Lsky] = _n[1];
+		gpu_output[l+2*Lsky] = _n[2];
+		gpu_output[l+3*Lsky] = _n[3];
+	}	*/
 	gI[0] = gI[0]/_n[0]; gI[1] = gI[1]/_n[1]; gI[2] = gI[2]/_n[2]; gI[3] = gI[3]/_n[3]; 	// sin(2*psi)
+/*	if(k == 4)
+	{
+		int Lsky = 196608;
+		gpu_output[l] = gI[0];
+		gpu_output[l+Lsky] = gI[1];
+		gpu_output[l+2*Lsky] = gI[2];
+		gpu_output[l+3*Lsky] = gI[3];
+	}*/
 
-	_n[0] = sqrt(gR[0]-_n[0]); _n[1] = sqrt(gR[1]-_n[1]); _n[2] = sqrt(gR[2]-_n[2]); _n[3] = sqrt(gR[3]-_n[3]);	// sqrt((gc+|gR|)/(2gc+eps)
+	_n[0] = sqrt(gR[0]/_n[0]); _n[1] = sqrt(gR[1]/_n[1]); _n[2] = sqrt(gR[2]/_n[2]); _n[3] = sqrt(gR[3]/_n[3]);	// sqrt((gc+|gR|)/(2gc+eps)
+/*	if(k == 4)
+	{
+		int Lsky = 196608;
+		gpu_output[l+4*Lsky] = _n[0];
+		gpu_output[l+5*Lsky] = _n[1];
+		gpu_output[l+6*Lsky] = _n[2];
+		gpu_output[l+7*Lsky] = _n[3];
+	}*/
 
 	_m[0] = (gI[0]>=0); _m[1] = (gI[1]>=0); _m[2] = (gI[2]>=0); _m[3] = (gI[3]>=0); 		// if gI>0. or 0 if gI<0.
-	if(k == 4)
+/*	if(k == 4)
 	{
 		int Lsky = 196608;
 		gpu_output[l+4*Lsky] = _m[0];
 		gpu_output[l+5*Lsky] = _m[1];
 		gpu_output[l+6*Lsky] = _m[2];
 		gpu_output[l+7*Lsky] = _m[3];
-	}
+	}*/
 	
 	_m[0] = (_m[0]*2.-1) * _n[0]; _m[1] = (_m[1]*2.-1) * _n[1]; _m[2] = (_m[2]*2.-1) * _n[2]; _m[3] = (_m[3]*2.-1) * _n[3];	// _n if gI>0 or -_n if gI<
 	// sin(psi)
@@ -1163,7 +1186,14 @@ __inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, flo
 	_s[1] = _q[1]*_m[1] + _p[1]*(gI[1]/_n[1]); 	
 	_s[2] = _q[2]*_m[2] + _p[2]*(gI[2]/_n[2]); 
 	_s[3] = _q[3]*_m[3] + _p[3]*(gI[3]/_n[3]); 
-	
+/*	if(k == 4)
+	{
+		int Lsky = 196608;
+		gpu_output[l] = _s[0];
+		gpu_output[l+Lsky] = _s[1];
+		gpu_output[l+2*Lsky] = _s[2];
+		gpu_output[l+3*Lsky] = _s[3];
+	}*/
 	gI[0] = abs(gI[0]);  gI[1] = abs(gI[1]); gI[2] = abs(gI[2]); gI[3] = abs(gI[3]); 	// |gI|
 	
 	// cos(psi)
@@ -1171,6 +1201,14 @@ __inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, flo
 	_c[1] = _p[1]*_n[1] + _q[1]*(gI[1]/_n[1]); 
 	_c[2] = _p[2]*_n[2] + _q[2]*(gI[2]/_n[2]); 
 	_c[3] = _p[3]*_n[3] + _q[3]*(gI[3]/_n[3]); 
+/*	if(k == 4)
+	{
+		int Lsky = 196608;
+		gpu_output[l+4*Lsky] = _c[0];
+		gpu_output[l+5*Lsky] = _c[1];
+		gpu_output[l+6*Lsky] = _c[2];
+		gpu_output[l+7*Lsky] = _c[3];
+	}*/
 	return;
 }
 __inline__ __device__ void kernel_sse_dot4_ps(float *u, float *v, float *out)
@@ -1459,8 +1497,8 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gp
 				//	fprintf(fpt1, "k = %d l = %d gR[0] = %f gR[1] = %f gR[2] = %f gR[3] = %f\n", k, l, aa[l+4*Lsky], aa[l+5*Lsky], aa[l+6*Lsky], aa[l+7*Lsky]);
 			//		fprintf(fpt, "k = %d l = %d Fp[0] = %f Fp[1] = %f Fp[2] = %f Fp[3] = %f\n", k, l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky]);
 //					fprintf(fpt1, "k = %d l = %d m = %d Fx[0] = %f Fx[1] = %f Fx[2] = %f Fx[3] = %f\n", k, l, aa[l+9*Lsky], aa[l+4*Lsky], aa[l+5*Lsky], aa[l+6*Lsky], aa[l+7*Lsky]);
-					fprintf(fpt, "k = %d l = %d gR[0] = %f gR[1] = %f gR[2] = %f gR[3] = %f\n", k, l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky]);
-					fprintf(fpt1, "k = %d l = %d _m[0] = %f _m[1] = %f _m[2] = %f _m[3] = %f\n", k, l, aa[l+4*Lsky], aa[l+5*Lsky], aa[l+6*Lsky], aa[l+7*Lsky]);
+					fprintf(fpt, "k = %d l = %d _s[0] = %f _s[1] = %f _s[2] = %f _s[3] = %f\n", k, l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky]);
+					fprintf(fpt1, "k = %d l = %d _c[0] = %f _c[1] = %f _c[2] = %f _c[3] = %f\n", k, l, aa[l+4*Lsky], aa[l+5*Lsky], aa[l+6*Lsky], aa[l+7*Lsky]);
 				}
 				cout<<"finish"<<endl;
 			}
