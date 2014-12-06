@@ -35,7 +35,9 @@ __inline__ __device__ float kernel_sse_maxE_ps(float *a, float *A);
 
 __inline__ __device__ void kernel_sse_dpf4_ps(float *Fp, float *Fx, float *fp, float *fx);
 
-__inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, float *_c);
+__inline__ __device__ void kernel_sse_dpf4_ps(float *Fp, float *Fx, float *fp, float *fx, int k, int l, float *gpu_output);	// debug
+
+__inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, float *_c, int k, int l, float *gpu_output);	// debug
 
 __inline__ __device__ void kernel_sse_dot4_ps(float *u, float *v, float *out);
 

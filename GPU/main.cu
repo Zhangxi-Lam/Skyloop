@@ -52,6 +52,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 	
 	cout<<"nIFO = "<<nIFO<<endl;
 	cout<<"NIFO = "<<NIFO<<endl;
+	cout<<"New"<<endl;
 
 	float En = 2*net->acor*net->acor*nIFO;  // network energy threshold in the sky loop
         float Es = 2*net->e2or;                 // subnet energy threshold in the sky loop
@@ -568,6 +569,7 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 {
         int msk;                                              // mask
         size_t v;                                  // indicate the pixel
+	size_t V4;
 	size_t j;
         float pe[gpu_nIFO];
 	float *v00[gpu_nIFO];
@@ -629,7 +631,7 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 
         msk = ((aa-m)/(aa+m)<0.33);
 //	gpu_output[output_ptr+l] = aa*(1-msk) - 1*msk;
-/*	if(k==151)
+/*	if(k==4)
 	{
 		int Lsky = 196608;
 		gpu_output[l] = PE_0[0];
@@ -649,27 +651,68 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 	v90[0] = pA[0] + ml[0][l] * (int)V;
 	v90[1] = pA[1] + ml[1][l] * (int)V;
 	v90[2] = pA[2] + ml[2][l] * (int)V;
+	
+	msk = V%4;
+	msk = (msk>0);
+	V4 = V + msk*(4-V%4);
 	// point to the memory
 	
 	for(j=0; j<V; j++)
 	{
 		//cpp_
-		gpu_bb[tid+j*gpu_nIFO*GRID_SIZE] = v00[0][j];
-		gpu_bb[tid+GRID_SIZE+j*gpu_nIFO*GRID_SIZE] = v00[1][j];
-		gpu_bb[tid+2*GRID_SIZE+j*gpu_nIFO*GRID_SIZE] = v00[2][j];
-		gpu_BB[tid+j*gpu_nIFO*GRID_SIZE] = v90[0][j];
-		gpu_BB[tid+GRID_SIZE+j*gpu_nIFO*GRID_SIZE] = v90[1][j];
-		gpu_BB[tid+2*GRID_SIZE+j*gpu_nIFO*GRID_SIZE] = v90[2][j];
+		gpu_bb[tid+j*NIFO*GRID_SIZE] = v00[0][j];
+		gpu_bb[tid+GRID_SIZE+j*NIFO*GRID_SIZE] = v00[1][j];
+		gpu_bb[tid+2*GRID_SIZE+j*NIFO*GRID_SIZE] = v00[2][j];
+		gpu_bb[tid+3*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_BB[tid+j*NIFO*GRID_SIZE] = v90[0][j];
+		gpu_BB[tid+GRID_SIZE+j*NIFO*GRID_SIZE] = v90[1][j];
+		gpu_BB[tid+2*GRID_SIZE+j*NIFO*GRID_SIZE] = v90[2][j];
+		gpu_BB[tid+3*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
 
 		//cpf_
-		gpu_fp[tid+j*gpu_nIFO*GRID_SIZE] = FP[0][l];
-		gpu_fp[tid+GRID_SIZE+j*gpu_nIFO*GRID_SIZE] = FP[1][l];
-		gpu_fp[tid+2*GRID_SIZE+j*gpu_nIFO*GRID_SIZE] = FP[2][l];
-		gpu_fx[tid+j*gpu_nIFO*GRID_SIZE] = FX[0][l];
-		gpu_fx[tid+GRID_SIZE+j*gpu_nIFO*GRID_SIZE] = FX[1][l];
-		gpu_fx[tid+2*GRID_SIZE+j*gpu_nIFO*GRID_SIZE] = FX[2][l];
+		gpu_fp[tid+j*NIFO*GRID_SIZE] = FP[0][l];
+		gpu_fp[tid+GRID_SIZE+j*NIFO*GRID_SIZE] = FP[1][l];
+		gpu_fp[tid+2*GRID_SIZE+j*NIFO*GRID_SIZE] = FP[2][l];
+		gpu_fp[tid+3*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_fx[tid+j*NIFO*GRID_SIZE] = FX[0][l];
+		gpu_fx[tid+GRID_SIZE+j*NIFO*GRID_SIZE] = FX[1][l];
+		gpu_fx[tid+2*GRID_SIZE+j*NIFO*GRID_SIZE] = FX[2][l];
+		gpu_fx[tid+3*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
 //		kernel_cpf_(fp+j*NIFO, FP, l);
 //		kernel_cpf_(fx+j*NIFO, FX, l);
+	}
+/*	if(k==4)
+	{
+		int Lsky = 196608;
+		gpu_output[l] = *(gpu_fp+tid);
+		gpu_output[l+Lsky] = *(gpu_fp+tid+GRID_SIZE);
+		gpu_output[l+2*Lsky] = *(gpu_fp+tid+2*GRID_SIZE);
+		gpu_output[l+3*Lsky] = *(gpu_fp+tid+3*GRID_SIZE);
+		gpu_output[l+4*Lsky] = *(gpu_fx+tid);
+		gpu_output[l+5*Lsky] = *(gpu_fx+tid+GRID_SIZE);
+		gpu_output[l+6*Lsky] = *(gpu_fx+tid+2*GRID_SIZE);
+		gpu_output[l+7*Lsky] = *(gpu_fx+tid+3*GRID_SIZE);
+	}*/
+
+	for(j=V; j<V4; j++)
+	{
+		gpu_bb[tid+j*NIFO*GRID_SIZE] = 0.;
+		gpu_bb[tid+GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_bb[tid+2*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_bb[tid+3*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_BB[tid+j*NIFO*GRID_SIZE] = 0.;
+		gpu_BB[tid+GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_BB[tid+2*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_BB[tid+3*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+
+		gpu_fp[tid+j*NIFO*GRID_SIZE] = 0.;
+		gpu_fp[tid+GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_fp[tid+2*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_fp[tid+3*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_fx[tid+j*NIFO*GRID_SIZE] = 0.;
+		gpu_fx[tid+GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_fx[tid+2*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
+		gpu_fx[tid+3*GRID_SIZE+j*NIFO*GRID_SIZE] = 0.;
 	}
 	/*for(j=0; j<V; j++)
 	{
@@ -710,16 +753,16 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 	m = 0; Ls=Ln=Eo=0;
 	for(j=0; j<V; j++)
 	{
-		ee = kernel_sse_abs_ps(gpu_bb+tid+j*gpu_nIFO*GRID_SIZE, gpu_BB+tid+j*gpu_nIFO*GRID_SIZE);
+		ee = kernel_sse_abs_ps(gpu_bb+tid+j*NIFO*GRID_SIZE, gpu_BB+tid+j*NIFO*GRID_SIZE);
 		if(ee<constEn)	continue;
-		kernel_sse_cpf_ps(gpu_bb+tid+m*gpu_nIFO*GRID_SIZE, gpu_bb+tid+j*gpu_nIFO*GRID_SIZE);
-		kernel_sse_cpf_ps(gpu_BB+tid+m*gpu_nIFO*GRID_SIZE, gpu_BB+tid+j*gpu_nIFO*GRID_SIZE);
-		kernel_sse_cpf_ps(gpu_Fx+tid+m*gpu_nIFO*GRID_SIZE, gpu_fx+tid+j*gpu_nIFO*GRID_SIZE);
-		kernel_sse_cpf_ps(gpu_Fp+tid+m*gpu_nIFO*GRID_SIZE, gpu_fp+tid+j*gpu_nIFO*GRID_SIZE);
-		kernel_sse_mul_ps(gpu_Fp+tid+m*gpu_nIFO*GRID_SIZE, nr+j*gpu_nIFO);
-		kernel_sse_mul_ps(gpu_Fx+tid+m*gpu_nIFO*GRID_SIZE, nr+j*gpu_nIFO);
+		kernel_sse_cpf_ps(gpu_bb+tid+m*NIFO*GRID_SIZE, gpu_bb+tid+j*NIFO*GRID_SIZE);
+		kernel_sse_cpf_ps(gpu_BB+tid+m*NIFO*GRID_SIZE, gpu_BB+tid+j*NIFO*GRID_SIZE);
+		kernel_sse_cpf_ps(gpu_Fx+tid+m*NIFO*GRID_SIZE, gpu_fx+tid+j*NIFO*GRID_SIZE);
+		kernel_sse_cpf_ps(gpu_Fp+tid+m*NIFO*GRID_SIZE, gpu_fp+tid+j*NIFO*GRID_SIZE);
+		kernel_sse_mul_ps(gpu_Fp+tid+m*NIFO*GRID_SIZE, nr+j*NIFO);
+		kernel_sse_mul_ps(gpu_Fx+tid+m*NIFO*GRID_SIZE, nr+j*NIFO);
 		m++;
-		em = kernel_sse_maxE_ps(gpu_bb+tid+j*gpu_nIFO*GRID_SIZE, gpu_BB+tid+j*gpu_nIFO*GRID_SIZE);
+		em = kernel_sse_maxE_ps(gpu_bb+tid+j*NIFO*GRID_SIZE, gpu_BB+tid+j*NIFO*GRID_SIZE);
 		Ls+= ee-em;	Eo += ee;
 		msk = (ee-em>constEs);
 		Ln += msk*ee;
@@ -766,17 +809,19 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 	
 	for(j=0; j<m4; j+=4)
 	{
-		kernel_sse_dpf4_ps(gpu_Fp+tid+j*gpu_nIFO*GRID_SIZE, gpu_Fx+tid+j*gpu_nIFO*GRID_SIZE, gpu_fp+tid+j*gpu_nIFO*GRID_SIZE, gpu_fx+tid+j*gpu_nIFO*GRID_SIZE);
 		if(k==4)
 		{
 			int Lsky = 196608;
-			gpu_output[l] = *(gpu_fp+tid);
-			gpu_output[l+Lsky] = *(gpu_fp+tid+GRID_SIZE);
-			gpu_output[l+2*Lsky] = *(gpu_fp+tid+2*GRID_SIZE);
-			gpu_output[l+3*Lsky] = *(gpu_fx+tid);
-			gpu_output[l+4*Lsky] = *(gpu_fx+tid+GRID_SIZE);
-			gpu_output[l+5*Lsky] = *(gpu_fx+tid+2*GRID_SIZE);
+			gpu_output[l] = *(gpu_Fp+tid);
+			gpu_output[l+Lsky] = *(gpu_Fp+tid+GRID_SIZE);
+			gpu_output[l+2*Lsky] = *(gpu_Fp+tid+2*GRID_SIZE);
+			gpu_output[l+3*Lsky] = *(gpu_Fp+tid+3*GRID_SIZE);
+			gpu_output[l+4*Lsky] = *(gpu_Fx+tid);
+			gpu_output[l+5*Lsky] = *(gpu_Fx+tid+GRID_SIZE);
+			gpu_output[l+6*Lsky] = *(gpu_Fx+tid+2*GRID_SIZE);
+			gpu_output[l+7*Lsky] = *(gpu_Fx+tid+3*GRID_SIZE);
 		}
+		kernel_sse_dpf4_ps(gpu_Fp+tid+j*NIFO*GRID_SIZE, gpu_Fx+tid+j*NIFO*GRID_SIZE, gpu_fp+tid+j*NIFO*GRID_SIZE, gpu_fx+tid+j*NIFO*GRID_SIZE, k, l, gpu_output);
 		kernel_sse_like4_ps(gpu_fp+tid+j*gpu_nIFO*GRID_SIZE, gpu_fx+tid+j*gpu_nIFO*GRID_SIZE, gpu_bb+tid+j*gpu_nIFO*GRID_SIZE, gpu_BB+tid+j*gpu_nIFO*GRID_SIZE, _Es);
 		_En[0] = _En[0] + _Es[0];
 		_En[1] = _En[1] + _Es[1];
@@ -937,6 +982,7 @@ __inline__ __device__ void kernel_sse_cpf_ps(float *a, float *p)
 	a[0] = p[0];
 	a[GRID_SIZE] = p[GRID_SIZE];
 	a[2*GRID_SIZE] = p[2*GRID_SIZE];
+	a[3*GRID_SIZE] = p[3*GRID_SIZE];	// can be removed latter
 	return;
 }
 __inline__ __device__ void kernel_sse_mul_ps(float *a, float *b)
@@ -951,7 +997,7 @@ __inline__ __device__ float kernel_sse_abs_ps(float *bb, float *BB)
 	float out;
 	out = bb[0]*bb[0] + BB[0]*BB[0];
 	out += bb[GRID_SIZE]*bb[GRID_SIZE] + BB[GRID_SIZE]*BB[GRID_SIZE];
-	//out += bb[2*GRID_SIZE]*bb[2*GRID_SIZE] + BB[2*GRID_SIZE]*BB[2*GRID_SIZE];
+	out += bb[2*GRID_SIZE]*bb[2*GRID_SIZE] + BB[2*GRID_SIZE]*BB[2*GRID_SIZE];
 	return out;
 }
 __inline__ __device__ float kernel_sse_maxE_ps(float *a, float *A)
@@ -968,15 +1014,27 @@ __inline__ __device__ float kernel_sse_maxE_ps(float *a, float *A)
 	out = temp+out - (1-flag)*temp - flag*out;
 	return out;
 }
-__inline__ __device__ void kernel_sse_dpf4_ps(float *Fp, float *Fx, float *fp, float *fx)
+__inline__ __device__ void kernel_sse_dpf4_ps(float *Fp, float *Fx, float *fp, float *fx, int k, int l, float *gpu_output)
 {
 	float _c[NIFO];					// cos
 	float _s[NIFO];					// sin
-	kernel_sse_ort4_ps(Fp, Fx, _s, _c);
+	kernel_sse_ort4_ps(Fp, Fx, _s, _c, k, l, gpu_output);
+/*	if(k==4)
+	{
+		int Lsky = 196608;
+		gpu_output[l] = _c[0];
+		gpu_output[l+Lsky] = _c[1];
+		gpu_output[l+2*Lsky] = 5;
+		gpu_output[l+3*Lsky] = _c[3];
+		gpu_output[l+4*Lsky] = _s[0];
+		gpu_output[l+5*Lsky] = _s[1];
+		gpu_output[l+6*Lsky] = 5;
+		gpu_output[l+7*Lsky] = _s[3];
+	}*/
 	kernel_sse_rot4p_m_ps(Fp, _c, Fx, _s, fp, fx);		// get fp = Fp*c+Fx*s, fx = Fx*c - Fp*s
 //	kernel_sse_rot4m_ps(Fx, _c, Fp, _s, fx);		// get fx = Fx*c-Fp*s
-} 
-__inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, float *_c)
+}
+__inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, float *_c, int k, int l, float *gpu_output)
 {
 	const float sm[NIFO] = {0.f, 0.f, 0.f, 0.f};	
 	const float _o[NIFO] = {1.e-24, 1.e-24, 1.e-24, 1.e-24};
@@ -984,7 +1042,15 @@ __inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, flo
 	float _out[NIFO];
 	
 	kernel_sse_dot4_ps(u, v, _out);
-	gI[0] = _out[0]*2; gI[1] = _out[1]*2; gI[2] = _out[2]*2; gI[3] = _out[3]*2; 		// ~sin(2*psi) or 2*u*v
+	gI[0] = _out[0]*2.; gI[1] = _out[1]*2.; gI[2] = _out[2]*2.; gI[3] = _out[3]*2.; 		// ~sin(2*psi) or 2*u*v
+/*	if(k == 4)
+	{
+		int Lsky = 196608;
+		gpu_output[l] = gI[0];
+		gpu_output[l+Lsky] = gI[1];
+		gpu_output[l+2*Lsky] = gI[2];
+		gpu_output[l+3*Lsky] = gI[3];
+	}*/
 	kernel_sse_dot4_ps(u, u, _out);
 	gR[0] = _out[0]; gR[1] = _out[1]; gR[2] = _out[2]; gR[3] = _out[3]; 
 	kernel_sse_dot4_ps(v, v, _out);
@@ -998,7 +1064,7 @@ __inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, flo
 
 	gR[0] = !(sm[0]&&gR[0]) + (_n[0]+_o[0]); gR[1] = !(sm[1]&&gR[1]) + (_n[1]+_o[1]); gR[2] = !(sm[2]&&gR[2]) + (_n[2]+_o[2]); gR[3] = !(sm[3]&&gR[3]) + (_n[3]+_o[3]); 
 	
-	_n[0] = _n[0]*2 + _o[0]; _n[1] = _n[1]*2 + _o[1]; _n[2] = _n[2]*2 + _o[2]; _n[3] = _n[3]*2 + _o[3]; 	// 2*go + eps
+	_n[0] = _n[0]*2. + _o[0]; _n[1] = _n[1]*2. + _o[1]; _n[2] = _n[2]*2. + _o[2]; _n[3] = _n[3]*2. + _o[3]; 	// 2*go + eps
 	
 	gI[0] = gI[0]/_n[0]; gI[1] = gI[1]/_n[1]; gI[2] = gI[2]/_n[2]; gI[3] = gI[3]/_n[3]; 	// sin(2*psi)
 
@@ -1006,7 +1072,7 @@ __inline__ __device__ void kernel_sse_ort4_ps(float *u, float *v, float *_s, flo
 
 	_m[0] = (gI[0]>0); _m[1] = (gI[1]>0); _m[2] = (gI[2]>0); _m[3] = (gI[3]>0); 		// if gI>0. or 0 if gI<0.
 	
-	_m[0] = (_m[0]*2-1) * _n[0]; _m[1] = (_m[1]*2-1) * _n[1]; _m[2] = (_m[2]*2-1) * _n[2]; _m[3] = (_m[3]*2-1) * _n[3];	// _n if gI>0 or -_n if gI<
+	_m[0] = (_m[0]*2.-1) * _n[0]; _m[1] = (_m[1]*2.-1) * _n[1]; _m[2] = (_m[2]*2.-1) * _n[2]; _m[3] = (_m[3]*2.-1) * _n[3];	// _n if gI>0 or -_n if gI<
 	// sin(psi)
 	_s[0] = _q[0]*_m[0] + _p[0]*(gI[0]/_n[0]); 
 	_s[1] = _q[1]*_m[1] + _p[1]*(gI[1]/_n[1]); 	
@@ -1027,17 +1093,17 @@ __inline__ __device__ void kernel_sse_dot4_ps(float *u, float *v, float *out)
 	out[0] += u[GRID_SIZE]*v[GRID_SIZE];
 	out[0] += u[2*GRID_SIZE]*v[2*GRID_SIZE];
 
-	out[1] = u[gpu_nIFO*GRID_SIZE]*v[gpu_nIFO*GRID_SIZE];
-	out[1] += u[gpu_nIFO*GRID_SIZE+GRID_SIZE]*v[gpu_nIFO*GRID_SIZE+GRID_SIZE];
-	out[1] += u[gpu_nIFO*GRID_SIZE+2*GRID_SIZE]*v[gpu_nIFO*GRID_SIZE+2*GRID_SIZE];
+	out[1] = u[NIFO*GRID_SIZE]*v[NIFO*GRID_SIZE];
+	out[1] += u[NIFO*GRID_SIZE+GRID_SIZE]*v[NIFO*GRID_SIZE+GRID_SIZE];
+	out[1] += u[NIFO*GRID_SIZE+2*GRID_SIZE]*v[NIFO*GRID_SIZE+2*GRID_SIZE];
 
-	out[2] = u[2*gpu_nIFO*GRID_SIZE]*v[2*gpu_nIFO*GRID_SIZE];
-	out[2] += u[2*gpu_nIFO*GRID_SIZE+GRID_SIZE]*v[2*gpu_nIFO*GRID_SIZE+GRID_SIZE];
-	out[2] += u[2*gpu_nIFO*GRID_SIZE+2*GRID_SIZE]*v[2*gpu_nIFO*GRID_SIZE+2*GRID_SIZE];
+	out[2] = u[2*NIFO*GRID_SIZE]*v[2*NIFO*GRID_SIZE];
+	out[2] += u[2*NIFO*GRID_SIZE+GRID_SIZE]*v[2*NIFO*GRID_SIZE+GRID_SIZE];
+	out[2] += u[2*NIFO*GRID_SIZE+2*GRID_SIZE]*v[2*NIFO*GRID_SIZE+2*GRID_SIZE];
 
-	out[3] = u[3*gpu_nIFO*GRID_SIZE]*v[3*gpu_nIFO*GRID_SIZE];
-	out[3] += u[3*gpu_nIFO*GRID_SIZE+GRID_SIZE]*v[3*gpu_nIFO*GRID_SIZE+GRID_SIZE];
-	out[3] += u[3*gpu_nIFO*GRID_SIZE+2*GRID_SIZE]*v[3*gpu_nIFO*GRID_SIZE+2*GRID_SIZE];
+	out[3] = u[3*NIFO*GRID_SIZE]*v[3*NIFO*GRID_SIZE];
+	out[3] += u[3*NIFO*GRID_SIZE+GRID_SIZE]*v[3*NIFO*GRID_SIZE+GRID_SIZE];
+	out[3] += u[3*NIFO*GRID_SIZE+2*GRID_SIZE]*v[3*NIFO*GRID_SIZE+2*GRID_SIZE];
 	return;
 }
 __inline__ __device__ void kernel_sse_rot4p_m_ps(float *Fp, float *_c, float *Fx, float *_s, float *fp, float *fx)
@@ -1258,7 +1324,8 @@ __inline__ __device__ void kernel_sse_like4_ps(float *fp, float *fx, float *bb, 
 }*/
 void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gpu_data)
 {
-	FILE *fpt = fopen("./new_debug/myk4_fpfx", "a");
+	FILE *fpt = fopen("./new_debug/myk4_Fp", "a");
+	FILE *fpt1 = fopen("./new_debug/myk4_Fx", "a");
 //
 	int Lsky = gpu_Lsky;
 	int k;
@@ -1301,12 +1368,12 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gp
 				float z = 0.0;
 				for(int l=0; l<Lsky; l++)
 				{
-					fprintf(fpt, "k = %d l = %d fp = %f fx = %f\n", k, l, aa[l], aa[l+3*Lsky]);
-					fprintf(fpt, "k = %d l = %d fp = %f fx = %f\n", k, l, aa[l+Lsky], aa[l+4*Lsky]);
-					fprintf(fpt, "k = %d l = %d fp = %f fx = %f\n", k, l, aa[l+2*Lsky], aa[l+5*Lsky]);
-					for(int i=3; i<16; i++)
-						fprintf(fpt, "k = %d l = %d fp = %f fx = %f\n", k, l, z, z);
+					fprintf(fpt, "k = %d l = %d Fp[0] = %f Fp[1] = %f Fp[2] = %f Fp[3] = %f\n", k, l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky]);
+					fprintf(fpt1, "k = %d l = %d Fx[0] = %f Fx[1] = %f Fx[2] = %f Fx[3] = %f\n", k, l, aa[l+4*Lsky], aa[l+5*Lsky], aa[l+6*Lsky], aa[l+7*Lsky]);
+				//	fprintf(fpt, "k = %d l = %d c[0] = %f c[1] = %f c[2] = %f c[3] = %f\n", k, l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky]);
+				//	fprintf(fpt1, "k = %d l = %d s[0] = %f s[1] = %f s[2] = %f s[3] = %f\n", k, l, aa[l+4*Lsky], aa[l+5*Lsky], aa[l+6*Lsky], aa[l+7*Lsky]);
 				}
+				cout<<"finish"<<endl;
 			}
 /*			if(k==151)
 			{
@@ -1329,7 +1396,7 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gp
 		}
 	}
 	fclose(fpt);
-//	fclose(fpt);
+	fclose(fpt1);
 
 	
 }
@@ -1442,12 +1509,12 @@ void allocate_gpu_mem(struct skyloop_output *skyloop_output, struct other *skylo
         {
                 CUDA_CHECK(cudaMalloc(&(skyloop_other[i].vtd_vTD_nr), 2*gpu_nIFO*vDim*sizeof(float) + gpu_nIFO*Vmax*sizeof(float) + HEAD_SIZE*sizeof(float) ) );
                 CUDA_CHECK(cudaMalloc(&(skyloop_other[i].eTD), gpu_nIFO * vDim * sizeof(float) ) );
-                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].BB), num_blocks * num_threads * Vmax * gpu_nIFO * sizeof(float) ) );
-                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].bb), num_blocks * num_threads * Vmax * gpu_nIFO * sizeof(float) ) );
-                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].fp), num_blocks * num_threads * Vmax * gpu_nIFO * sizeof(float) ) );
-                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].fx), num_blocks * num_threads * Vmax * gpu_nIFO * sizeof(float) ) );
-                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].Fp), num_blocks * num_threads * Vmax * gpu_nIFO * sizeof(float) ) );
-                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].Fx), num_blocks * num_threads * Vmax * gpu_nIFO * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].BB), num_blocks * num_threads * Vmax * NIFO * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].bb), num_blocks * num_threads * Vmax * NIFO * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].fp), num_blocks * num_threads * Vmax * NIFO * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].fx), num_blocks * num_threads * Vmax * NIFO * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].Fp), num_blocks * num_threads * Vmax * NIFO * sizeof(float) ) );
+                CUDA_CHECK(cudaMalloc(&(skyloop_other[i].Fx), num_blocks * num_threads * Vmax * NIFO * sizeof(float) ) );
                 CUDA_CHECK(cudaMalloc(&(skyloop_other[i].tmp), num_blocks*num_threads*OutputSize*sizeof(float) ) );
 //                CUDA_CHECK(cudaMalloc(&(skyloop_output[i].output), OutputSize*sizeof(float) + Vmax*sizeof(float) ) );
                 CUDA_CHECK(cudaMalloc(&(skyloop_output[i].output), MaxPixel*Lsky*sizeof(float) ) );

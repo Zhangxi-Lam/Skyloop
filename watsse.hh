@@ -567,6 +567,24 @@ static inline void _sse_ort4_ps(__m128* _u, __m128* _v, __m128* _s, __m128* _c) 
    return;
 }
 
+static inline void _sse_dpf4_ps(__m128* _Fp, __m128* _Fx, __m128* _fp, __m128* _fx, int k, int l, FILE *fpt) {		// used for debugging
+// transformation to DPF for 4 consecutive pixels.
+// rotate vectors Fp and Fx into DPF: fp and fx
+   __m128 _c, _s;
+	float tmp[4];
+   _sse_ort4_ps(_Fp,_Fx,&_s,&_c);                                        // get sin and cos
+	if(k == 4)
+	{
+//		FILE *fpt = fopen("/home/hpc/cWB/TEST/S6B_BKG_LF_L1H1_2G_SUPERCLUSTER_run2a/new_debug/k4_cs", "a");
+		_mm_storeu_ps(tmp,*_Fx);
+		fprintf(fpt, "k = %d l = %d Fx[0] = %f Fx[1] = %f Fx[2] = %f Fx[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+//		_mm_storeu_ps(tmp, _c);
+//		fprintf(fpt, "k = %d l = %d c[0] = %f c[1] = %f c[2] = %f c[3] = %f\n", k, l, tmp[0], tmp[1], tmp[2], tmp[3]);
+	}
+   _sse_rot4p_ps(_Fp,&_c,_Fx,&_s,_fp);                                   // get fp=Fp*c+Fx*s  
+   _sse_rot4m_ps(_Fx,&_c,_Fp,&_s,_fx);                                   // get fx=Fx*c-Fp*s 
+   return;
+}
 static inline void _sse_dpf4_ps(__m128* _Fp, __m128* _Fx, __m128* _fp, __m128* _fx) {
 // transformation to DPF for 4 consecutive pixels.
 // rotate vectors Fp and Fx into DPF: fp and fx
