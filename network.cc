@@ -1007,7 +1007,6 @@ long network::likelihood2G(char mode, int lag, int iID, TH2F* hist)
          FX[i] = getifo(0)->fx.data;
       }
         }
-
    // allocate buffers
    std::vector<int> pI;                      // buffer for pixel IDs
    std::vector<int> pJ;                      // buffer for pixel index
