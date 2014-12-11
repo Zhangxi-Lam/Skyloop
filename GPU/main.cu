@@ -532,7 +532,6 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, sho
 				
 			kernel_skyloop_calculate(ml, nr, FP, FX, gpu_BB, gpu_bb, gpu_fp, gpu_fx, gpu_Fp, gpu_Fx, pa, pA, pe[0], pe[1], pe[2], V, gpu_output, l, &_stat, tid, k, output_ptr);
 		}
-		//kernel_store_result_to_tmp(gpu_tmp+tid+GRID_SIZE*OutputSize*count, &_stat);
 	//	if(k==4)
 	//		gpu_output[tid] = _stat.stat;
 		gpu_tmp[tid + GRID_SIZE*OutputSize*count] = _stat.stat;
@@ -544,34 +543,6 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, sho
 		gpu_tmp[6*GRID_SIZE + tid + GRID_SIZE*OutputSize*count] = _stat.lm;
 		gpu_tmp[7*GRID_SIZE + tid + GRID_SIZE*OutputSize*count] = _stat.Vm;
 		
-		
-		//Wait for all threads to finish calculation
-//		__syncthreads();
-/*		if(tid < 32)
-		{
-			kernel_store_stat(gpu_tmp, tid);	
-			__syncthreads();
-		}
-		if(tid == 0)
-		{
-			stat = kernel_store_final_stat(gpu_tmp, gpu_output, output_ptr);
-			if(stat > 0)
-			{
-				l = _stat.lm;
-				pe[0] = eTD + (tsize/2)*V;
-				pe[1] = eTD + vDim + (tsize/2)*V;
-				pe[2] = eTD + 2*vDim + (tsize/2)*V;
-				pe[3] = eTD + 3*vDim + (tsize/2)*V;
-                        	pe[0] = pe[0] + ml[0][l] * (int)V;
-	                        pe[1] = pe[1] + ml[1][l] * (int)V;
-        	                pe[2] = pe[2] + ml[2][l] * (int)V;
-                	        pe[3] = pe[3] + ml[3][l] * (int)V;
-				size_t v;
-				for(v=0; v<V; v++)
-					gpu_output[output_ptr+OutputSize+v] = pe[0][v] + pe[1][v] + pe[2][v] + pe[3][v];
-			}
-		}*/
-//		output_ptr += (OutputSize + V); 
 		output_ptr += Lsky;
 		v_ptr += vDim*gpu_nIFO*2 + gpu_nIFO*V;
 		etd_ptr += vDim*gpu_nIFO;
@@ -764,11 +735,29 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 	}*/
 //	if(k == 4)
 //		gpu_output[l] = gpu_bb[tid];
-	
+/*	if(k==4)
+	{
+		int Lsky = 196608;
+		gpu_output[l] = gpu_BB[tid];
+		gpu_output[l+Lsky] = gpu_BB[tid+GRID_SIZE];
+		gpu_output[l+2*Lsky] = gpu_BB[tid+2*GRID_SIZE];
+
+		gpu_output[l+3*Lsky] = gpu_BB[tid+NIFO*GRID_SIZE];
+		gpu_output[l+4*Lsky] = gpu_BB[tid+GRID_SIZE+NIFO*GRID_SIZE];
+		gpu_output[l+5*Lsky] = gpu_BB[tid+2*GRID_SIZE+NIFO*GRID_SIZE];
+
+		gpu_output[l+6*Lsky] = gpu_BB[tid+2*NIFO*GRID_SIZE];
+		gpu_output[l+7*Lsky] = gpu_BB[tid+GRID_SIZE+2*NIFO*GRID_SIZE];
+		gpu_output[l+8*Lsky] = gpu_BB[tid+2*GRID_SIZE+2*NIFO*GRID_SIZE];
+	}*/
 	m = 0; Ls=Ln=Eo=0;
 	for(j=0; j<V; j++)
 	{
 		ee = kernel_sse_abs_ps(gpu_bb+tid+j*NIFO*GRID_SIZE, gpu_BB+tid+j*NIFO*GRID_SIZE);
+		int Lsky = 196608;
+//		if(k==4)
+//			gpu_output[l+j*Lsky] = ee;
+
 		if(ee<constEn)	continue;
 		kernel_sse_cpf_ps(gpu_bb+tid+m*NIFO*GRID_SIZE, gpu_bb+tid+j*NIFO*GRID_SIZE);
 		kernel_sse_cpf_ps(gpu_BB+tid+m*NIFO*GRID_SIZE, gpu_BB+tid+j*NIFO*GRID_SIZE);
@@ -778,12 +767,12 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 		kernel_sse_mul_ps(gpu_Fx+tid+m*NIFO*GRID_SIZE, nr+j*gpu_nIFO);
 		m++;
 		em = kernel_sse_maxE_ps(gpu_bb+tid+j*NIFO*GRID_SIZE, gpu_BB+tid+j*NIFO*GRID_SIZE);
-		Ls += ee-em;	Eo += ee;
+		Ls += ee-em;	Eo = Eo + ee;
 		msk = ( (ee-em)>constEs );
 		Ln += msk*ee;
 	}
 
-	/*if(k==4)
+/*	if(k==4)
 	{
 		int Lsky = 196608;
 		gpu_output[l] = ee;
@@ -899,28 +888,15 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 	}*/
 
 	msk = (AA > _s->stat);
-	_s->stat = _s->stat+AA - _s->stat*msk - AA*(1-msk);
-	_s->Lm = _s->Lm+Lo - _s->Lm*msk - Lo*(1-msk);
-	_s->Em = _s->Em+Eo - _s->Em*msk - Eo*(1-msk);
-	_s->Am = _s->Am+aa - _s->Am*msk - aa*(1-msk);
-	_s->lm = _s->lm+l - _s->lm*msk - l*(1-msk);
-	_s->Vm = _s->Vm+m - _s->Vm*msk - m*(1-msk);
-	_s->suball = _s->suball+ee - _s->suball*msk - ee*(1-msk);
-	_s->EE = _s->EE+em - _s->EE*msk - em*(1-msk);
+	_s->stat = _s->stat - _s->stat*msk + AA*msk;
+	_s->Lm = _s->Lm - _s->Lm*msk + Lo*msk;
+	_s->Em = _s->Em - _s->Em*msk + Eo*msk;
+	_s->Am = _s->Am - _s->Am*msk + aa*msk;
+	_s->lm = _s->lm - _s->lm*msk + l*msk;
+	_s->Vm = _s->Vm - _s->Vm*msk + m*msk;
+	_s->suball = _s->suball - _s->suball*msk + ee*msk;
+	_s->EE = _s->EE - _s->EE*msk + em*msk;
 	
-}
-__inline__ __device__ void kernel_store_result_to_tmp(float *tmp, struct STAT *_s)
-{
-	tmp[0] = _s->stat;
-	tmp[GRID_SIZE] = _s->Lm;
-	tmp[2*GRID_SIZE] = _s->Em;
-	tmp[3*GRID_SIZE] = _s->Am;
-	tmp[4*GRID_SIZE] = _s->suball;
-	tmp[5*GRID_SIZE] = _s->EE;
-	tmp[6*GRID_SIZE] = _s->lm;
-	tmp[7*GRID_SIZE] = _s->Vm;
-	return;
-
 }
 __global__ void kernel_reduction(float *tmp, float *gpu_output)
 {
@@ -1013,84 +989,6 @@ __global__ void kernel_clear(float *tmp)
 	for(int l=tid; l<Dim; l+=GRID_SIZE)
 		tmp[l] = 0;
 }
-__device__ void kernel_store_stat(float *tmp, int tid)
-{
-	float max = 0;
-	float temp;
-	size_t l;
-	bool msk;
-	for(int i=0; i<num_blocks*num_threads; i+=32)
-	{
-		temp = tmp[i*OutputSize];
-		msk = (temp>max);
-		max = max+temp - max*msk - (1-msk)*temp; 
-		l = l+i - l*msk - (1-msk)*i; 
-	}
-	tmp[tid*OutputSize] = tmp[l*OutputSize];
-	tmp[tid*OutputSize+1] = tmp[l*OutputSize+1];
-	tmp[tid*OutputSize+2] = tmp[l*OutputSize+2];
-	tmp[tid*OutputSize+3] = tmp[l*OutputSize+3];
-	tmp[tid*OutputSize+4] = tmp[l*OutputSize+4];
-	tmp[tid*OutputSize+5] = tmp[l*OutputSize+5];
-	tmp[tid*OutputSize+6] = tmp[l*OutputSize+6];
-	tmp[tid*OutputSize+7] = tmp[l*OutputSize+7];
-	return;
-}
-__device__ float kernel_store_final_stat(float *tmp, float *gpu_output, size_t output_ptr)
-{
-	float max = 0;
-	float temp;
-	size_t l;
-	bool msk;
-	for(int i=0; i<32; i++)
-	{
-		temp = tmp[i*OutputSize];
-		msk = (temp>max);
-		max = max+temp - max*msk - (1-msk)*temp; 
-		l = l+i - l*msk - (1-msk)*i; 
-	}
-	gpu_output[output_ptr] = tmp[l*OutputSize];
-	gpu_output[output_ptr+1] = tmp[l*OutputSize+1];
-	gpu_output[output_ptr+2] = tmp[l*OutputSize+2];
-	gpu_output[output_ptr+3] = tmp[l*OutputSize+3];
-	gpu_output[output_ptr+4] = tmp[l*OutputSize+4];
-	gpu_output[output_ptr+5] = tmp[l*OutputSize+5];
-	gpu_output[output_ptr+6] = tmp[l*OutputSize+6];
-	gpu_output[output_ptr+7] = tmp[l*OutputSize+7];
-	return max;
-}
-	/*	for(j=0; j<V4*NIFO; j+=4)
-	{
-		ee = kernel_sse_abs_ps(v00, v90, V4, j);	
-		msk = !(ee<constEn);
-		m_list[j/4] = msk;
-		m += msk;
-		em = kernel_sse_maxE_ps(v00, v90, V4, j);	
-		Ls += msk*(ee-em);	Eo += msk*ee;
-		msk = (ee-em>Ls);
-		Ln += msk*ee;
-	}
-	int I = -1;
-	for(j=0; j<m4*NIFO; j+=16)
-	{
-		int count = 0;
-		int i[NIFO] = {-1, -1, -1, -1};			// indicate the m_list
-		int r[NIFO];					// indicate the row of v00 and v90
-		do
-		{
-			I++;
-			i[count] = I;
-			count += m_list[I];
-		}
-		while(count!=NIFO)
-		for(count = 0; count<NIFO; count++)
-		{
-			r[count] = i[count]*4/V4;
-			i[count] = (i[count]*4 - r[count]*V4);		// indicate the location of v00[r] and v90[r]
-		}
-		kernel_sse_dpf4_ps(v00, v90, i, j, r);
-	}*/
-	
 __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
 {
         float a, b, c;
@@ -1110,14 +1008,6 @@ __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
         temp = temp + pE - flag*temp - (1-flag)*pE;
         return temp;
 }
-/*__inline__ __device__ void kernel_cpf_(float *a, double **p, size_t i)
-{
-	a[0] = p[0][i];
-	a[1] = p[1][i];
-	a[2] = p[2][i];
-	a[3] = p[3][i];
-	return;
-}*/
 __inline__ __device__ void kernel_sse_cpf_ps(float *a, float *p)
 {
 	a[0] = p[0];
@@ -1149,10 +1039,10 @@ __inline__ __device__ float kernel_sse_maxE_ps(float *a, float *A)
 	out = a[0]*a[0] + A[0]*A[0];
 	temp = a[GRID_SIZE]*a[GRID_SIZE] + A[GRID_SIZE]*A[GRID_SIZE];
 	flag = (temp>out);
-	out = temp+out - (1-flag)*temp - flag*out;
+	out = out - flag*out + flag*temp;
 	temp = a[2*GRID_SIZE]*a[2*GRID_SIZE] + A[2*GRID_SIZE]*A[2*GRID_SIZE];
 	flag = (temp>out);
-	out = temp+out - (1-flag)*temp - flag*out;
+	out = out - flag*out + flag*temp;
 	return out;
 }
 __inline__ __device__ void kernel_sse_dpf4_ps(float *Fp, float *Fx, float *fp, float *fx, int k, int l, float *gpu_output)
@@ -1618,7 +1508,11 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gp
 				aa = ((post_data*)post_gpu_data)->output.output;
 				for(int l=0; l<Lsky; l++)
 				{
-					fprintf(fpt, "l = %d Lo = %f AA = %f ee = %f em = %f aa = %f\n", l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky], aa[l+4*Lsky]);
+			//		fprintf(fpt, "k = 4 l = %d ee = %f em = %f Ls = %f Eo = %f Ln = %f m = %f\n", l, aa[l], aa[l+Lsky], aa[l+2*Lsky], aa[l+3*Lsky], aa[l+4*Lsky], aa[l+5*Lsky]);
+					fprintf(fpt, "k = 4 l = %d BB[0] = %f BB[1] = %f BB[2] = %f\n", l, aa[l], aa[l+Lsky], aa[l+2*Lsky]);
+					fprintf(fpt, "k = 4 l = %d BB[4] = %f BB[5] = %f BB[6] = %f\n", l, aa[l+3*Lsky], aa[l+4*Lsky], aa[l+5*Lsky]);
+					fprintf(fpt, "k = 4 l = %d BB[8] = %f BB[9] = %f BB[10] = %f\n", l, aa[l+6*Lsky], aa[l+7*Lsky], aa[l+8*Lsky]);
+					fprintf(fpt, "k = 4 l = %d ee[0] = %f ee[1] = %f ee[2] = %f\n", l, aa[l], aa[l+Lsky], aa[l+2*Lsky]);
 				}
 			}*/
 //			if(k==4)

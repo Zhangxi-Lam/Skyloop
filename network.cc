@@ -908,7 +908,6 @@ skyloop:
 }
 
 
-
 long network::likelihood2G(char mode, int lag, int iID, TH2F* hist)
 {
 // 2G likelihood analysis
