@@ -532,8 +532,11 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, sho
 				
 			kernel_skyloop_calculate(ml, nr, FP, FX, gpu_BB, gpu_bb, gpu_fp, gpu_fx, gpu_Fp, gpu_Fx, pa, pA, pe[0], pe[1], pe[2], V, gpu_output, l, &_stat, tid, k, output_ptr);
 		}
-	//	if(k==4)
-	//		gpu_output[tid] = _stat.stat;
+		/*if(k==4)
+		{
+			gpu_output[tid] = _stat.stat;
+			gpu_output[tid + GRID_SIZE] = _stat.lm;
+		}*/
 		gpu_tmp[tid + GRID_SIZE*OutputSize*count] = _stat.stat;
 		gpu_tmp[GRID_SIZE + tid + GRID_SIZE*OutputSize*count] = _stat.Lm;
 		gpu_tmp[2*GRID_SIZE + tid + GRID_SIZE*OutputSize*count] = _stat.Em;
@@ -900,20 +903,38 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 }
 __global__ void kernel_reduction(float *tmp, float *gpu_output)
 {
-	int Lsky = constLsky;
-	float max = 0;
-	float temp;
+	float max = 0;			// the Maximum of stat
+	float min = constLsky;		// the Minimum of lm
+	float temp_stat;
+	float temp_lm;
 	size_t l = threadIdx.x;
-	bool msk;
+	bool msk_0, msk_1;
 	int Dim;
 	int i;
 	Dim = GRID_SIZE;
 	for(i=threadIdx.x; i<Dim; i+=blockDim.x)
 	{
-		temp = tmp[i + blockIdx.x*GRID_SIZE*OutputSize];
-		msk = (temp>max);
-		max = max+temp - max*msk - (1-msk)*temp;
-		l = l+i - l*msk - (1-msk)*i;
+		temp_stat = tmp[i + blockIdx.x*GRID_SIZE*OutputSize];
+		temp_lm = tmp[i + 6*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];
+		msk_0 = (temp_stat>max);
+		max = max - max*msk_0 + temp_stat*msk_0;
+		l = l - l*msk_0 + msk_0*i;
+		min = min - min*msk_0 + temp_lm*msk_0;
+		msk_0 = (temp_stat == max);
+		msk_1 = (temp_lm < min);
+		min = min - min*msk_1*msk_0 + temp_lm*msk_1*msk_0;
+		l = l - l*msk_1*msk_0 + i*msk_1*msk_0;
+/*		if(temp_lm == 51656 && blockIdx.x ==1)
+		{
+			gpu_output[0] = l;
+			gpu_output[1] = tmp[l + 6*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];
+			gpu_output[2] = i;
+			gpu_output[3] = tmp[i + 6*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];
+			gpu_output[4] = msk_0;
+			gpu_output[5] = msk_1;
+			gpu_output[6] = max;
+			gpu_output[7] = min;
+		}*/
 	}
 	tmp[threadIdx.x + blockIdx.x*GRID_SIZE*OutputSize] = tmp[l + blockIdx.x*GRID_SIZE*OutputSize];			// get the biggest stat for each thread
 	tmp[threadIdx.x + GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize] = tmp[l + GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];		// can be set into share memory?
@@ -924,20 +945,28 @@ __global__ void kernel_reduction(float *tmp, float *gpu_output)
 	tmp[threadIdx.x + 6*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize] = tmp[l + 6*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];
 	tmp[threadIdx.x + 7*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize] = tmp[l + 7*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];
 	__syncthreads();
-	/*if(threadIdx.x == 199 && blockIdx.x == 1)
+/*	if(threadIdx.x == 200 && blockIdx.x == 1)
 	{
-		gpu_output[0] = tmp[threadIdx.x + blockIdx.x*GRID_SIZE*OutputSize];
+		gpu_output[0] = tmp[threadIdx.x + 6*GRID_SIZE +  blockIdx.x*GRID_SIZE*OutputSize];
 	}*/
 	if(threadIdx.x < 32)
 	{
 		l = threadIdx.x;
 		Dim = blockDim.x;
+		max = 0;
+		min = constLsky;
 		for(i=threadIdx.x; i<Dim; i+=32)
 		{
-			temp = tmp[i + blockIdx.x*GRID_SIZE*OutputSize];
-			msk = (temp>max);
-			max = max+temp - max*msk - (1-msk)*temp;
-			l = l+i - l*msk - (1-msk)*i;
+			temp_stat = tmp[i + blockIdx.x*GRID_SIZE*OutputSize];
+			temp_lm = tmp[i + 6*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];
+			msk_0 = (temp_stat>max);
+			max = max - max*msk_0 + msk_0*temp_stat;
+			l = l - l*msk_0 + msk_0*i;
+			min = min - min*msk_0 + temp_lm*msk_0;
+			msk_0 = (temp_stat == max);
+			msk_1 = (temp_lm < min);
+			min = min - min*msk_1*msk_0 + temp_lm*msk_1*msk_0;
+			l = l - l*msk_1*msk_0 + i*msk_1*msk_0;
 		}
 	
 		tmp[threadIdx.x + blockIdx.x*GRID_SIZE*OutputSize] = tmp[l + blockIdx.x*GRID_SIZE*OutputSize];			// get the biggest stat for each thread
@@ -950,27 +979,35 @@ __global__ void kernel_reduction(float *tmp, float *gpu_output)
 		tmp[threadIdx.x + 7*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize] = tmp[l + 7*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];
 	}
 	__syncthreads();
-/*	if(threadIdx.x == 7 && blockIdx.x == 1)
+/*	if(threadIdx.x == 8 && blockIdx.x == 1)
 	{
-		gpu_output[0] = tmp[threadIdx.x + blockIdx.x*GRID_SIZE*OutputSize];
+		gpu_output[1] = tmp[threadIdx.x + 6*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];
 	}*/
 
 	if(threadIdx.x == 0)
 	{
 		l = threadIdx.x;
 		Dim = 32;
+		max = 0;
+		min = constLsky;
 		for(i=threadIdx.x; i<Dim; i++)
 		{
-			temp = tmp[i + blockIdx.x*GRID_SIZE*OutputSize];
-			msk = (temp>max);
-			max = max+temp - max*msk - (1-msk)*temp;
-			l = l+i - l*msk - (1-msk)*i;
+			temp_stat = tmp[i + blockIdx.x*GRID_SIZE*OutputSize];
+			temp_lm = tmp[i + 6*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];
+			msk_0 = (temp_stat>max);
+			max = max - max*msk_0 + msk_0*temp_stat;
+			l = l - l*msk_0 + msk_0*i;
+			min = min - min*msk_0 + temp_lm*msk_0;
+			msk_0 = (temp_stat == max);
+			msk_1 = (temp_lm < min);
+			min = min - min*msk_1*msk_0 + temp_lm*msk_1*msk_0;
+			l = l - l*msk_1*msk_0 + i*msk_1*msk_0;
 		}
 /*		if(blockIdx.x == 1)
 		{
-			gpu_output[0] = tmp[l + blockIdx.x*GRID_SIZE*OutputSize];
-			gpu_output[1] = l;
-			gpu_output[2] = tmp[7 + blockIdx.x*GRID_SIZE*OutputSize];
+			gpu_output[2] = tmp[l + 6*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];
+			//gpu_output[3] = l;
+			//gpu_output[4] = tmp[l + 6*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];
 		}*/
 		gpu_output[blockIdx.x*OutputSize] = tmp[l + blockIdx.x*GRID_SIZE*OutputSize];			// get the biggest stat for each thread
 		gpu_output[blockIdx.x*OutputSize + 1] = tmp[l + GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];			// get the biggest stat for each thread
@@ -980,6 +1017,8 @@ __global__ void kernel_reduction(float *tmp, float *gpu_output)
 		gpu_output[blockIdx.x*OutputSize + 5] = tmp[l + 5*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];			// get the biggest stat for each thread
 		gpu_output[blockIdx.x*OutputSize + 6] = tmp[l + 6*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];			// get the biggest stat for each thread
 		gpu_output[blockIdx.x*OutputSize + 7] = tmp[l + 7*GRID_SIZE + blockIdx.x*GRID_SIZE*OutputSize];			// get the biggest stat for each thread
+
+
 	}
 }
 __global__ void kernel_clear(float *tmp)
@@ -1005,7 +1044,7 @@ __inline__ __device__ float kernel_minSNE_ps(float pE, float *pe)
 
         temp = a+b+c - ab*ac*a - (1-ab)*bc*b - (1-ac)*(1-bc)*c;
         flag = ( temp>=pE );                                                                            // if temp>=pE, flag 1/0
-        temp = temp + pE - flag*temp - (1-flag)*pE;
+        temp = temp - flag*temp + flag*pE;
         return temp;
 }
 __inline__ __device__ void kernel_sse_cpf_ps(float *a, float *p)
@@ -1484,12 +1523,24 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gp
 		{
 			V = ((post_data*)post_gpu_data)->other_data.V[pixelcount];
 			aa = ((post_data*)post_gpu_data)->output.output + output_ptr;
+	//		aa = ((post_data*)post_gpu_data)->output.output;
+	//		if(k==4)
+	//		{
+	//			for(int i=0; i<GRID_SIZE; i++)
+	//				fprintf(fpt, "stat = %f lm = %f\n", aa[i], aa[i + GRID_SIZE]);
+	//		}
+			
 			fprintf(fpt, "k = %d stat = %f Lm = %f Em = %f Am = %f suball = %f EE = %f lm = %f Vm = %f\n", k, aa[0], aa[1], aa[2], aa[3], aa[4], aa[5], aa[6], aa[7]);
-		/*	if(k==4)
+	/*		if(k==4)
 			{
-				cout<<"k = "<<k<<" stat = "<<aa[0]<<endl;
+				cout<<"k = "<<k<<" lm = "<<aa[0]<<endl;
 				cout<<aa[1]<<endl;
 				cout<<aa[2]<<endl;
+				cout<<aa[3]<<endl;
+				cout<<aa[4]<<endl;
+				cout<<aa[5]<<endl;
+				cout<<aa[6]<<endl;
+				cout<<aa[7]<<endl;
 			}*/
 			/*for(int l=0; l<Lsky; l++)
 			{	
