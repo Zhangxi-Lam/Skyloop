@@ -832,6 +832,11 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 
          Lo = vvv[0]+vvv[1]+vvv[2]+vvv[3];
 	 AA = aa/(fabs(aa)+fabs(Eo-Lo)+2*m*(Eo-Ln)/Eo);        //  subnet stat with threshold
+
+	FILE *fpt = fopen("./new_debug/cpu_AA", "a");
+	fprintf(fpt, "k = %d l = %d aa = %f Eo = %f Lo = %f m = %f Ln = %f\n", k, l, aa, Eo, Lo, m, Ln);
+	fclose(fpt);
+
 	 ee = Ls*Eo/(Eo-Ls);
 	 em = fabs(Eo-Lo)+2*m;                                 //  suball NULL
 	 ee = ee/(ee+em);                                      //  subnet stat without threshold
@@ -841,6 +846,12 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	    stat=AA; Lm=Lo; Em=Eo; Am=aa; lm=l; Vm=m; suball=ee; EE=em;
 	 }  
        }
+/*	if(mra == false)
+	{
+		FILE *fpt = fopen("./new_debug/cpu_skyloop8output", "a");
+		fprintf(fpt, "k = %d stat = %f Lm = %f Em = %f Am = %f suball = %f EE = %f lm = %d Vm = %d\n", k, stat, Lm, Em, Am, suball, EE, lm, Vm);
+		fclose(fpt);
+	}*/
 
       if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
       

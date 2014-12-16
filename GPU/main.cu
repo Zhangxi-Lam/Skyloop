@@ -849,7 +849,7 @@ __inline__ __device__ void kernel_skyloop_calculate(short **ml, float *nr, doubl
 			gpu_output[l+7*Lsky] = *(gpu_Fx+tid+3*GRID_SIZE+NIFO*GRID_SIZE);
 		}*/
 		kernel_sse_dpf4_ps(gpu_Fp+tid+j*NIFO*GRID_SIZE, gpu_Fx+tid+j*NIFO*GRID_SIZE, gpu_fp+tid+j*NIFO*GRID_SIZE, gpu_fx+tid+j*NIFO*GRID_SIZE, k, l, gpu_output);
-		kernel_sse_like4_ps(gpu_fp+tid+j*gpu_nIFO*GRID_SIZE, gpu_fx+tid+j*gpu_nIFO*GRID_SIZE, gpu_bb+tid+j*gpu_nIFO*GRID_SIZE, gpu_BB+tid+j*gpu_nIFO*GRID_SIZE, _Es);
+		kernel_sse_like4_ps(gpu_fp+tid+j*NIFO*GRID_SIZE, gpu_fx+tid+j*NIFO*GRID_SIZE, gpu_bb+tid+j*NIFO*GRID_SIZE, gpu_BB+tid+j*NIFO*GRID_SIZE, _Es);
 		_En[0] = _En[0] + _Es[0];
 		_En[1] = _En[1] + _Es[1];
 		_En[2] = _En[2] + _Es[2];
@@ -1545,7 +1545,7 @@ void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void *post_gp
 	//				fprintf(fpt, "stat = %f lm = %f\n", aa[i], aa[i + GRID_SIZE]);
 	//		}
 			
-			fprintf(fpt, "k = %d stat = %f Lm = %f Em = %f Am = %f suball = %f EE = %f lm = %f Vm = %f\n", k, aa[0], aa[1], aa[2], aa[3], aa[4], aa[5], aa[6], aa[7]);
+//			fprintf(fpt, "k = %d stat = %f Lm = %f Em = %f Am = %f suball = %f EE = %f lm = %f Vm = %f\n", k, aa[0], aa[1], aa[2], aa[3], aa[4], aa[5], aa[6], aa[7]);
 	/*		if(k==4)
 			{
 				cout<<"k = "<<k<<" lm = "<<aa[0]<<endl;
