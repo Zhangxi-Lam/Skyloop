@@ -53,5 +53,5 @@ __inline__ __device__ void kernel_sse_like4_ps(float *fp, float *fx, float *bb, 
 
 
 void CUDART_CB Callback(cudaStream_t stream, cudaError_t status, void* post_gpu_data);	
-void MyCallback(struct post_data *post_gpu_data, float &Lo);
+void MyCallback(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, float &Lo);
 #endif

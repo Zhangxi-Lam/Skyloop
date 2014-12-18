@@ -818,7 +818,7 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 		}
 		cout<<"finish"<<endl;
 	}*/
-	FILE *fpt = fopen("./new_debug/k353_vtd", "a");
+	/*FILE *fpt = fopen("./new_debug/k353_vtd", "a");
 	FILE *fpt1 = fopen("./new_debug/k353_vTD", "a");
 	if(k==353)
 	{
@@ -827,11 +827,12 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 		for(int l=0; l<tsize*V4; l++)
 		{
 			fprintf(fpt, "l = %d vtd[0] = %f vtd[1] = %f vtd[2] = %f\n", l, vtd[0].data[l], vtd[1].data[l], vtd[2].data[l]);
+
 			fprintf(fpt1, "l = %d vTD[0] = %f vTD[1] = %f vTD[2] = %f\n", l, vTD[0].data[l], vTD[1].data[l], vTD[2].data[l]);
 		}
 		cout<<"finish"<<endl;
 		cout<<"k = "<<k<<" V = "<<V<<" V4 = "<<V4<<endl;
-	}		
+	}*/		
 	
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -844,10 +845,9 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
       double suball=0;
       double submra=0;
       stat=Lm=Em=Am=EE=0.; lm=Vm= -1;    
-	//FILE *fpt = fopen("./new_debug/k353_v00", "a");
+//	FILE *fpt = fopen("./new_debug/cpu_rE", "a");
 	//FILE *fpt1 = fopen("./new_debug/k353_v90", "a");
 
-	int flag = 0;	
   skyloop:
 
       for(l=lb; l<=le; l++) {	                      // loop over sky locations
@@ -1037,7 +1037,6 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	 }
   
        }
-	flag = 0;
 /*	if(mra == false)
 	{
 		FILE *fpt = fopen("./new_debug/cpu_skyloop8output", "a");
@@ -1047,13 +1046,11 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 	}*/
 
       if(!mra && lm>=0) {mra=true; le=lb=lm; goto skyloop;}    // get MRA principle components
-	//FILE *fpt = fopen("./debug_files/skyloop_loopoutput", "a");
+      
+	FILE *fpt = fopen("./new_debug/cpu_skyloopoutput", "a");
+		fprintf(fpt, "lag = %d k = %d stat = %f Lm = %f Em = %f lm = %d Vm = %d suball = %lf submra = %lf Eo = %f Ls = %f Lo = %f m = %d EE = %f\n", lag, k, stat, Lm, Em, lm, Vm, suball, submra, Eo, Ls, Lo, m, EE);
 	//	fprintf(fpt, "lag = %d k = %d l = %d stat = %f Lm = %f Em = %f Am = %f lm = %d Vm = %d suball = %f EE = %f\n", lag, k, l, stat, Lm, Em, Am, lm, Vm, suball, EE);
-//    fclose(fpt);
-	fclose(fpt);
-	//fclose(fpt1);
-	if (k==353)
-		cout<<"finish"<<endl;
+    	fclose(fpt);
 	
       pwc->sCuts[id-1] = -1; 
       pwc->cData[id-1].likenet = Lm; 

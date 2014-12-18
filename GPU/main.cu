@@ -28,8 +28,6 @@ netcluster *pwc;
 int gpu_Lsky;
 double *FP[gpu_nIFO];
 double *FX[gpu_nIFO];
-float *pa[StreamNum][MaxPixel][gpu_nIFO];
-float *pA[StreamNum][MaxPixel][gpu_nIFO];
 double gpu_time[CLOCK_SIZE];
 size_t streamCount[StreamNum];	// the result of each stream
 
@@ -294,8 +292,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 					}
 				}	
 			}
-			if(k==353)
-				cout<<"v_ptr = "<<v_ptr<<endl;
 			/*FILE *fpt = fopen("./new_debug/my_k353vtd", "a");
 			FILE *fpt1 = fopen("./new_debug/my_k353vTD", "a");
 			if(k == 353)
@@ -344,7 +340,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 			push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, vtddim_array, etddim_array, alloced_V_array, Lsky, pixel_array, StreamNum, stream);
 			for(int i=0; i<StreamNum; i++)
 				CUDA_CHECK(cudaStreamSynchronize(stream[i]));
-			MyCallback(post_gpu_data, Lo);
+			MyCallback(pre_gpu_data, post_gpu_data, Lo);
 			//clear
 			alloced_gpu = 0;
 			for(int j=0; j<StreamNum; j++)
@@ -368,7 +364,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 		push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, vtddim_array, etddim_array, alloced_V_array, Lsky, pixel_array, StreamNum, stream);
 		for(int i=0; i<StreamNum; i++)
 			CUDA_CHECK(cudaStreamSynchronize(stream[i]));
-		MyCallback(post_gpu_data, Lo);
+		MyCallback(pre_gpu_data, post_gpu_data, Lo);
 		alloced_gpu = 0;
 	}		
 	free(V_array);
@@ -559,12 +555,6 @@ __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, sho
 			gpu_output[count*OutputSize + 8] = _stat.Eo;
 			gpu_output[count*OutputSize + 9] = _stat.Ls;
 			gpu_output[count*OutputSize + 10] = _stat.m;
-/*			gpu_output[4] = reduct_tid;
-			gpu_output[5] = tid;
-			gpu_output[6] = _stat.Eo;
-			gpu_output[7] = _stat.Ls;
-			gpu_output[8] = _stat.m;
-			gpu_output[9] = 100;*/
 		}
 
 		output_ptr += Lsky;
@@ -1569,28 +1559,43 @@ void CUDART_CB Callback(cudaStream_t stream, cudaError_t status, void *post_gpu_
 {
 	return;
 }
-void MyCallback(struct post_data *post_gpu_data, float &Lo)
+void MyCallback(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, float &Lo)
 {
 	FILE *fpt = fopen("./new_debug/myk4_fptone", "a");
 	FILE *fpt1 = fopen("./new_debug/myk4_fpttwo", "a");
 //
 	int Lsky = gpu_Lsky;
-	int k;
-	size_t V;
+	int k, vDim;
+	size_t V, tsize;
 	int pixelcount=0;
 	int streamNum;
 	size_t output_ptr = 0;
 	float *aa;
 	float lm;
+	float *pa[gpu_nIFO];
+	float *pA[gpu_nIFO];
+	size_t v_ptr;
 	//cout<<"Callback"<<endl;
 	for(int i=0; i<StreamNum; i++)
 	{
 		k = post_gpu_data[i].other_data.k[pixelcount] - 1;
-		
+		v_ptr = HEAD_SIZE;
 		while(k != -1)
 		{
-			after_skyloop((void*)&post_gpu_data[i], gpu_net, gpu_hist, pwc, FP, FX, pa[streamNum][pixelcount], pA[streamNum][pixelcount], pixelcount, Lsky, gpu_time, streamCount, streamNum, Lo);
+		//	V = post_gpu_data[i].other_data.V[pixelcount];
+		//	tsize = post_gpu_data[i].other_data.tsize[pixelcount];
+		//	vDim = V*tsize;
+		//	pa[0] = pre_gpu_data[i].other_data.vtd_vTD_nr + v_ptr + (tsize/2)*V;
+		//	pa[1] = pre_gpu_data[i].other_data.vtd_vTD_nr + vDim + v_ptr + (tsize/2)*V;
+		//	pa[2] = pre_gpu_data[i].other_data.vtd_vTD_nr + 2*vDim + v_ptr + (tsize/2)*V;
+		//	pA[0] = pre_gpu_data[i].other_data.vtd_vTD_nr + gpu_nIFO*vDim + v_ptr + (tsize/2)*V;
+		//	pA[1] = pre_gpu_data[i].other_data.vtd_vTD_nr + gpu_nIFO*vDim + vDim + v_ptr + (tsize/2)*V;
+		//	pA[2] = pre_gpu_data[i].other_data.vtd_vTD_nr + gpu_nIFO*vDim + 2*vDim + v_ptr + (tsize/2)*V;
+
+			after_skyloop((void*)&post_gpu_data[i], gpu_net, gpu_hist, pwc, FP, FX, pa, pA, pixelcount, Lsky, gpu_time, streamCount, streamNum, Lo);
+
 			pixelcount++;
+			v_ptr += vDim*gpu_nIFO*2 + gpu_nIFO*V;
 			if(pixelcount<MaxPixel)
 				k = post_gpu_data[i].other_data.k[pixelcount] - 1;
 			else 
