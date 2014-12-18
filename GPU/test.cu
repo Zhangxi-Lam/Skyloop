@@ -1,11 +1,12 @@
 #include<iostream>
-
+#include"stdio.h"
 using namespace std;
 int main()
 {
-	float sm = 0.f;
-	float a = 1;
-	a = !sm;
-	cout<<a<<endl;
+	float a = 9.00000;
+	int b;
+	b = a;
+	printf("%f\n", a);	
+	printf("%d\n", b);	
 	return 0;
 }

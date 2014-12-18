@@ -5,8 +5,8 @@ struct skyloop_output                           // the output of skyloop
 };
 struct STAT
 {
-	float stat, Lm, Em, Am, suball, EE;
-	int lm, Vm;
+	float stat, Lm, Em, Am, suball, EE, Eo, Ls;
+	int lm, Vm, m;
 };
 struct other                                    //the variable that not use in GPU
 {

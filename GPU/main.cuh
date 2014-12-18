@@ -13,7 +13,7 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 
 __global__ void kernel_skyloop(float *eTD, float *vtd_vTD_nr, double *FP_FX, short *ml_mm, size_t *V_tsize, float *gpu_BB, float *gpu_bb, float *gpu_fp, float *gpu_fx, float *gpu_Fp, float *gpu_Fx, float *gpu_tmp, float *gpu_output, int pixelcount);
 
-__global__ void kernel_reduction(float *tmp, float *gpu_output);
+__global__ void kernel_reduction(float *tmp, float *gpu_output, float *eTD, float *vtd_vTD_nr, short *ml_mm, size_t *V_tsize);
 
 __global__ void kernel_clear(float *tmp);
 
@@ -52,6 +52,6 @@ __inline__ __device__ void kernel_sse_rot4m_ps(float *Fx, float *_c, float *Fp, 
 __inline__ __device__ void kernel_sse_like4_ps(float *fp, float *fx, float *bb, float *BB, float *_Es);
 
 
-void CUDART_CB MyCallback(cudaStream_t stream, cudaError_t status, void* post_gpu_data);	
-
+void CUDART_CB Callback(cudaStream_t stream, cudaError_t status, void* post_gpu_data);	
+void MyCallback(struct post_data *post_gpu_data, float &Lo);
 #endif
