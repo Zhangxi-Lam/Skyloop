@@ -13,9 +13,10 @@ bool InitCUDA(void)
 {
   int count = 0;
   int i = 0;
-  cudaGetDeviceCount(&count); //¿´¿´Ó¶à¸ö¸?
+  cudaGetDeviceCount(&count); 
+  cudaDeviceQuery();
   cudaDeviceProp prop;
-  for(i = 0; i < count; i++)  //Ö¸öö¸ÊÐ:
+  for(i = 0; i < count; i++)  
   {
     if(cudaGetDeviceProperties(&prop, i) == cudaSuccess)
     {

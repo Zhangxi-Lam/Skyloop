@@ -671,11 +671,22 @@ void goto_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc
         nIFO = ((post_data*)post_gpu_data)->other_data.nIFO;
         En = ((post_data*)post_gpu_data)->other_data.T_En;
         Es = ((post_data*)post_gpu_data)->other_data.T_Es;
+
 	for(i=0; i<NIFO; i++)
                 ml[i] = ((post_data*)post_gpu_data)->other_data.ml_mm + i*Lsky;
 
 	rE = ((post_data*)post_gpu_data)->output.output + MaxPixel*OutputSize + pixelcount*VMAX;
         l = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 6];
+
+	cout<<"k = "<<k<<endl;
+	cout<<"V = "<<V<<endl;
+	cout<<"V4 = "<<V4<<endl;
+	cout<<"tsize = "<<tsize<<endl;
+	cout<<"id = "<<id<<endl;
+	cout<<"En = "<<En<<endl;
+	cout<<"Es = "<<Es<<endl;
+	cout<<"nIFO = "<<nIFO<<endl;
+	cout<<"l = "<<l<<endl;
 
         std::vector<wavearray<float> > vtd;              // vectors of TD amplitudes
         std::vector<wavearray<float> > vTD;              // vectors of TD amplitudes
@@ -744,25 +755,44 @@ void goto_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc
                         rms += xx[i]*xx[i];     // total inverse variance
                 }
                 for(int i=0; i<nIFO; i++)
+		{
                         nr.data[j*NIFO+i]=(float)xx[i]/sqrt(rms);       // normalized 1/rms
+			for(int l=0; l<tsize; l++)
+			{
+				vtd[i].data[l*V4+j] = pix->tdAmp[i].data[l];
+				vTD[i].data[l*V4+j] = pix->tdAmp[i].data[l+tsize];
+			}
+		}
         }
+
+/*	if(k == 4)
+	{
+		FILE *fpt2 = fopen("./new_debug/my_k4vtd", "a");
+		for(int l=0; l<(V4*tsize); l++)
+		{
+			fprintf(fpt2, "l = %d vtd[0] = %f vtd[1] = %f vtd[2] = %f vtd[3] = %f\n", l, vtd[0].data[l], vtd[1].data[l], vtd[2].data[l], vtd[3].data[l]);
+//			fprintf(fpt1, "l = %d vTD[0] = %f vTD[1] = %f vTD[2] = %f\n", l, pre_gpu_data[alloced_gpu].other_data.vtd_vTD_nr[3*vtddim+l + v_ptr], pre_gpu_data[alloced_gpu].other_data.vtd_vTD_nr[3*vtddim + vtddim + l + v_ptr], pre_gpu_data[alloced_gpu].other_data.vtd_vTD_nr[3*vtddim + 2*vtddim + l + v_ptr]);
+		}
+		cout<<"finish"<<endl;
+		fclose(fpt2);
+	}*/
 	for(int j=0; j<V; j++)
 		net->rNRG.data[j] = rE[j];
 	//cout<<"4"<<endl;
         net->pnt_(v00, pa, ml, (int)l, (int)V4);        // pointers to first pixel 00 data
         net->pnt_(v90, pA, ml, (int)l, (int)V4);        // pointers to first pixel 90 data
 
-	//FILE *fpt = fopen("./new_debug/myk4_v00", "a");
-	//FILE *fpt1 = fopen("./new_debug/myk4_v90", "a");
-	//if(k==4)
-	//{
-	//	for(int j = 0; j<V; j++)
-	//	{
-	//		fprintf(fpt, "v = %d %f %f %f %f\n", j, v00[0][j], v00[1][j], v00[2][j], v00[3][j]);
-	//		fprintf(fpt1, "v = %d %f %f %f %f\n", j, v90[0][j], v90[1][j], v90[2][j], v90[3][j]);
-	//	}
-	//	cout<<"finish"<<endl;
-	//}
+/*	FILE *fpt = fopen("./new_debug/myk4_fptone", "a");
+	FILE *fpt1 = fopen("./new_debug/myk4_fpttwo", "a");
+	if(k==4)
+	{
+		for(int j = 0; j<V; j++)
+		{
+			fprintf(fpt, "v = %d %f %f %f %f\n", j, v00[0][j], v00[1][j], v00[2][j], v00[3][j]);
+			fprintf(fpt1, "v = %d %f %f %f %f\n", j, v90[0][j], v90[1][j], v90[2][j], v90[3][j]);
+		}
+		cout<<"finish"<<endl;
+	}*/
 	//cout<<"4.1"<<endl;
         float *pfp = fp.data;
         float *pfx = fx.data;
@@ -894,15 +924,12 @@ void pre_after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster
         tsize = ((post_data*)post_gpu_data)->other_data.tsize[pixelcount];
         id = ((post_data*)post_gpu_data)->other_data.id[pixelcount];
         En = ((post_data*)post_gpu_data)->other_data.T_En;
-        En = ((post_data*)post_gpu_data)->other_data.T_En;
-        En = ((post_data*)post_gpu_data)->other_data.T_En;
-        Es = ((post_data*)post_gpu_data)->other_data.T_Es;
-        Es = ((post_data*)post_gpu_data)->other_data.T_Es;
         Es = ((post_data*)post_gpu_data)->other_data.T_Es;
         TH = ((post_data*)post_gpu_data)->other_data.TH;
         lag = ((post_data*)post_gpu_data)->other_data.lag;
         nIFO = ((post_data*)post_gpu_data)->other_data.nIFO;
         stream = ((post_data*)post_gpu_data)->other_data.stream;
+
 
         for(int i=0; i<NIFO; i++)
                 ml[i] = ((post_data*)post_gpu_data)->other_data.ml_mm + i*Lsky;

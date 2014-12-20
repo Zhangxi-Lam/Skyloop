@@ -18,15 +18,15 @@ inline char* watversion(char c='s')
   if(c=='n') 
     return (char*)"HPC";
   if(c=='q') 
-    return (char*)"2.6.32-431.23.3.el6.x86_64";
+    return (char*)"2.6.32-504.1.3.el6.x86_64";
   if(c=='v') 
-    return (char*)"#1 SMP Tue Jul 29 11:12:56 CDT 2014";
+    return (char*)"#1 SMP Tue Nov 11 14:19:04 CST 2014";
   if(c=='m') 
     return (char*)"x86_64";
   if(c=='p') 
     return (char*)"x86_64";
   if(c=='t') 
-    return (char*)"Thu Dec 18 08:08:14 UTC 2014 ";
+    return (char*)"Sat Dec 20 05:59:12 UTC 2014 ";
   else         return (char*)"wat-6.0.0";
 }
 

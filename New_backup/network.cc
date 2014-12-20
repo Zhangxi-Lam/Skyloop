@@ -19,6 +19,9 @@
 
 #include "/home/hpc/cWB/trunk/wat/GPU/gpu_struct.h"
 #define CLOCK_SIZE 10
+#define OutputSize 11
+#define MaxPixel 10
+#define VMAX 300
 
 using namespace std;
 
@@ -646,102 +649,49 @@ inline int _sse_MRA_ps(network* net, float* amp, float* AMP, float Eo, int K) {
    }
    return k;
 }
-
-void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, int pixelcount, int Lsky, double *gpu_time, size_t *streamCount, int &cc)
-{
-	float rHo;
-	struct STAT _s;
-	bool mra = false;
-	size_t id;
-	
-	_s.stat=_s.Lm=_s.Em=_s.Am=_s.EE=0.;
-	_s.Vm=-1;
-        id = ((post_data*)post_gpu_data)->other_data.id[pixelcount];
-	_s.lm = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 6];
-	if(lm != -1)
-		goto_skyloop((void*)&post_gpu_data[i], gpu_net, gpu_hist, pwc, FP, FX, pa[streamNum][pixelcount], pA[streamNum][pixelcount], pixelcount, Lsky, gpu_time, streamCount, _s);
-
-	vint = &(pwc->cList[id-1]);
-	pwc->sCuts[id-1] = -1;
-    	pwc->cData[id-1].likenet = Lm;                                                         
-    	pwc->cData[id-1].energy = Em;
-    	pwc->cData[id-1].theta = net->nLikelihood.getTheta(lm);
-    	pwc->cData[id-1].phi = net->nLikelihood.getPhi(lm); 
-    	pwc->cData[id-1].skyIndex = lm;
-	rHo = 0.; 
-	if(mra)
-	{
-		submra = Ls*Eo/(Eo-Ls);		// MRA subnet statistic
-		submra /= fabs(submra)+fabs(Eo-Lo)+2*(m+6);	// MRA subnet coefficient
-		To = 0;
-       	 	pwc->p_Ind[id-1].push_back(lm); 
-		for(int j=0; j<vint->size(); j++)
-		{
-			pix = pwc->getPixel(id,j);
-			pix->theta = net->nLikelihood.getTheta(lm);
-            		pix->phi   = net->nLikelihood.getPhi(lm);
-			To += pix->time/pix->rate/pix->layers;
-			if(j==0&&mra) pix->ellipticity = submra;	// subnet MRA propagated to L-stage
-			if(j==0&&mra) pix->polarisation = fabs(Eo-Lo)+2*(m+6);   // submra NULL propagated to L-stage
-			if(j==1&&mra) pix->ellipticity = suball;   // subnet all-sky propagated to L-stage
-			if(j==1&&mra) pix->polarisation = EE;      // suball NULL propagated to L-stage
-         	}   
-			
-		To /= vint->size();
-    		rHo = sqrt(Lo*Lo/(Eo+2*m)/nIFO);	// estimator of coherent amplitude     
-	}
-		
-	if(hist && rHo>net->netRHO)
-		for(int j=0; j<vint->size(); j++)
-			hist->Fill(suball, submra);
-	
-	if(fmin(suball, submra)>TH && rHo>net->netRHO)
-	{
-		count += vint->size();
-		if(hist)
-		{
-			printf("lag|id %3d|%3d rho=%5.2f To=%5.1f stat: %5.3f|%5.3f|%5.3f ",
-                	int(lag),int(id),rHo,To,suball,submra,stat);                 
-            		printf("E: %6.1f|%6.1f L: %6.1f|%6.1f|%6.1f pix: %4d|%4d|%3d|%2d \n",
-                   	Em,Eo,Lm,Lo,Ls,int(vint->size()),int(V),Vm,int(m));           
-        	}
-	}
-	else
-		pwc->sCuts[id-1]=1;
-
-// clean time delay data
-	V = vint->size();
-	for(int j=0; j<V; j++)	// loop over pixels
-	{
-		pix = pwc->getPixel(id,j);
-		pix->core = true;
-		if(pix->tdAmp.size())
-			pix->clean();
-	}
-	//cout<<"6"<<endl;	
-	streamCount[stream] += count;
-
-	Clock[2] = clock();
-	gpu_time[3] += (double)(Clock[2] - Clock[1])/CLOCKS_PER_SEC;
-	return;
-
-
-
-}
-void goto_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, int pixelcount, int Lsky, double *gpu_time, size_t *streamCount, struct STAT &_s)
+void goto_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc, double **FP, double **FX, float **gpu_pa, float **gpu_pA, int pixelcount, int Lsky, double *gpu_time, struct STAT *_s, float &Lo)
 {
         float vvv[NIFO], *v00[NIFO], *v90[NIFO];
 	float *rE;
-	size_t V, V4, tsize;
-	int l;
+	float En, Es, ee, em;
+	size_t V, V4, tsize, nIFO, id, k;
+	int m, i, l, f_;
+	double xx[NIFO];
+	short *ml[NIFO];
+	float *pa[NIFO];
+	float *pA[NIFO];
+	
+	f_ = NIFO/4;
+
+        id = ((post_data*)post_gpu_data)->other_data.id[pixelcount];
+        k = ((post_data*)post_gpu_data)->other_data.k[pixelcount]-1;
         V = ((post_data*)post_gpu_data)->other_data.V[pixelcount];
-        V4 = ((post_data*)post_gpu_data)->other_data.V4[pixelcount];
+	V4 = V + (V%4 ? 4 - V%4 : 0);
         tsize = ((post_data*)post_gpu_data)->other_data.tsize[pixelcount];
+        nIFO = ((post_data*)post_gpu_data)->other_data.nIFO;
+        En = ((post_data*)post_gpu_data)->other_data.T_En;
+        Es = ((post_data*)post_gpu_data)->other_data.T_Es;
+
+	for(i=0; i<NIFO; i++)
+                ml[i] = ((post_data*)post_gpu_data)->other_data.ml_mm + i*Lsky;
 
 	rE = ((post_data*)post_gpu_data)->output.output + MaxPixel*OutputSize + pixelcount*VMAX;
-        l = ((post_data*)post_gpu_data)->output.output + pixelcount*OutputSize + 6;
+        l = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 6];
 
+	cout<<"k = "<<k<<endl;
+	cout<<"V = "<<V<<endl;
+	cout<<"V4 = "<<V4<<endl;
+	cout<<"tsize = "<<tsize<<endl;
+	cout<<"id = "<<id<<endl;
+	cout<<"En = "<<En<<endl;
+	cout<<"Es = "<<Es<<endl;
+	cout<<"nIFO = "<<nIFO<<endl;
+	cout<<"l = "<<l<<endl;
+
+        std::vector<wavearray<float> > vtd;              // vectors of TD amplitudes
+        std::vector<wavearray<float> > vTD;              // vectors of TD amplitudes
 	std::vector<int> pI;                      // buffer for pixel TDs                      
+        wavearray<float> tmp(tsize*V4); tmp=0;           // aligned array for TD amplitudes 
         wavearray<float> fp(NIFO*V4);  fp=0;     // aligned array for + antenna pattern             
         wavearray<float> fx(NIFO*V4);  fx=0;     // aligned array for x antenna pattern 
         wavearray<float> nr(NIFO*V4);  nr=0;     // aligned array for inverse rms            
@@ -771,7 +721,19 @@ void goto_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc
         netpixel *pix;
         std::vector<int> *vint;
 
+	//cout<<"2"<<endl;
 	// initialize data
+	for(int i=0; i<NIFO; i++)
+	{
+		vtd.push_back(tmp);
+		vTD.push_back(tmp);
+	}
+
+	for(int i=0; i<NIFO; i++)
+	{
+		pa[i] = vtd[i].data + (tsize/2)*V4;
+		pA[i] = vTD[i].data + (tsize/2)*V4;
+	}
 	net->a_00.resize(NIFO*V4);  net->a_00=0.;
         net->a_90.resize(NIFO*V4);  net->a_90=0.;
         __m128* _aa = (__m128*) net->a_00.data;         // set pointer to 00 array               
@@ -793,16 +755,45 @@ void goto_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc
                         rms += xx[i]*xx[i];     // total inverse variance
                 }
                 for(int i=0; i<nIFO; i++)
+		{
                         nr.data[j*NIFO+i]=(float)xx[i]/sqrt(rms);       // normalized 1/rms
+			for(int l=0; l<tsize; l++)
+			{
+				vtd[i].data[l*V4+j] = pix->tdAmp[i].data[l];
+				vTD[i].data[l*V4+j] = pix->tdAmp[i].data[l+tsize];
+			}
+		}
         }
 
-
+	if(k == 4)
+	{
+		FILE *fpt2 = fopen("./new_debug/my_k4vtd", "a");
+		for(int l=0; l<(V4*tsize); l++)
+		{
+			fprintf(fpt2, "l = %d vtd[0] = %f vtd[1] = %f vtd[2] = %f vtd[3] = %f\n", l, vtd[0].data[l], vtd[1].data[l], vtd[2].data[l], vtd[3].data[l]);
+//			fprintf(fpt1, "l = %d vTD[0] = %f vTD[1] = %f vTD[2] = %f\n", l, pre_gpu_data[alloced_gpu].other_data.vtd_vTD_nr[3*vtddim+l + v_ptr], pre_gpu_data[alloced_gpu].other_data.vtd_vTD_nr[3*vtddim + vtddim + l + v_ptr], pre_gpu_data[alloced_gpu].other_data.vtd_vTD_nr[3*vtddim + 2*vtddim + l + v_ptr]);
+		}
+		cout<<"finish"<<endl;
+		fclose(fpt2);
+	}
 	for(int j=0; j<V; j++)
 		net->rNRG.data[j] = rE[j];
-
+	//cout<<"4"<<endl;
         net->pnt_(v00, pa, ml, (int)l, (int)V4);        // pointers to first pixel 00 data
         net->pnt_(v90, pA, ml, (int)l, (int)V4);        // pointers to first pixel 90 data
 
+	FILE *fpt = fopen("./new_debug/myk4_fptone", "a");
+	FILE *fpt1 = fopen("./new_debug/myk4_fpttwo", "a");
+	if(k==4)
+	{
+		for(int j = 0; j<V; j++)
+		{
+			fprintf(fpt, "v = %d %f %f %f %f\n", j, v00[0][j], v00[1][j], v00[2][j], v00[3][j]);
+			fprintf(fpt1, "v = %d %f %f %f %f\n", j, v90[0][j], v90[1][j], v90[2][j], v90[3][j]);
+		}
+		cout<<"finish"<<endl;
+	}
+	//cout<<"4.1"<<endl;
         float *pfp = fp.data;
         float *pfx = fx.data;
         float *p00 = net->a_00.data;
@@ -810,25 +801,26 @@ void goto_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc
 
 	m = 0;
 
+	//cout<<"4.15"<<endl;
 	for(int j=0; j<V; j++)
 	{
 		int jf= j*f_;
                 net->cpp_(p00,v00); net->cpp_(p90,v90);                 // copy amplitudes with target increment
                 net->cpf_(pfp,FP,l);net->cpf_(pfx,FX,l);                // copy antenna with target increment
+	//	cout<<"4.2"<<endl;
                 _sse_zero_ps(_xi+jf);                      // zero MRA amplitudes
                 _sse_zero_ps(_XI+jf);                      // zero MRA amplitudes
                 _sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00
                 _sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90 
+	//	cout<<"4.3"<<endl;
                 if(net->rNRG.data[j]>En) m++;              // count superthreshold pixels
 	}
 	
-        __m128* _pp = (__m128*) am.data;              // point to multi-res amplitudes
-        __m128* _PP = (__m128*) AM.data;              // point to multi-res amplitudes
-
+//	cout<<"5"<<endl;
         _sse_MRA_ps(net, xi.data, XI.data, En, m);  // get principal components
-        _pp = (__m128*) xi.data;                                                // point to PC amplitudes
-       	_PP = (__m128*) XI.data;                                                // point to Pc amplitudes
-        m = 0; Ls = Ln = Eo = 0;
+        __m128* _pp = (__m128*) xi.data;                                                // point to PC amplitudes
+       	__m128* _PP = (__m128*) XI.data;                                                // point to Pc amplitudes
+        m = 0; _s->Ls = _s->Eo = 0;
 	for(int j=0; j<V; j++)
 	{
 		int jf = j*f_;  // source sse pointer increment 
@@ -845,10 +837,10 @@ void goto_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc
 		_sse_mul_ps(_Fx+mf,_nr+jf);         // normalize fx by rms
 		m++;
 		em = _sse_maxE_ps(_pp+jf,_PP+jf);   // dominant pixel energy
-		Ls += ee-em; Eo += ee;       // subnetwork energy, network energy
-		if(ee-em>Es) Ln += ee;       // network energy above subnet threshold
+		_s->Ls += ee-em; _s->Eo += ee;       // subnetwork energy, network energy
 	}
 
+//	cout<<"6"<<endl;
 	size_t m4 = m + (m%4 ? 4 - m%4 : 0);
 	_E_n = _mm_setzero_ps();        // + likelihood
 
@@ -859,24 +851,56 @@ void goto_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc
 		_E_s = _sse_like4_ps(_fp+jf,_fx+jf,_bb+jf,_BB+jf);  // std likelihood
 		_E_n = _mm_add_ps(_E_n,_E_s);                       // total likelihood
 	}
+//	cout<<"7"<<endl;
 
 	_mm_storeu_ps(vvv,_E_n);
-
 	Lo = vvv[0]+vvv[1]+vvv[2]+vvv[3];
-	AA = aa/(fabs(aa)+fabs(Eo-Lo)+2*m*(Eo-Ln)/Eo);        //  subnet stat with threshold
-	ee = Ls*Eo/(Eo-Ls);
-	em = fabs(Eo-Lo)+2*m;   //  suball NULL
-	ee = ee/(ee+em);        //  subnet stat without threshold
-	aa = (aa-m)/(aa+m);
+	_s->m = m;
 
 }
-/*void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, int pixelcount, int Lsky, double *gpu_time, size_t *streamCount, int &cc)
+void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, int pixelcount, int Lsky, double *gpu_time, size_t *streamCount, int streamNum, float &Lo)
+{
+	float rHo;
+	struct STAT _s;
+	bool mra = false;
+	size_t k, id;
+	int lag; 
+	double submra = 0.;
+	
+	_s.stat=_s.Lm=_s.Em=_s.Am=_s.EE=0.;
+	_s.Vm=-1;
+        id = ((post_data*)post_gpu_data)->other_data.id[pixelcount];
+        lag = ((post_data*)post_gpu_data)->other_data.lag;
+        k = ((post_data*)post_gpu_data)->other_data.k[pixelcount] - 1;
+	
+	_s.stat = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize];
+	_s.Lm = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 1];
+	_s.Em = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 2];
+	_s.Am = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 3];
+	_s.suball = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 4];
+	_s.EE = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 5];
+	_s.lm = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 6];
+	_s.Vm = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 7];
+	_s.Eo = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 8];
+	_s.Ls = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 9];
+	_s.m = ((post_data*)post_gpu_data)->output.output[pixelcount*OutputSize + 10];
+	if(_s.lm >= 0)
+		goto_skyloop(post_gpu_data, net, hist, pwc, FP, FX, pa, pA, pixelcount, Lsky, gpu_time, &_s, Lo);
+
+	FILE *fpt = fopen("./new_debug/gpu_skyloopoutput", "a");
+		fprintf(fpt, "lag = %d k = %d stat = %f Lm = %f Em = %f lm = %d Vm = %d suball = %lf submra = %lf Eo = %f Ls = %f Lo = %f m = %d EE = %f\n", lag, k, _s.stat, _s.Lm, _s.Em, _s.lm, _s.Vm, _s.suball, submra, _s.Eo, _s.Ls, Lo, _s.m, _s.EE);
+	fclose(fpt);
+
+}
+
+void pre_after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc, double **FP, double **FX, float **pa, float **pA, int pixelcount, int Lsky, double *gpu_time, size_t *streamCount, int &cc)
 {
 //        FILE *fpt = fopen("./debug_files/skyloop_output", "a");
 // 	debug
 	double Clock[CLOCK_SIZE];
 //
 	Clock[0] = clock();
+	int output_ptr;
 
         bool mra = false;
         float vvv[NIFO], *v00[NIFO], *v90[NIFO];
@@ -905,6 +929,7 @@ void goto_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pwc
         lag = ((post_data*)post_gpu_data)->other_data.lag;
         nIFO = ((post_data*)post_gpu_data)->other_data.nIFO;
         stream = ((post_data*)post_gpu_data)->other_data.stream;
+
 
         for(int i=0; i<NIFO; i++)
                 ml[i] = ((post_data*)post_gpu_data)->other_data.ml_mm + i*Lsky;
@@ -999,7 +1024,6 @@ skyloop:
                         _sse_zero_ps(_XI+jf);                      // zero MRA amplitudes
                         _sse_cpf_ps(_am+jf,_aa+jf);                // duplicate 00
                         _sse_cpf_ps(_AM+jf,_AA+jf);                // duplicate 90 
-
                         if(net->rNRG.data[j]>En) m++;              // count superthreshold pixels
                 }
 
@@ -1125,7 +1149,7 @@ skyloop:
 	Clock[2] = clock();
 	gpu_time[3] += (double)(Clock[2] - Clock[1])/CLOCKS_PER_SEC;
 	return;
-}*/
+}
 
 
 long network::likelihood2G(char mode, int lag, int iID, TH2F* hist)

@@ -904,6 +904,17 @@ long network::subNetCut(int lag, float snc, TH2F* hist)
 
          pnt_(v00, pa, ml, (int)l, (int)V4);           // pointers to first pixel 00 data 
          pnt_(v90, pA, ml, (int)l, (int)V4);           // pointers to first pixel 90 data 
+
+	 if(k == 4 && mra == true)
+	 {
+		FILE *fpt = fopen("./new_debug/cpuk4_vtd", "a");
+		FILE *fpt1 = fopen("./new_debug/cpuk4_vTD", "a");
+		for(int j = 0; j<V; j++)
+		{
+			fprintf(fpt, "v = %d %f %f %f %f\n", j, v00[0][j], v00[1][j], v00[2][j], v00[3][j]);
+			fprintf(fpt1, "v = %d %f %f %f %f\n", j, v90[0][j], v90[1][j], v90[2][j], v90[3][j]);
+		}
+	 }
 /*	 if(k==353)
 	 {
 		fprintf(fpt, "k = %d l = %d v00[0] = %f v00[1] = %f v00[2] = %f v00[3] = %f\n", k, l, v00[0][0], v00[0][1], v00[0][2], v00[0][3]);
