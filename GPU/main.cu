@@ -48,11 +48,6 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 {
 	// define variables
 	size_t nIFO = net->ifoList.size();
-	
-	cout<<"nIFO = "<<nIFO<<endl;
-	cout<<"NIFO = "<<NIFO<<endl;
-	cout<<"New"<<endl;
-
 	float En = 2*net->acor*net->acor*nIFO;  // network energy threshold in the sky loop
         float Es = 2*net->e2or;                 // subnet energy threshold in the sky loop
         float TH = fabs(snc);                   // sub network threshold
@@ -377,13 +372,11 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 	for(int i=0; i<StreamNum; i++)				// add count
                 count += streamCount[i];
         cout<<"count = "<<count<<endl;
-	cout<<"after_loop time = "<<gpu_time[0]<<endl;
-	cout<<"after_loop preparation = "<<gpu_time[1]<<endl;
-	cout<<"after_loop overall loop = "<<gpu_time[3]<<endl;
-	cout<<"after_loop loop = "<<gpu_time[4]<<endl;
-	cout<<"my after_loop loop = "<<gpu_time[9]<<endl;
-	cout<<"cc = "<<cc<<endl;
-	cc = 0;
+	//cout<<"after_loop time = "<<gpu_time[0]<<endl;
+	//cout<<"after_loop preparation = "<<gpu_time[1]<<endl;
+	//cout<<"after_loop overall loop = "<<gpu_time[3]<<endl;
+	//cout<<"after_loop loop = "<<gpu_time[4]<<endl;
+	//cout<<"my after_loop loop = "<<gpu_time[9]<<endl;
 	return count;
 }
 
@@ -403,8 +396,8 @@ __host__ void push_work_into_gpu(struct pre_data *input_data, struct post_data *
 	}
         for(int i=0; i<work_size; i++)// transfer the data back from GPU to CPU
         {       
-	//	cudaMemcpyAsync(post_gpu_data[i].output.output, skyloop_output[i].output, OutputSize*pixel_array[i]*sizeof(float) + alloced_V_array[i]*sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
-                cudaMemcpyAsync(post_gpu_data[i].output.output, skyloop_output[i].output, MaxPixel*Lsky*sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
+		cudaMemcpyAsync(post_gpu_data[i].output.output, skyloop_output[i].output, MaxPixel*OutputSize*sizeof(float) + MaxPixel*VMAX*sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
+        //        cudaMemcpyAsync(post_gpu_data[i].output.output, skyloop_output[i].output, MaxPixel*Lsky*sizeof(float), cudaMemcpyDeviceToHost, stream[i] );
 	}
 //	for(int i=0; i<work_size; i++)
 //		cudaStreamAddCallback(stream[i], MyCallback, (void*)&post_gpu_data[i], 0);
@@ -1566,12 +1559,8 @@ void MyCallback(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, 
 //
 	int Lsky = gpu_Lsky;
 	int k, vDim;
-	size_t V, tsize;
+	size_t V;
 	int pixelcount=0;
-	int streamNum;
-	size_t output_ptr = 0;
-	float *aa;
-	float lm;
 	float *pa[gpu_nIFO];
 	float *pA[gpu_nIFO];
 	size_t v_ptr;
@@ -1582,17 +1571,7 @@ void MyCallback(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, 
 		v_ptr = HEAD_SIZE;
 		while(k != -1)
 		{
-		//	V = post_gpu_data[i].other_data.V[pixelcount];
-		//	tsize = post_gpu_data[i].other_data.tsize[pixelcount];
-		//	vDim = V*tsize;
-		//	pa[0] = pre_gpu_data[i].other_data.vtd_vTD_nr + v_ptr + (tsize/2)*V;
-		//	pa[1] = pre_gpu_data[i].other_data.vtd_vTD_nr + vDim + v_ptr + (tsize/2)*V;
-		//	pa[2] = pre_gpu_data[i].other_data.vtd_vTD_nr + 2*vDim + v_ptr + (tsize/2)*V;
-		//	pA[0] = pre_gpu_data[i].other_data.vtd_vTD_nr + gpu_nIFO*vDim + v_ptr + (tsize/2)*V;
-		//	pA[1] = pre_gpu_data[i].other_data.vtd_vTD_nr + gpu_nIFO*vDim + vDim + v_ptr + (tsize/2)*V;
-		//	pA[2] = pre_gpu_data[i].other_data.vtd_vTD_nr + gpu_nIFO*vDim + 2*vDim + v_ptr + (tsize/2)*V;
-
-			after_skyloop((void*)&post_gpu_data[i], gpu_net, gpu_hist, pwc, FP, FX, pa, pA, pixelcount, Lsky, gpu_time, streamCount, streamNum, Lo);
+			after_skyloop((void*)&post_gpu_data[i], gpu_net, gpu_hist, pwc, FP, FX, pa, pA, pixelcount, Lsky, gpu_time, streamCount, i, Lo);
 
 			pixelcount++;
 			v_ptr += vDim*gpu_nIFO*2 + gpu_nIFO*V;
