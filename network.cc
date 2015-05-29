@@ -567,7 +567,7 @@ void my_test_sse(void)
 
 long network::subNetCut(int lag, float snc, TH2F* hist)
 {
-	cout<<"GPU Version"<<endl;
+	cout<<"GPU Version 1"<<endl;
         double time[10];
 	if(!this->wc_List[lag].size())	return 0;
 	size_t nIFO = this->ifoList.size();
@@ -887,9 +887,9 @@ void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netcluster *pw
 		Ls = _s.Ls;
 		m = _s.m;
 	}
-	FILE *fpt = fopen("./new_debug/gpu_skyloopoutput", "a");
+	/*FILE *fpt = fopen("./new_debug/gpu_skyloopoutput", "a");
 		fprintf(fpt, "lag = %d k = %d stat = %f Lm = %f Em = %f lm = %d Vm = %d suball = %lf submra = %lf Eo = %f Ls = %f Lo = %f m = %d EE = %f\n", lag, k, stat, Lm, Em, lm, Vm, suball, submra, Eo, Ls, Lo, m, EE);
-	fclose(fpt);
+	fclose(fpt);*/
 	
 	vint = &(pwc->cList[id-1]);
 	pwc->sCuts[id-1] = -1;

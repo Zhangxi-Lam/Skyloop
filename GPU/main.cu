@@ -5,7 +5,7 @@
 #include "/home/hpc/cWB/trunk/wat/GPU/gpu_struct.h"
 
 #define num_blocks 16 
-#define num_threads 256 
+#define num_threads 512 
 #define shared_memory_usage 0
 
 #define StreamNum 1 
@@ -47,6 +47,8 @@ extern void after_skyloop(void *post_gpu_data, network *net, TH2F *hist, netclus
 long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 {
 	// define variables
+	double this_time[10];
+	this_time[0] = clock();
 	size_t nIFO = net->ifoList.size();
 	float En = 2*net->acor*net->acor*nIFO;  // network energy threshold in the sky loop
         float Es = 2*net->e2or;                 // subnet energy threshold in the sky loop
@@ -145,7 +147,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
                         Vmax = V;
         }
 //++++++++++++++++++++++++++++++++
-// declare the variables used for gpu calculation 
+// allocate the memory on GPU and CPU and then send 
 //++++++++++++++++++++++++++++++++
 	struct pre_data pre_gpu_data[BufferNum];		
 	struct post_data post_gpu_data[StreamNum];      // store the data transfer from gpu
@@ -228,7 +230,8 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 //++++++++++++++++++++++++++++++++
 // loop over cluster
 //++++++++++++++++++++++++++++++++
-
+	this_time[1] = clock();
+	printf("Time[0] = %f\n", (double)(this_time[1]-this_time[0])/CLOCKS_PER_SEC);
 	QuickSort(V_array, k_sortArray, 0, kcount-1);
 	cid = pwc->get((char*)"ID", 0,'S',0);		// get cluster ID
 	K = cid.size();
@@ -1554,8 +1557,8 @@ void CUDART_CB Callback(cudaStream_t stream, cudaError_t status, void *post_gpu_
 }
 void MyCallback(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, float &Lo)
 {
-	FILE *fpt = fopen("./new_debug/myk4_fptone", "a");
-	FILE *fpt1 = fopen("./new_debug/myk4_fpttwo", "a");
+//	FILE *fpt = fopen("./new_debug/myk4_fptone", "a");
+//	FILE *fpt1 = fopen("./new_debug/myk4_fpttwo", "a");
 //
 	int Lsky = gpu_Lsky;
 	int k, vDim;
@@ -1581,8 +1584,8 @@ void MyCallback(struct pre_data *pre_gpu_data, struct post_data *post_gpu_data, 
 				break;
 		}
 	}
-	fclose(fpt);
-	fclose(fpt1);
+//	fclose(fpt);
+//	fclose(fpt1);
 
 	
 }
