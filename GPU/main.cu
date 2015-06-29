@@ -49,6 +49,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 	// define variables
 	double this_time[10];
 	this_time[0] = clock();
+	this_time[9] = 0;
 	size_t nIFO = net->ifoList.size();
 	float En = 2*net->acor*net->acor*nIFO;  // network energy threshold in the sky loop
         float Es = 2*net->e2or;                 // subnet energy threshold in the sky loop
@@ -335,10 +336,13 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 //++++++++++++++++++++++++++++++++
 		if(alloced_gpu == StreamNum)
 		{
+			this_time[2] = clock();
 			push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, vtddim_array, etddim_array, alloced_V_array, Lsky, pixel_array, StreamNum, stream);
 			for(int i=0; i<StreamNum; i++)
 				CUDA_CHECK(cudaStreamSynchronize(stream[i]));
 			MyCallback(pre_gpu_data, post_gpu_data, Lo);
+			this_time[3] = clock();
+			this_time[9] += (double)(this_time[3] - this_time[2])/CLOCKS_PER_SEC;
 			//clear
 			alloced_gpu = 0;
 			for(int j=0; j<StreamNum; j++)
@@ -358,11 +362,13 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 	}
 	if(alloced_gpu != 0)
 	{
-		
+		this_time[2] = clock();
 		push_work_into_gpu(pre_gpu_data, post_gpu_data, skyloop_output, skyloop_other, vtddim_array, etddim_array, alloced_V_array, Lsky, pixel_array, StreamNum, stream);
 		for(int i=0; i<StreamNum; i++)
 			CUDA_CHECK(cudaStreamSynchronize(stream[i]));
 		MyCallback(pre_gpu_data, post_gpu_data, Lo);
+		this_time[3] = clock();
+		this_time[9] += (double)(this_time[3] - this_time[2])/CLOCKS_PER_SEC;
 		alloced_gpu = 0;
 	}		
 	free(V_array);
@@ -375,6 +381,7 @@ long gpu_subNetCut(network *net, int lag, float snc, TH2F *hist, double *time)
 	for(int i=0; i<StreamNum; i++)				// add count
                 count += streamCount[i];
         cout<<"count = "<<count<<endl;
+	cout<<"this_time[9]"<<this_time[9]<<endl;
 	//cout<<"after_loop time = "<<gpu_time[0]<<endl;
 	//cout<<"after_loop preparation = "<<gpu_time[1]<<endl;
 	//cout<<"after_loop overall loop = "<<gpu_time[3]<<endl;
